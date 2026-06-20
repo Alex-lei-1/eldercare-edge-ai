@@ -29,7 +29,10 @@
   nav .brand small{color:var(--tx3);font-weight:500;margin-left:8px}
   nav .links{margin-left:auto;display:flex;gap:20px;font-size:14px}
   nav .links a{color:var(--tx2)}
-  @media(max-width:680px){nav .links{display:none}}
+  .langsw{margin-left:14px;display:flex;gap:4px;font-size:13px}
+  .langsw a{padding:4px 9px;border-radius:8px;border:1px solid var(--line);color:var(--tx2)}
+  .langsw a.on{background:var(--accent);color:#06122b;border-color:transparent;font-weight:700}
+  @media(max-width:680px){nav .links{display:none}.langsw{margin-left:auto}}
 
   /* hero */
   header.hero{padding:72px 0 40px}
@@ -109,6 +112,7 @@
     <a href="#engineering">Engineering</a>
     <a href="#stack">Stack</a>
   </div>
+  <div class="langsw"><a href="index.html" class="on">EN</a><a href="zh.html">中文</a></div>
 </div></nav>
 
 <header class="hero"><div class="wrap">
