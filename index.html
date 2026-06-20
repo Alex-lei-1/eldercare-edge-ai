@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ElderCare Edge AI — On-device fall detection & voice companion (RK3588)</title>
+<meta name="description" content="An on-device elder-care system on the RK3588 NPU: real-time pose-based fall detection plus a fully local voice companion. No cloud, all inference on the edge.">
+<style>
+  :root{
+    --bg:#0b1020; --bg2:#0f172a; --card:#121a2e; --line:#22304d;
+    --tx:#e5e7eb; --tx2:#9fb0c7; --tx3:#6b7c98;
+    --hw:#64748b; --vis:#3b82f6; --fall:#f59e0b; --alert:#ef4444; --voice:#14b8a6; --ops:#a855f7;
+    --accent:#5b9cff;
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#16203b 0%,var(--bg) 55%);
+    color:var(--tx);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em;background:#0c1426;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:#cfe0ff}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(11,16,32,.72);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:18px;height:56px}
+  nav .brand{font-weight:700;letter-spacing:.2px}
+  nav .brand small{color:var(--tx3);font-weight:500;margin-left:8px}
+  nav .links{margin-left:auto;display:flex;gap:20px;font-size:14px}
+  nav .links a{color:var(--tx2)}
+  @media(max-width:680px){nav .links{display:none}}
+
+  /* hero */
+  header.hero{padding:72px 0 40px}
+  .eyebrow{color:var(--accent);font-weight:600;font-size:13px;letter-spacing:2px;text-transform:uppercase}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.1;margin:14px 0 10px;letter-spacing:-.5px}
+  h1 .grad{background:linear-gradient(90deg,#7cc5ff,#9b8cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:clamp(16px,2.3vw,20px);color:var(--tx2);max-width:680px}
+  .cta{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;border:1px solid var(--line)}
+  .btn.primary{background:var(--accent);color:#06122b;border-color:transparent}
+  .btn.ghost{color:var(--tx)}
+
+  /* stat strip */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:40px 0 8px}
+  @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+  .stat b{display:block;font-size:26px;letter-spacing:-.5px}
+  .stat span{color:var(--tx2);font-size:12.5px}
+
+  section{padding:46px 0;border-top:1px solid var(--line)}
+  h2{font-size:24px;margin:0 0 6px;letter-spacing:-.3px}
+  .sub{color:var(--tx2);margin:0 0 22px}
+
+  /* feature grid */
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px 16px}
+  .card h3{margin:0 0 6px;font-size:16px}
+  .card p{margin:0;color:var(--tx2);font-size:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;border-radius:999px;margin-bottom:10px}
+
+  /* numbered pipeline */
+  ol.flow{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:12px}
+  ol.flow li{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 56px}
+  ol.flow li::before{counter-increment:s;content:counter(s);position:absolute;left:14px;top:14px;width:28px;height:28px;border-radius:8px;background:#11224a;color:#bcd4ff;border:1px solid #2b4a7e;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  ol.flow li b{color:var(--tx)}
+  ol.flow li span{color:var(--tx2);font-size:14px}
+
+  /* badges */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-size:13px;background:#0c1426;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--tx2)}
+  .chip b{color:var(--tx);font-weight:600}
+
+  /* diagram */
+  .diagram{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+  .diagram svg{width:100%;height:auto;display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;color:var(--tx2);font-size:13px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+  footer{border-top:1px solid var(--line);padding:30px 0 56px;color:var(--tx3);font-size:13px}
+
+  /* SVG diagram styling (self-contained) */
+  svg .t{font:600 14px -apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;fill:#eef3fb}
+  svg .ts{font:400 12px -apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;fill:#9fb0c7}
+  svg .th{font:700 16px -apple-system,"Segoe UI",Roboto,sans-serif;fill:#eef3fb}
+  svg .sec{font:600 13px -apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;fill:#7e90ad}
+  svg .b{rx:9;stroke-width:1.4}
+  svg .hw{fill:rgba(100,116,139,.16);stroke:#64748b}
+  svg .vis{fill:rgba(59,130,246,.15);stroke:#3b82f6}
+  svg .fall{fill:rgba(245,158,11,.15);stroke:#f59e0b}
+  svg .alert{fill:rgba(239,68,68,.15);stroke:#ef4444}
+  svg .voice{fill:rgba(20,184,166,.15);stroke:#14b8a6}
+  svg .ops{fill:rgba(168,85,247,.15);stroke:#a855f7}
+  svg .ln{stroke:#64748b;stroke-width:1.5;fill:none}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">ElderCare Edge AI <small>RK3588</small></div>
+  <div class="links">
+    <a href="#overview">Overview</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#engineering">Engineering</a>
+    <a href="#stack">Stack</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Edge AI · On-device · No cloud</div>
+  <h1>Real-time <span class="grad">fall detection</span> &amp; a local <span class="grad">voice companion</span></h1>
+  <p class="lede">An elder-care system that runs entirely on an Orange Pi 5 Plus (RK3588). A 6-TOPS NPU drives pose-based fall detection; a fully offline voice assistant checks on the elder and alerts family — all without sending a single frame or word to the cloud.</p>
+  <div class="cta">
+    <a class="btn primary" href="#architecture">See the architecture ↓</a>
+    <a class="btn ghost" href="#engineering">Engineering highlights</a>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>90%</b><span>fall recall · 4.6% false-positive (URFD + in-house clips)</span></div>
+    <div class="stat"><b>~15 fps</b><span>640-input pose on a 3-core NPU pipeline</span></div>
+    <div class="stat"><b>100%</b><span>on-device — zero cloud dependency</span></div>
+    <div class="stat"><b>~3 s</b><span>fall → family push + snapshot</span></div>
+  </div>
+</div></header>
+
+<section id="overview"><div class="wrap">
+  <h2>What it does</h2>
+  <p class="sub">Two AI workloads share one low-power board and one camera + mic.</p>
+  <div class="grid g2">
+    <div class="card">
+      <span class="tag" style="background:rgba(59,130,246,.18);color:#bcd6ff">Vision</span>
+      <h3>Pose-based fall detection</h3>
+      <p>A YOLOv8n-pose model on the NPU streams 17 keypoints per person. A temporal state machine (NORMAL → WARNING → LYING → FALL_CONFIRMED) judges body angle, floor height and aspect ratio over time, then confirms a fall and fires an alert with a snapshot.</p>
+    </div>
+    <div class="card">
+      <span class="tag" style="background:rgba(20,184,166,.18);color:#a9efe4">Voice</span>
+      <h3>Fully offline voice companion</h3>
+      <p>Wake word → on-device ASR → a local LLM → neural TTS, with acoustic echo cancellation so the assistant never talks to itself. After a fall it asks "are you OK?" and lets the elder barge in with "I'm fine" / "help" to decide whether to escalate.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="architecture"><div class="wrap">
+  <h2>End-to-end architecture</h2>
+  <p class="sub">Camera &amp; ISP → NPU inference → three outputs → fall logic → message bus → family alert &amp; voice, plus a parallel voice-companion pipeline and a systemd ops layer.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 680 1150" role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>ElderCare Edge AI end-to-end data flow</title>
+      <desc>Layered data flow on RK3588: camera and ISP capture, NPU pose inference, three outputs (UDP pose, RTSP, JPEG ring), fall-detection state machine, MQTT bus, family alert and voice check-in, a parallel voice-companion pipeline, and a systemd ops layer.</desc>
+      <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#64748b"/></marker></defs>
+
+      <!-- S1 hardware -->
+      <text class="sec" x="40" y="28">① Hardware</text>
+      <g><rect class="b hw" x="40" y="40" width="185" height="54"/><text class="t" x="132" y="64" text-anchor="middle">MIPI camera</text><text class="ts" x="132" y="82" text-anchor="middle">ov13855 sensor</text></g>
+      <g><rect class="b hw" x="247" y="40" width="186" height="54"/><text class="t" x="340" y="64" text-anchor="middle">Audio codec</text><text class="ts" x="340" y="82" text-anchor="middle">es8388 · BTL speaker</text></g>
+      <g><rect class="b hw" x="455" y="40" width="185" height="54"/><text class="t" x="547" y="64" text-anchor="middle">RK3588 SoC</text><text class="ts" x="547" y="82" text-anchor="middle">8 core · 6T NPU · RGA/VPU</text></g>
+      <line class="ln" x1="132" y1="94" x2="170" y2="132" marker-end="url(#ah)"/>
+
+      <!-- S2 capture/ISP -->
+      <text class="sec" x="40" y="122">② Capture / ISP</text>
+      <g><rect class="b vis" x="40" y="134" width="270" height="54"/><text class="t" x="175" y="158" text-anchor="middle">RKAIQ 3A ISP</text><text class="ts" x="175" y="176" text-anchor="middle">AE tune · 60Hz anti-flicker</text></g>
+      <line class="ln" x1="310" y1="161" x2="350" y2="161" marker-end="url(#ah)"/>
+      <g><rect class="b vis" x="350" y="134" width="290" height="54"/><text class="t" x="495" y="158" text-anchor="middle">V4L2 /dev/video12</text><text class="ts" x="495" y="176" text-anchor="middle">NV12 DMA-BUF · 8-buffer pool</text></g>
+      <line class="ln" x1="495" y1="188" x2="420" y2="226" marker-end="url(#ah)"/>
+
+      <!-- S3 inference -->
+      <text class="sec" x="40" y="216">③ Vision inference · main_yolo_pose_rknn_camera</text>
+      <g><rect class="b vis" x="40" y="228" width="600" height="30"/><text class="t" x="340" y="248" text-anchor="middle">3-core RKNN pipeline · ~15 fps steady · 0 dropped frames</text></g>
+      <g><rect class="b vis" x="40" y="266" width="185" height="54"/><text class="t" x="132" y="290" text-anchor="middle">Capture thread</text><text class="ts" x="132" y="308" text-anchor="middle">A55 cores · DQBUF</text></g>
+      <line class="ln" x1="225" y1="293" x2="247" y2="293" marker-end="url(#ah)"/>
+      <g><rect class="b vis" x="247" y="266" width="186" height="54"/><text class="t" x="340" y="290" text-anchor="middle">3× RKNN context</text><text class="ts" x="340" y="308" text-anchor="middle">A76 · NPU · RGA→RGB</text></g>
+      <line class="ln" x1="433" y1="293" x2="455" y2="293" marker-end="url(#ah)"/>
+      <g><rect class="b vis" x="455" y="266" width="185" height="54"/><text class="t" x="547" y="290" text-anchor="middle">yolov8n-pose 640</text><text class="ts" x="547" y="308" text-anchor="middle">postprocess + tracker</text></g>
+      <line class="ln" x1="340" y1="320" x2="340" y2="358" marker-end="url(#ah)"/>
+
+      <!-- S4 outputs -->
+      <text class="sec" x="40" y="346">④ Three outputs</text>
+      <g><rect class="b vis" x="40" y="358" width="185" height="54"/><text class="t" x="132" y="382" text-anchor="middle">Pose keypoints</text><text class="ts" x="132" y="400" text-anchor="middle">UDP 127.0.0.1:5800</text></g>
+      <g><rect class="b vis" x="247" y="358" width="186" height="54"/><text class="t" x="340" y="382" text-anchor="middle">RTSP H264</text><text class="ts" x="340" y="400" text-anchor="middle">MPP · multi-appsrc · :8554</text></g>
+      <g><rect class="b vis" x="455" y="358" width="185" height="54"/><text class="t" x="547" y="382" text-anchor="middle">HW-JPEG ring</text><text class="ts" x="547" y="400" text-anchor="middle">/dev/shm evidence</text></g>
+      <line class="ln" x1="132" y1="412" x2="170" y2="452" marker-end="url(#ah)"/>
+      <text class="ts" x="138" y="436">pose</text>
+
+      <!-- S5 fall -->
+      <text class="sec" x="40" y="440">⑤ Fall detection · eldercare_fall_service</text>
+      <g><rect class="b fall" x="40" y="452" width="270" height="58"/><text class="t" x="175" y="476" text-anchor="middle">Pose receive + score</text><text class="ts" x="175" y="495" text-anchor="middle">COCO17 · angle/ratio/floor</text></g>
+      <line class="ln" x1="310" y1="481" x2="350" y2="481" marker-end="url(#ah)"/>
+      <g><rect class="b fall" x="350" y="452" width="290" height="58"/><text class="t" x="495" y="476" text-anchor="middle">fall_detector state machine</text><text class="ts" x="495" y="495" text-anchor="middle">NORMAL→WARNING→LYING→FALL</text></g>
+      <line class="ln" x1="495" y1="510" x2="365" y2="550" marker-end="url(#ah)"/>
+      <text class="ts" x="430" y="534">FALL_CONFIRMED</text>
+
+      <!-- S6 mqtt -->
+      <text class="sec" x="40" y="540">⑥ Message bus</text>
+      <g><rect class="b ops" x="190" y="552" width="300" height="42"/><text class="t" x="340" y="578" text-anchor="middle">MQTT broker (mosquitto · local)</text></g>
+      <line class="ln" x1="280" y1="594" x2="200" y2="632" marker-end="url(#ah)"/>
+      <line class="ln" x1="430" y1="594" x2="500" y2="632" marker-end="url(#ah)"/>
+
+      <!-- S7 alert -->
+      <text class="sec" x="40" y="620">⑦ Alert &amp; response</text>
+      <g><rect class="b alert" x="40" y="632" width="290" height="60"/><text class="t" x="185" y="656" text-anchor="middle">eldercare_alert_service</text><text class="ts" x="185" y="675" text-anchor="middle">ntfy family push + snapshot</text></g>
+      <g><rect class="b alert" x="350" y="632" width="290" height="60"/><text class="t" x="495" y="656" text-anchor="middle">Voice check-in (fall)</text><text class="ts" x="495" y="675" text-anchor="middle">barge-in → classify ok/sos</text></g>
+      <line class="ln" x1="185" y1="692" x2="185" y2="718" marker-end="url(#ah)"/>
+      <line class="ln" x1="495" y1="692" x2="495" y2="718" marker-end="url(#ah)"/>
+      <g><rect class="b alert" x="40" y="718" width="290" height="44"/><text class="t" x="185" y="738" text-anchor="middle">Family phone</text><text class="ts" x="185" y="754" text-anchor="middle">push + snapshot + live RTSP</text></g>
+      <g><rect class="b alert" x="350" y="718" width="290" height="44"/><text class="t" x="495" y="738" text-anchor="middle">Spoken reply to elder</text><text class="ts" x="495" y="754" text-anchor="middle">reassure or escalate</text></g>
+
+      <!-- S8 voice -->
+      <text class="sec" x="40" y="792">⑧ Voice companion (parallel) · eldercare_voice_service</text>
+      <g><rect class="b voice" x="40" y="804" width="600" height="30"/><text class="t" x="340" y="824" text-anchor="middle">audio_aec_duplex · PipeWire full-duplex · speex AEC + envelope gate</text></g>
+      <g><rect class="b voice" x="40" y="842" width="185" height="54"/><text class="t" x="132" y="866" text-anchor="middle">Wake + Silero VAD</text><text class="ts" x="132" y="884" text-anchor="middle">echo guard</text></g>
+      <line class="ln" x1="225" y1="869" x2="247" y2="869" marker-end="url(#ah)"/>
+      <g><rect class="b voice" x="247" y="842" width="186" height="54"/><text class="t" x="340" y="866" text-anchor="middle">SenseVoice ASR</text><text class="ts" x="340" y="884" text-anchor="middle">offline Chinese</text></g>
+      <line class="ln" x1="433" y1="869" x2="455" y2="869" marker-end="url(#ah)"/>
+      <g><rect class="b voice" x="455" y="842" width="185" height="54"/><text class="t" x="547" y="866" text-anchor="middle">qwen LLM</text><text class="ts" x="547" y="884" text-anchor="middle">llama-server, local</text></g>
+      <line class="ln" x1="547" y1="896" x2="370" y2="932" marker-end="url(#ah)"/>
+      <g><rect class="b voice" x="247" y="932" width="186" height="54"/><text class="t" x="340" y="956" text-anchor="middle">Matcha TTS</text><text class="ts" x="340" y="974" text-anchor="middle">neural Mandarin</text></g>
+      <line class="ln" x1="433" y1="959" x2="455" y2="959" marker-end="url(#ah)"/>
+      <g><rect class="b voice" x="455" y="932" width="185" height="54"/><text class="t" x="547" y="956" text-anchor="middle">Differential playback</text><text class="ts" x="547" y="974" text-anchor="middle">feeds AEC reference</text></g>
+
+      <!-- S9 ops -->
+      <text class="sec" x="40" y="1018">⑨ Ops / infrastructure</text>
+      <g><rect class="b ops" x="40" y="1030" width="185" height="40"/><text class="ts" x="132" y="1054" text-anchor="middle">systemd --user units</text></g>
+      <g><rect class="b ops" x="247" y="1030" width="186" height="40"/><text class="ts" x="340" y="1054" text-anchor="middle">health_agent monitor</text></g>
+      <g><rect class="b ops" x="455" y="1030" width="185" height="40"/><text class="ts" x="547" y="1054" text-anchor="middle">OTA agent / builder</text></g>
+    </svg>
+    <div class="legend">
+      <span><i style="background:#64748b"></i>Hardware</span>
+      <span><i style="background:#3b82f6"></i>Vision</span>
+      <span><i style="background:#f59e0b"></i>Fall</span>
+      <span><i style="background:#ef4444"></i>Alert</span>
+      <span><i style="background:#14b8a6"></i>Voice</span>
+      <span><i style="background:#a855f7"></i>Ops</span>
+    </div>
+  </div>
+</div></section>
+
+<section id="pipeline"><div class="wrap">
+  <h2>The fall-alarm path, step by step</h2>
+  <p class="sub">From photons to a family notification — every stage runs on the board.</p>
+  <ol class="flow">
+    <li><b>Capture.</b> <span>ov13855 → RKAIQ ISP (auto-exposure, 60 Hz anti-flicker, low-light tuning) → V4L2 NV12 DMA-BUF with an 8-buffer pool.</span></li>
+    <li><b>Infer.</b> <span>Capture thread (A55) hands frames to 3 parallel RKNN contexts (A76 + NPU). Each runs RGA NV12→RGB then YOLOv8n-pose 640, post-process and tracking — ~15 fps with zero dropped frames.</span></li>
+    <li><b>Fan-out.</b> <span>Keypoints over UDP, an AI-overlay H264 stream over RTSP (hardware MPP encoder, multi-client), and a hardware-JPEG ring in tmpfs for event evidence.</span></li>
+    <li><b>Decide.</b> <span>The fall service feeds keypoints into a temporal state machine that confirms a fall from body angle, floor height and aspect ratio sustained over time.</span></li>
+    <li><b>Notify.</b> <span>On <code>FALL_CONFIRMED</code> it publishes to MQTT; the alert service pushes the family (ntfy) with a snapshot pulled from the JPEG ring.</span></li>
+    <li><b>Check in.</b> <span>The voice service speaks "are you OK?" without blocking, lets the elder barge in, subtracts the prompt's own echo from the transcript, and classifies <em>ok</em> vs <em>sos</em> to reassure or escalate.</span></li>
+  </ol>
+</div></section>
+
+<section id="engineering"><div class="wrap">
+  <h2>Engineering highlights</h2>
+  <p class="sub">The interesting decisions — the ones that took measurement, not guessing.</p>
+  <div class="grid g2">
+    <div class="card"><h3>640 model at 384 speed</h3><p>The fast 384 model missed lying/distant poses (≈81% vs 100% for 640). Instead of trading accuracy, three parallel RKNN contexts restored the 640 model to ~15 fps — accuracy <em>and</em> throughput.</p></div>
+    <div class="card"><h3>The zero-copy trap</h3><p>The "obvious" full <code>rknn_set_io_mem</code> zero-copy path was measured 2× <em>slower</em> for the 640 model. Keeping RGA pre-process + <code>rknn_inputs_set</code> won — a reminder to benchmark, not assume.</p></div>
+    <div class="card"><h3>Industrial low-light ISP</h3><p>Rather than software brightening, the RK3588 hardware ISP (RKAIQ) is tuned at the IQ level — exposure curve, gain, and 60 Hz anti-flicker — so the auto-exposure adapts to the dark scene and stays artifact-free.</p></div>
+    <div class="card"><h3>Hearing past itself</h3><p>A full-duplex PipeWire helper runs speex AEC plus an echo-envelope gate so the assistant doesn't transcribe its own TTS, while still letting a real person barge in over the speaker.</p></div>
+    <div class="card"><h3>Reliable RTSP</h3><p>The live stream uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so viewers can reconnect and multiple phones can watch at once.</p></div>
+    <div class="card"><h3>Verified, not assumed</h3><p>The deployed C++ fall logic is a line-by-line port of the Python reference and was proven byte-identical on a 35-clip replay corpus — the eval scores describe the code that actually ships.</p></div>
+  </div>
+</div></section>
+
+<section id="stack"><div class="wrap">
+  <h2>Tech stack</h2>
+  <p class="sub">Edge-native C++, on the metal.</p>
+  <div class="chips">
+    <span class="chip"><b>RK3588</b> · Orange Pi 5 Plus</span>
+    <span class="chip"><b>RKNN</b> NPU runtime 2.3.2</span>
+    <span class="chip"><b>YOLOv8n-pose</b> (INT8/FP16)</span>
+    <span class="chip"><b>RKAIQ</b> ISP tuning</span>
+    <span class="chip"><b>RGA</b> + <b>MPP</b> (VPU)</span>
+    <span class="chip"><b>GStreamer</b> RTSP</span>
+    <span class="chip"><b>V4L2</b> DMA-BUF</span>
+    <span class="chip"><b>PipeWire</b> + speex AEC</span>
+    <span class="chip"><b>sherpa-onnx</b> ASR/VAD/TTS</span>
+    <span class="chip"><b>llama.cpp</b> (qwen)</span>
+    <span class="chip"><b>MQTT</b> mosquitto</span>
+    <span class="chip"><b>C++17</b> · CMake · systemd</span>
+  </div>
+
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card"><h3>Compute</h3><p>8-core CPU (4×A76 + 4×A55), 6-TOPS 3-core NPU, RGA 2D engine, VPU (MPP) H264/JPEG, 8 GB RAM.</p></div>
+    <div class="card"><h3>Sensing</h3><p>ov13855 MIPI camera through the RKAIQ ISP; es8388 audio codec with a BTL differential speaker and on-board mic.</p></div>
+    <div class="card"><h3>Runtime</h3><p>Six <code>systemd --user</code> services (vision, fall, voice, alert, health, llm), auto-start and self-heal; a health agent tracks per-process CPU, NPU load and temperature.</p></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  ElderCare Edge AI — on-device fall detection &amp; voice companion on RK3588.<br>
+  Built as an engineering portfolio project · all inference runs locally, no cloud.
+</div></footer>
+
+</body>
+</html>
