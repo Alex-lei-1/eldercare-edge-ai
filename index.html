@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ARGUS — On-device elder-care guardian (RK3588): fall detection &amp; voice companion</title>
-<meta name="description" content="ARGUS is an on-device elder-care guardian on the RK3588 NPU: real-time pose-based fall detection plus a fully local voice companion. No cloud — every frame and every word stays on the board. Drill into each module for flow charts, data flow and annotated implementation sketches.">
+<title>ARGUS: on-device elder-care on RK3588 (fall detection and a voice assistant)</title>
+<meta name="description" content="ARGUS is an on-device elder-care system on the RK3588: real-time fall detection from camera pose plus a local voice assistant. All inference runs on the device; no video or audio is sent to the cloud. Each module opens into sub-modules with flow charts, data flow and annotated implementation sketches.">
 <style>
   :root{
     --bg:#0b1020; --bg2:#0f172a; --card:#121a2e; --card2:#0e1626; --line:#22304d;
@@ -57,7 +57,6 @@
   .secttl{display:flex;align-items:baseline;gap:12px;margin:8px 0 4px}
   h2{font-size:23px;margin:0;letter-spacing:-.3px}
   .sub{color:var(--tx2);margin:4px 0 20px}
-  .hint{color:var(--tx3);font-size:13px}
 
   /* module cards */
   .grid{display:grid;gap:16px}
@@ -67,8 +66,7 @@
   .mcard{display:block;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative;overflow:hidden;color:inherit;transition:transform .12s ease,border-color .12s ease}
   .mcard:hover{text-decoration:none;transform:translateY(-2px);border-color:var(--bd,#3a4d73)}
   .mcard .bar{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bd)}
-  .mcard .ico{font-size:22px}
-  .mcard h3{margin:8px 0 2px;font-size:17px}
+  .mcard h3{margin:2px 0 2px;font-size:17px}
   .mcard .nm2{color:var(--tx3);font-size:13px;font-weight:600;margin-bottom:8px}
   .mcard p{margin:0;color:var(--tx2);font-size:13.5px}
   .mcard .go{margin-top:12px;font-size:13px;color:var(--accent);font-weight:600}
@@ -81,8 +79,7 @@
   .scard p{margin:0;color:var(--tx2);font-size:13px}
 
   /* module header */
-  .mhead{display:flex;align-items:flex-start;gap:16px;border-left:4px solid var(--bd);padding:6px 0 6px 18px;margin:6px 0 8px}
-  .mhead .ico{font-size:30px;line-height:1}
+  .mhead{border-left:4px solid var(--bd);padding:4px 0 6px 18px;margin:6px 0 8px}
   .mhead h1{margin:0 0 4px;font-size:clamp(24px,4vw,34px)}
   .mhead .nm2{color:var(--tx3);font-size:14px;font-weight:600}
   .mhead .tag{color:var(--tx2);margin:8px 0 0;max-width:760px}
@@ -133,10 +130,6 @@
   .subnav a{font-size:13.5px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--tx2)}
   .subnav a:hover{border-color:var(--accent);text-decoration:none}
 
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-  .chip{font-size:13px;background:#0c1426;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--tx2)}
-  .chip b{color:var(--tx);font-weight:600}
-
   .diagram{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
   .diagram svg{width:100%;height:auto;display:block}
   .diagram a:hover rect{filter:brightness(1.35)}
@@ -167,7 +160,7 @@
 
 <footer><div class="wrap" id="foot"></div></footer>
 
-<!-- =============== IMPLEMENTATION SKETCHES (annotated pseudocode; full source lives in a private repo) =============== -->
+<!-- =============== IMPLEMENTATION SKETCHES (annotated pseudocode; full source is in a private repo) =============== -->
 <script type="text/plain" data-src id="src-capture" data-lang="cpp" data-file="src/cpp_edge/camera_v4l2.cpp">
 // Request a deep V4L2 pool, then export each buffer as a DMA-BUF fd.
 request_buffers(count = 8, memory = MMAP)        // deep enough for 3 in-flight frames
@@ -184,7 +177,7 @@ spawn N workers (N = context_count), pin each to an NPU core:
     ctx = rknn_context_for(core)
     loop:
       job = job_queue.pop()                       // blocks until a frame arrives
-      out = run_rknn_frame(ctx, job.nv12_dmabuf)  // RGA NV12→RGB · infer · decode
+      out = run_rknn_frame(ctx, job.nv12_dmabuf)  // RGA NV12->RGB, infer, decode
       results[job.frame_id] = out                 // keyed for in-order reassembly
 // the capture thread (A55) feeds the queue; results drain back in frame order
 </script>
@@ -197,7 +190,7 @@ restore_x(x, lb, orig_w):                  // undo letterbox padding, clamp to f
 iou(a, b):                                 // standard intersection-over-union
     return overlap_area(a, b) / (area(a) + area(b) - overlap_area(a, b))
 
-// pipeline: decode anchors → restore coords → NMS(iou) → assign track id
+// pipeline: decode anchors -> restore coords -> NMS(iou) -> assign track id
 </script>
 
 <script type="text/plain" data-src id="src-outputs" data-lang="cpp" data-file="src/cpp_edge/pose_udp_sender.cpp">
@@ -206,46 +199,46 @@ iou(a, b):                                 // standard intersection-over-union
 //     persons: [ { track_id, conf, bbox:[x1,y1,x2,y2], kpts:[[x,y,c] x17 COCO] } ] }
 json = build_datagram(ts, frame_id, w, h, detections)
 send_udp(fd, json, NON_BLOCKING)           // fire-and-forget
-// EAGAIN / ECONNREFUSED are fine (no listener yet) and must never stall the loop —
-// a dropped datagram is irrelevant, the state machine integrates over seconds
+// EAGAIN / ECONNREFUSED are fine (no listener yet) and must not stall the loop.
+// A dropped datagram is acceptable; the state machine integrates over seconds.
 </script>
 
 <script type="text/plain" data-src id="src-features" data-lang="cpp" data-file="src/cpp_runtime/fall_detector.cpp">
 // Posture from joints, all normalized by frame size (resolution-independent).
 body_angle    = atan2(|hip.x - shoulder.x|, |hip.y - shoulder.y|)   // 0=upright 90=flat
-bbox_ratio    = bbox_h / bbox_w                                     // < 1 ⇒ lying flat
-down_velocity = max(Δcenter_y, Δhip_y) / Δt    // skipped if Δt looks like an NTP jump
+bbox_ratio    = bbox_h / bbox_w                                     // < 1 = lying flat
+down_velocity = max(d_center_y, d_hip_y) / dt   // skipped if dt looks like an NTP jump
 
-angle_score   = ramp(body_angle, 25°  → 65°)
-flat_score    = ramp(bbox_ratio, 1.65 → 0.90)
+angle_score   = ramp(body_angle, 25 deg  -> 65 deg)
+flat_score    = ramp(bbox_ratio, 1.65 -> 0.90)
 lying_score   = max(angle_score, flat_score)
 </script>
 
 <script type="text/plain" data-src id="src-states" data-lang="cpp" data-file="src/cpp_runtime/fall_detector.cpp">
 // Temporal state machine (thresholds shown inline).
 NORMAL:
-    if lying_now                              → LYING
-    elif fall_score ≥ 0.42 or sudden_drop     → WARNING
+    if lying_now                              -> LYING
+    elif fall_score >= 0.42 or sudden_drop    -> WARNING
 WARNING:
-    if lying_now                              → LYING
-    elif fall_score ≥ 0.62 and sudden, held ≥ 0.8 s → FALL_CONFIRMED
-    elif fall_score < 0.30                    → NORMAL
+    if lying_now                              -> LYING
+    elif fall_score >= 0.62 and sudden, held >= 0.8 s -> FALL_CONFIRMED
+    elif fall_score < 0.30                    -> NORMAL
 LYING:
-    if floor_level and entry_evidence and lying_ratio ≥ 0.45, held ≥ 1.8 s → FALL_CONFIRMED
-    elif not lying for 1 s                    → NORMAL
+    if floor_level and entry_evidence and lying_ratio >= 0.45, held >= 1.8 s -> FALL_CONFIRMED
+    elif not lying for 1 s                    -> NORMAL
 FALL_CONFIRMED:                               // latches through brief pose loss
-    if low score and not lying, held ≥ 2 s    → NORMAL
+    if low score and not lying, held >= 2 s   -> NORMAL
 </script>
 
 <script type="text/plain" data-src id="src-scoring" data-lang="cpp" data-file="src/cpp_runtime/fall_detector.cpp">
 // Window-level evidence: one bad frame can never fire an alarm.
 fall_score = clamp(
-      0.35 · lying_frame_ratio     // most of the window is flat
-    + 0.25 · lying_score_mean      // and convincingly so
-    + 0.20 · max_down_score        // with a real downward motion
-    + 0.10 · center_drop_score     // body lowered across the window
-    + 0.10 · angle_change_score    // tilted toward horizontal
-    − conf_penalty )               // discount low-confidence poses
+      0.35 * lying_frame_ratio     // most of the window is flat
+    + 0.25 * lying_score_mean      // and convincingly so
+    + 0.20 * max_down_score        // with a real downward motion
+    + 0.10 * center_drop_score     // body lowered across the window
+    + 0.10 * angle_change_score    // tilted toward horizontal
+    - conf_penalty )               // discount low-confidence poses
 </script>
 
 <script type="text/plain" data-src id="src-mqtt" data-lang="cpp" data-file="src/cpp_runtime/fall_service.cpp">
@@ -262,10 +255,10 @@ on state change (per tracked person):
 </script>
 
 <script type="text/plain" data-src id="src-push" data-lang="cpp" data-file="src/cpp_runtime/alert_service.cpp">
-// Notify family via ntfy (plain HTTP over curl — no extra deps on the board).
+// Notify family via ntfy (plain HTTP over curl, no extra deps on the board).
 send(title, body, priority, tags):
-    curl -H "Title: …" -H "Priority: …" -H "Tags: …" --data-binary body  <ntfy_url>
-    // priority = high when level == sos, so it can break through a silenced phone
+    curl -H "Title: ..." -H "Priority: ..." -H "Tags: ..." --data-binary body  <ntfy_url>
+    // priority = high when level == sos, so it can reach a silenced phone
 
 send_file(title, snapshot, priority):
     if not exists(snapshot): return false           // snapshot is best-effort:
@@ -274,37 +267,37 @@ send_file(title, snapshot, priority):
 </script>
 
 <script type="text/plain" data-src id="src-aec" data-lang="cpp" data-file="src/audio/audio_aec_duplex.cpp">
-// Double-talk gate: real near-end speech (barge-in) vs the speaker's own TTS echo.
+// Double-talk gate: real near-end speech (interruption) vs the speaker's own echo.
 detect_double_talk(residual, predicted_echo, env, bands):
-    if nothing_playing(env): return false           // no echo ⇒ no gate needed
-    residual_excess         = residual > predicted_echo + margin  and  residual > 2.2·noise
-    multi_band_decorrelated = bands.weak ≥ 2  or  bands.corr_avg < 0.34
-    return residual_excess AND multi_band_decorrelated   // BOTH required on this board
+    if nothing_playing(env): return false           // no echo, no gate needed
+    residual_excess         = residual > predicted_echo + margin  and  residual > 2.2*noise
+    multi_band_decorrelated = bands.weak >= 2  or  bands.corr_avg < 0.34
+    return residual_excess AND multi_band_decorrelated   // both required on this board
 // energy alone is fooled by nonlinear residual; correlation alone by weak echo
 </script>
 
 <script type="text/plain" data-src id="src-chain" data-lang="cpp" data-file="src/cpp_runtime/voice_service.cpp">
-// Offline turn loop after wake — every stage on-device, nothing leaves the board.
+// Offline turn loop after wake. Every stage runs on the device.
 if woke: speak("我在。")                       // local neural TTS
 loop while session is active:
     audio = capture_vad()                       // Silero VAD endpoints the utterance
-    text  = sensevoice_asr(audio)               // offline Chinese → text
+    text  = sensevoice_asr(audio)               // offline Chinese -> text
     reply = qwen_llm(text, history)             // llama-server, multi-turn context
     speak(matcha_tts(reply))                    // playback also feeds the AEC reference
-// a rolling 15 s window of our OWN speech rejects late-arriving TTS echo (no parroting)
+// a rolling 15 s window of our own speech rejects late echo instead of repeating it
 </script>
 
 <script type="text/plain" data-src id="src-fallans" data-lang="cpp" data-file="src/cpp_runtime/voice_service.cpp">
-// Post-fall check-in: a short barge-in prompt + echo-proof classification.
-speak_nowait("您可能摔倒了，您还好吗？")          // non-blocking ⇒ elder can barge in
-text  = asr(capture_vad())                       // reply, MIXED with the prompt's echo
+// Post-fall check-in: a short prompt that allows interruption, then classify.
+speak_nowait("您可能摔倒了，您还好吗？")          // non-blocking, so the person can interrupt
+text  = asr(capture_vad())                       // reply, mixed with the prompt's echo
 level = classify_fall_reply(text)                // ok / sos / unclear
 
 classify_fall_reply(text):
-    if any(distress_marker in text):  return "sos"   // 救命 / 起不来 / 疼 / 头晕 …
-    if any(elder_ok_marker  in text): return "ok"    // 我还好 / 我没事 / 能起来 …
-    return "unclear"                                  // silence/echo-only ⇒ caller defaults to SOS
-// match only markers the prompt itself can NEVER contain (never "subtract the prompt")
+    if any(distress_marker in text):  return "sos"   // 救命 / 起不来 / 疼 / 头晕 ...
+    if any(elder_ok_marker  in text): return "ok"    // 我还好 / 我没事 / 能起来 ...
+    return "unclear"                                  // silence/echo-only -> caller defaults to SOS
+// match only markers the prompt itself cannot contain (do not subtract the prompt)
 </script>
 
 <script type="text/plain" data-src id="src-systemd" data-lang="ini" data-file="systemd/eldercare-vision.service">
@@ -314,7 +307,7 @@ After=network.target
 
 [Service]
 ExecStart=.../run_pose_camera.sh
-Restart=always          # crash ⇒ restart
+Restart=always          # restart on crash
 RestartSec=3
 StandardOutput=append:.../logs/vision.log
 
@@ -323,27 +316,27 @@ WantedBy=default.target
 </script>
 
 <script type="text/plain" data-src id="src-health" data-lang="cpp" data-file="src/cpp_runtime/health_agent.cpp">
-// Read-only health probe → one JSON status file (humans, OTA mark-good, watchdogs).
+// Read-only health probe -> one JSON status file (humans, OTA mark-good, watchdogs).
 check_systemd_unit(unit):
-    state = `systemctl --user is-active {unit}`   // trust systemd, don't grep ps
+    state = `systemctl --user is-active {unit}`   // trust systemd, do not match ps
     return { name: unit, ok: (exit == 0), state }
 
-// also samples: TCP endpoints, disk (statvfs), thermal, cpufreq → status.json
-// purely observational — it never acts, so it stays a trustworthy source of truth
+// also samples: TCP endpoints, disk (statvfs), thermal, cpufreq -> status.json
+// observational only; it never acts, so it stays a reliable source of truth
 </script>
 
 <script type="text/plain" data-src id="src-fan" data-lang="sh" data-file="board_src/eldercare-fan-hold.sh">
 #!/bin/sh
-# Hold the pwm-fan quiet so the on-board mic stays usable.
-# Stock pwm=100: broadband air noise in the 300-3400 Hz speech band raised the mic
-# floor ~10x (rms 0.0028 -> 0.028), so the elder's fall reply transcribed as "" and
-# the check-in false-escalated to SOS. Firmware re-asserts pwm=100 every ~10 s, so we
-# rewrite a low value every second to win that race.
+# Hold the pwm-fan at a quiet speed so the on-board mic stays usable.
+# At the stock pwm=100 the fan's broadband noise sits in the 300-3400 Hz speech
+# band and raised the mic noise floor about 10x (rms 0.0028 -> 0.028), so a fall
+# reply transcribed as empty and the check-in escalated to SOS. Firmware re-asserts
+# pwm=100 about every 10 s, so we rewrite a low value every second.
 LOW=50
 loop every 1 s:
     t = read(soc_thermal)
     if t >= 72 C: hot = 1          # stop forcing low if the SoC warms up
-    if t <  66 C: hot = 0          # hysteresis; cpufreq throttling stays fully active
+    if t <  66 C: hot = 0          # hysteresis; cpufreq throttling stays active
     if not hot:   write(pwm1, LOW)
 </script>
 
@@ -353,283 +346,283 @@ loop every 1 s:
 
 /* ---------- chrome i18n ---------- */
 const T = {
-  brand_sub:{en:"Edge Elder-Care · RK3588",zh:"端侧养老守护 · RK3588"},
-  eyebrow:{en:"On-device elder-care · No cloud · RK3588",zh:"端侧养老守护 · 无云依赖 · RK3588"},
-  tagline:{en:"The all-seeing guardian for independent living",zh:"为独居晚年而生的全视守护"},
-  lede:{en:"ARGUS watches over an elder living alone on a single Orange Pi 5 Plus — real-time, pose-based fall detection and a voice companion that answers back, with every frame and every word staying on the board. Open any module to drill into its sub-modules: a flow chart, its data flow, and an annotated sketch of the real implementation.",
-        zh:"ARGUS 用一块香橙派 5 Plus 守护独居老人 —— 基于姿态的实时跌倒检测,加上能对答的语音陪伴,每一帧画面、每一句话都留在板上。点击任意模块即可逐层深入子模块:流程图、数据流,以及真实实现的带注释示意。"},
+  brand_sub:{en:"Edge elder-care · RK3588",zh:"端侧养老 · RK3588"},
+  eyebrow:{en:"On-device · RK3588 · No cloud",zh:"端侧运行 · RK3588 · 无云"},
+  tagline:{en:"Fall detection and a local voice assistant for elderly care, fully on-device.",zh:"面向养老场景的跌倒检测与本地语音助手,完全在设备端运行。"},
+  lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All inference runs on the device; no video or audio is sent to the cloud. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
+        zh:"ARGUS 运行在一块香橙派 5 Plus(RK3588)上。它通过摄像头姿态实时检测跌倒,并由本地语音助手询问情况、通知家人。所有推理都在设备端完成,不向云端发送任何视频或音频。下方每个模块都可展开为子模块,包含流程图、数据流和带注释的实现示意。"},
   s_recall:{en:"fall recall · 4.6% false-positive (URFD + in-house clips)",zh:"跌倒召回率 · 误报 4.6%(URFD + 自采片段)"},
   s_fps:{en:"640-input pose on a 3-core NPU pipeline",zh:"640 输入姿态 · 3 核 NPU 流水线"},
-  s_cloud:{en:"on-device — zero cloud dependency",zh:"端侧运行 —— 零云依赖"},
-  s_latency:{en:"fall → family push + snapshot",zh:"跌倒 → 家人推送 + 快照"},
-  nums_h:{en:"By the numbers",zh:"关键数据"},
-  nums_sub:{en:"Measured on the board — every figure reflects the shipped system, not a datasheet.",zh:"全部在板上实测 —— 每个数字都对应真正上线的系统,而非规格书。"},
-  arch_h:{en:"The whole system, one glance",zh:"全系统一览"},
-  arch_sub:{en:"Five subsystems on one board and one camera + mic. Tap any block to dive in.",zh:"一块板、一路摄像头加麦克风上的五个子系统。点击任意方块深入查看。"},
-  modules_h:{en:"Five subsystems",zh:"五个子系统"},
-  modules_sub:{en:"Each opens into its own sub-modules.",zh:"每个都可展开为各自的子模块。"},
-  tap:{en:"open module →",zh:"进入模块 →"},
-  subs:{en:"Sub-modules",zh:"子模块"},
-  subs_sub:{en:"Each sub-module: a flow chart, its data flow, and an annotated implementation sketch.",zh:"每个子模块:一张流程图、它的数据流,以及一段带注释的实现示意。"},
+  s_cloud:{en:"on-device, no cloud dependency",zh:"端侧运行,无云依赖"},
+  s_latency:{en:"fall to family push + snapshot",zh:"跌倒到家人推送 + 快照"},
+  nums_h:{en:"Key metrics",zh:"关键指标"},
+  nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"在部署的板子上实测。每个数字对应实际运行的系统,而非规格书。"},
   source:{en:"Source",zh:"源码"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
   impl:{en:"Implementation sketch",zh:"实现示意"},
-  why:{en:"Why it matters",zh:"为何重要"},
+  why:{en:"Notes",zh:"说明"},
   din:{en:"IN",zh:"输入"}, dproc:{en:"PROCESS",zh:"处理"}, dout:{en:"OUT",zh:"输出"},
   pseudo:{en:"pseudocode",zh:"伪代码"},
   home:{en:"Home",zh:"首页"},
-  foot:{en:"ARGUS — an on-device elder-care guardian on RK3588: fall detection & a local voice companion. Built as an engineering portfolio · all inference runs locally, no cloud. Code blocks are annotated sketches; the full implementation lives in a private repository.",
-        zh:"ARGUS —— RK3588 上的端侧养老守护:跌倒检测与本地语音陪伴。作为工程作品集构建 · 全部推理本地运行,无云依赖。代码块为带注释的示意,完整实现位于私有仓库。"}
+  subs:{en:"Sub-modules",zh:"子模块"},
+  subs_sub:{en:"Each sub-module has a flow chart, its data flow, and an annotated implementation sketch.",zh:"每个子模块包含流程图、数据流和带注释的实现示意。"},
+  modules_h:{en:"Subsystems",zh:"子系统"},
+  modules_sub:{en:"Five subsystems, each with its own sub-modules.",zh:"五个子系统,各有自己的子模块。"},
+  arch_h:{en:"System overview",zh:"系统总览"},
+  arch_sub:{en:"Five subsystems on one board, one camera and one mic. Click any block to open it.",zh:"一块板、一路摄像头和一个麦克风上的五个子系统。点击任意方块打开。"},
+  tap:{en:"Open module",zh:"打开模块"},
+  foot:{en:"ARGUS: on-device fall detection and a local voice assistant on RK3588. Engineering portfolio project; all inference runs locally. Code blocks are annotated sketches; the full implementation is in a private repository.",
+        zh:"ARGUS:RK3588 上的端侧跌倒检测与本地语音助手。工程作品集项目,全部推理本地运行。代码块为带注释的示意,完整实现位于私有仓库。"}
 };
 
-/* ---------- headline metrics (impressive, but every figure is real) ---------- */
+/* ---------- key metrics (every figure reflects the deployed system) ---------- */
 const METRICS = [
   {v:"4.6%",        c:"fall",  l:{en:"false-positive rate",zh:"误报率"}},
-  {v:"35 clips",    c:"fall",  l:{en:"replay corpus: shipped C++ ≡ Python reference, byte-identical",zh:"回放语料:上线 C++ ≡ Python 参考,逐字节一致"}},
-  {v:"2.5 s",       c:"fall",  l:{en:"temporal evidence window — no single-frame alarms",zh:"时序证据窗口 —— 杜绝单帧误报"}},
+  {v:"35 clips",    c:"fall",  l:{en:"replay set: deployed C++ matched the Python reference byte-for-byte",zh:"回放集:上线 C++ 与 Python 参考逐字节一致"}},
+  {v:"2.5 s",       c:"fall",  l:{en:"temporal evidence window, no single-frame alarms",zh:"时序证据窗口,不会单帧误报"}},
   {v:"17",          c:"vis",   l:{en:"COCO keypoints tracked per person",zh:"每人跟踪 17 个 COCO 关键点"}},
-  {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts across the NPU",zh:"NPU 上 3 路并行 RKNN 上下文"}},
-  {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU driving 640×640 pose",zh:"3 核片上 NPU 驱动 640×640 姿态"}},
+  {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts on the NPU",zh:"NPU 上 3 路并行 RKNN 上下文"}},
+  {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU running 640×640 pose",zh:"3 核片上 NPU 运行 640×640 姿态"}},
   {v:"0 copies",    c:"vis",   l:{en:"zero-copy DMA-BUF, 0 dropped frames",zh:"零拷贝 DMA-BUF,0 丢帧"}},
-  {v:"4 models",    c:"voice", l:{en:"on-device voice stack: VAD · ASR · LLM · TTS",zh:"端侧语音栈:VAD · ASR · LLM · TTS"}},
-  {v:"full-duplex", c:"voice", l:{en:"AEC lets a person barge in while it speaks",zh:"AEC 让人在它说话时也能插话"}},
-  {v:"0 → cloud",   c:"voice", l:{en:"frames and words sent off the board",zh:"传出板外的画面与话语数"}},
-  {v:"6",           c:"ops",   l:{en:"systemd services, self-healing on crash",zh:"6 个 systemd 服务,崩溃自愈"}},
-  {v:"24/7",        c:"ops",   l:{en:"unattended — auto-start, auto-restart",zh:"全天候无人值守 —— 自启自重启"}}
+  {v:"4 models",    c:"voice", l:{en:"on-device voice stack: VAD, ASR, LLM, TTS",zh:"端侧语音栈:VAD、ASR、LLM、TTS"}},
+  {v:"full-duplex", c:"voice", l:{en:"AEC, so a person can interrupt while it speaks",zh:"AEC,说话时也能被打断"}},
+  {v:"0",           c:"voice", l:{en:"frames or words sent to the cloud",zh:"传出板外的画面或话语数"}},
+  {v:"6",           c:"ops",   l:{en:"systemd services, restart on crash",zh:"6 个 systemd 服务,崩溃自重启"}},
+  {v:"24/7",        c:"ops",   l:{en:"unattended; auto-start and auto-restart",zh:"无人值守,自启与自重启"}}
 ];
 
-/* ---------- the module tree (real subsystems) ---------- */
+/* ---------- subsystem tree ---------- */
 const DATA = [
 {
-  id:"vision", color:"vis", icon:"👁️",
-  name:{en:"Sight",zh:"视觉"}, name2:{en:"the vision pipeline",zh:"视觉流水线"},
-  tag:{en:"From photons to 17 keypoints — fifteen times a second.",zh:"从光子到 17 个关键点 —— 每秒十五次。"},
+  id:"vision", color:"vis",
+  name:{en:"Vision pipeline",zh:"视觉流水线"}, name2:{en:"camera to pose",zh:"从相机到姿态"},
+  tag:{en:"Camera frames to pose keypoints on the NPU, about 15 fps.",zh:"相机画面经 NPU 得到姿态关键点,约 15 fps。"},
   file:"src/cpp_edge/main_yolo_pose_rknn_camera.cpp",
-  overview:{en:"A MIPI camera feeds the RK3588's hardware ISP, then an 8-buffer V4L2 DMA-BUF pipe hands NV12 frames to three parallel RKNN contexts running YOLOv8n-pose. Per person it emits a box, 17 COCO keypoints and a track id — then fans out three ways without a copy on the hot path.",
-            zh:"MIPI 摄像头先经过 RK3588 的硬件 ISP,再由 8 缓冲的 V4L2 DMA-BUF 管线把 NV12 画面交给三个并行 RKNN 上下文运行 YOLOv8n-pose。每个人输出一个框、17 个 COCO 关键点和一个跟踪 id —— 然后在热路径上零拷贝地分三路输出。"},
+  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 DMA-BUF path delivers NV12 frames to three parallel RKNN contexts running YOLOv8n-pose. For each person it produces a bounding box, 17 COCO keypoints and a track id, then sends the result three ways without copying on the hot path.",
+            zh:"MIPI 相机接入 RK3588 硬件 ISP。8 缓冲的 V4L2 DMA-BUF 路径将 NV12 画面送入三个并行 RKNN 上下文运行 YOLOv8n-pose。每个人输出边界框、17 个 COCO 关键点和跟踪 id,再在热路径上无拷贝地分三路输出。"},
   subs:[
     { id:"capture", code:"capture",
-      name:{en:"Light & Shutter",zh:"光与快门"},
-      summary:{en:"The hardware ISP sets exposure and a zero-copy V4L2 ring delivers NV12 frames.",zh:"硬件 ISP 控制曝光,零拷贝的 V4L2 缓冲环交付 NV12 画面。"},
+      name:{en:"Capture & ISP",zh:"采集与 ISP"},
+      summary:{en:"The hardware ISP sets exposure; a zero-copy V4L2 ring delivers NV12 frames.",zh:"硬件 ISP 控制曝光,零拷贝 V4L2 缓冲环交付 NV12 画面。"},
       flow:[
         {t:"ov13855 sensor", d:{en:"MIPI CSI raw Bayer",zh:"MIPI CSI 原始 Bayer"}},
         {t:"RKAIQ 3A ISP", d:{en:"auto-exposure, 60 Hz anti-flicker, low-light IQ tuning",zh:"自动曝光、60 Hz 防频闪、暗光 IQ 调校"}, edge:{en:"in hardware",zh:"硬件内"}},
         {t:"V4L2 /dev/video12", d:{en:"NV12, REQBUFS count = 8",zh:"NV12,REQBUFS count = 8"}},
-        {t:"EXPBUF → DMA-BUF fd", d:{en:"handed straight to RGA / NPU",zh:"直接交给 RGA / NPU"}, edge:{en:"zero copy",zh:"零拷贝"}}
+        {t:"EXPBUF -> DMA-BUF fd", d:{en:"handed straight to RGA / NPU",zh:"直接交给 RGA / NPU"}, edge:{en:"zero copy",zh:"零拷贝"}}
       ],
       df:{in:["MIPI CSI raw"], proc:["RKAIQ AE / AWB","60 Hz anti-flicker","V4L2 8-buf pool"], out:["NV12 DMA-BUF fd"]},
-      why:{en:"The camera flickered when someone walked up — auto-exposure was 'breathing'. The fix lived at the ISP IQ level (stable exposure curve + 60 Hz anti-flicker for the local mains), not in software brightening, so the sensor adapts to a dark room and stays artifact-free.",
-           zh:"有人靠近时画面会闪 —— 自动曝光在“呼吸”。修复落在 ISP 的 IQ 层(稳定的曝光曲线 + 适配本地市电的 60 Hz 防频闪),而非软件提亮,因此传感器能适应暗室且无伪影。"} },
+      why:{en:"Auto-exposure oscillated when a person approached, which caused visible flicker. The fix was at the ISP IQ level: a stable exposure curve and 60 Hz anti-flicker for the local mains, rather than software brightening. The sensor adapts to a dark room without artifacts.",
+           zh:"有人靠近时自动曝光来回振荡,产生可见闪烁。修复在 ISP 的 IQ 层:稳定的曝光曲线加上适配本地市电的 60 Hz 防频闪,而非软件提亮。传感器能适应暗室且无伪影。"} },
     { id:"parallel", code:"parallel",
-      name:{en:"Three Minds in Parallel",zh:"三核并行"},
-      summary:{en:"One RKNN context per NPU core; a worker pool keeps the 640 model at ~15 fps.",zh:"每个 NPU 核一个 RKNN 上下文;工作线程池让 640 模型保持约 15 fps。"},
+      name:{en:"Parallel NPU inference",zh:"NPU 并行推理"},
+      summary:{en:"One RKNN context per NPU core; a worker pool holds the 640 model at about 15 fps.",zh:"每个 NPU 核一个 RKNN 上下文;线程池让 640 模型维持约 15 fps。"},
       flow:[
         {t:"capture thread (A55)", d:{en:"DQBUF, push a frame job",zh:"DQBUF,投递一个帧任务"}},
         {t:"job queue", d:{en:"mutex + condition variable",zh:"互斥量 + 条件变量"}},
-        {t:"3× RknnWorker (A76)", d:{en:"core 0/1/2 · RGA NV12→RGB · rknn_run",zh:"核 0/1/2 · RGA NV12→RGB · rknn_run"}, edge:{en:"parallel",zh:"并行"}},
+        {t:"3x RknnWorker (A76)", d:{en:"core 0/1/2 · RGA NV12->RGB · rknn_run",zh:"核 0/1/2 · RGA NV12->RGB · rknn_run"}, edge:{en:"parallel",zh:"并行"}},
         {t:"results map by frame_id", d:{en:"reassembled in capture order",zh:"按采集顺序重排"}}
       ],
-      df:{in:["NV12 frame job"], proc:["RGA NV12 → RGB","YOLOv8n-pose 640","3 NPU cores"], out:["detections (ordered)"]},
-      why:{en:"The fast 384 model missed lying / distant poses (~81% vs 100% recall for 640). Rather than trade accuracy, three parallel contexts restored 640 to ~15 fps. And the 'obvious' full rknn_set_io_mem zero-copy path measured 2× slower for 640 — RGA pre-process + rknn_inputs_set won. Benchmark, don't assume.",
-           zh:"更快的 384 模型会漏掉躺地/远距离姿态(召回约 81% vs 640 的 100%)。我们没有牺牲精度,而是用三个并行上下文把 640 拉回约 15 fps。而“显然更快”的完整 rknn_set_io_mem 零拷贝路径实测对 640 慢了 2 倍 —— RGA 预处理 + rknn_inputs_set 胜出。要实测,别想当然。"} },
+      df:{in:["NV12 frame job"], proc:["RGA NV12 -> RGB","YOLOv8n-pose 640","3 NPU cores"], out:["detections (ordered)"]},
+      why:{en:"The 384 model missed lying and distant poses (about 81% recall, versus 100% for 640). Instead of trading accuracy, three parallel contexts brought 640 back to about 15 fps. The full rknn_set_io_mem zero-copy path measured about 2x slower for 640, so the pipeline keeps RGA pre-processing with rknn_inputs_set.",
+           zh:"384 模型会漏掉躺地和远距离姿态(召回约 81%,而 640 为 100%)。我们没有牺牲精度,而是用三个并行上下文把 640 拉回约 15 fps。完整的 rknn_set_io_mem 零拷贝路径对 640 实测慢约 2 倍,因此流水线保留 RGA 预处理配合 rknn_inputs_set。"} },
     { id:"postprocess", code:"postprocess",
-      name:{en:"Reading the Body",zh:"解读身体"},
-      summary:{en:"Decode the pose grid, undo letterbox, NMS, then assign a stable track id.",zh:"解码姿态网格、还原 letterbox、NMS,再分配稳定的跟踪 id。"},
+      name:{en:"Pose decode & tracking",zh:"姿态解码与跟踪"},
+      summary:{en:"Decode the pose grid, undo letterbox, run NMS, assign a track id.",zh:"解码姿态网格、还原 letterbox、做 NMS、分配跟踪 id。"},
       flow:[
         {t:"RKNN output (float)", d:{en:"want_float = 1",zh:"want_float = 1"}},
         {t:"decode anchors", d:{en:"boxes + 17 keypoints + scores",zh:"框 + 17 关键点 + 置信度"}},
-        {t:"restore_x / restore_y", d:{en:"undo letterbox → original pixels",zh:"还原 letterbox → 原图像素"}},
+        {t:"restore_x / restore_y", d:{en:"undo letterbox -> original pixels",zh:"还原 letterbox -> 原图像素"}},
         {t:"NMS (iou)", d:{en:"drop overlapping detections",zh:"剔除重叠检测"}},
         {t:"tracker", d:{en:"track id · overlay r / h / m",zh:"跟踪 id · 叠加 r / h / m"}, edge:{en:"per id",zh:"按 id"}}
       ],
       df:{in:["raw output tensor"], proc:["grid decode","letterbox unmap","NMS","tracking"], out:["persons[{bbox, 17 kpts, id}]"]},
-      why:{en:"Keeping postprocess free of any RKNN or camera dependency means it runs in a unit test on a laptop. The on-screen overlay (r = box height/width, h = track history length, m = missing frames) is the same signal the fall service reasons over — a fall shows up as r dropping below 1.",
-           zh:"让后处理不依赖任何 RKNN 或摄像头代码,意味着它能在笔记本上跑单元测试。屏幕叠加(r = 框高/宽,h = 跟踪历史长度,m = 丢失帧数)正是跌倒服务所依据的信号 —— 跌倒表现为 r 跌破 1。"} },
+      why:{en:"Postprocess has no RKNN or camera dependency, so it runs in a unit test on a laptop. The on-screen overlay (r = box height/width, h = track history length, m = missing frames) is the same signal the fall service uses; a fall shows up as r dropping below 1.",
+           zh:"后处理不依赖 RKNN 或相机,因此可在笔记本上单元测试。屏幕叠加(r = 框高/宽,h = 跟踪历史长度,m = 丢失帧数)正是跌倒服务使用的信号;跌倒表现为 r 跌破 1。"} },
     { id:"outputs", code:"outputs",
-      name:{en:"Three Ways Out",zh:"三路输出"},
-      summary:{en:"Keypoints over UDP, an H264 stream over RTSP, and a JPEG evidence ring.",zh:"关键点走 UDP、H264 走 RTSP、再加一个 JPEG 取证环。"},
+      name:{en:"Outputs: UDP / RTSP / JPEG",zh:"输出:UDP / RTSP / JPEG"},
+      summary:{en:"Keypoints over UDP, an H.264 stream over RTSP, and a JPEG ring for evidence.",zh:"关键点走 UDP,H.264 走 RTSP,JPEG 环用于取证。"},
       flow:[
         {t:"detections + frame", d:{en:"one set per inferred frame",zh:"每帧推理一组"}},
-        {t:"UDP :5800", d:{en:"JSON pose datagram → fall service",zh:"JSON 姿态数据报 → 跌倒服务"}},
-        {t:"RTSP :8554", d:{en:"overlay → MPP H264 → multi-appsrc",zh:"叠加 → MPP H264 → 多 appsrc"}, edge:{en:"to family",zh:"给家人"}},
-        {t:"HW-JPEG ring", d:{en:"MPP JPEG → /dev/shm evidence",zh:"MPP JPEG → /dev/shm 取证"}}
+        {t:"UDP :5800", d:{en:"JSON pose datagram -> fall service",zh:"JSON 姿态数据报 -> 跌倒服务"}},
+        {t:"RTSP :8554", d:{en:"overlay -> MPP H.264 -> multi-appsrc",zh:"叠加 -> MPP H.264 -> 多 appsrc"}, edge:{en:"to family",zh:"给家人"}},
+        {t:"HW-JPEG ring", d:{en:"MPP JPEG -> /dev/shm evidence",zh:"MPP JPEG -> /dev/shm 取证"}}
       ],
-      df:{in:["detections + frame"], proc:["pack JSON","MPP H264 encode","MPP JPEG encode"], out:["UDP pose","RTSP stream","JPEG ring"]},
-      why:{en:"All three encoders are hardware (VPU/MPP), so the CPU stays free for inference. The RTSP path uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so viewers can reconnect and multiple phones can watch at once — an earlier shared-media design broke on the second connection.",
-           zh:"三个编码器全是硬件(VPU/MPP),CPU 因此留给推理。RTSP 采用按客户端的 GStreamer media/appsrc 扇出,各自独立时间戳,因而可重连、可多手机同时观看 —— 早期的共享 media 方案在第二次连接时就坏了。"} }
+      df:{in:["detections + frame"], proc:["pack JSON","MPP H.264 encode","MPP JPEG encode"], out:["UDP pose","RTSP stream","JPEG ring"]},
+      why:{en:"All three encoders are hardware (VPU/MPP), leaving the CPU for inference. RTSP uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so clients can reconnect and several phones can watch at once. An earlier shared-media design failed on the second connection.",
+           zh:"三个编码器都是硬件(VPU/MPP),CPU 留给推理。RTSP 采用按客户端的 GStreamer media/appsrc 扇出,时间戳独立,客户端可重连、多手机可同时观看。早期的共享 media 方案在第二次连接时失败。"} }
   ]
 },
 {
-  id:"judgment", color:"fall", icon:"⚖️",
-  name:{en:"Judgment",zh:"判断"}, name2:{en:"the fall state machine",zh:"跌倒状态机"},
-  tag:{en:"Turning posture into a decision it can defend.",zh:"把姿态变成一个站得住脚的判断。"},
+  id:"judgment", color:"fall",
+  name:{en:"Fall detection",zh:"跌倒检测"}, name2:{en:"temporal state machine",zh:"时序状态机"},
+  tag:{en:"A temporal state machine turns pose into a fall decision.",zh:"时序状态机把姿态判定为跌倒。"},
   file:"src/cpp_runtime/fall_detector.cpp",
-  overview:{en:"Keypoints arrive over UDP; a temporal state machine integrates body angle, box flatness, floor height and downward velocity over a 2.5-second window. It never fires on a single bad frame — a fall must combine a downward drop with sustained, floor-level, flat posture.",
-            zh:"关键点经 UDP 到达;一个时序状态机在 2.5 秒窗口内综合身体角度、框扁平度、贴地高度和下落速度。它绝不因单帧误检而触发 —— 跌倒必须同时具备下落与持续的、贴地的、扁平的姿态。"},
+  overview:{en:"Keypoints arrive over UDP. A state machine integrates body angle, box flatness, floor height and downward velocity over a 2.5-second window. It does not fire on a single frame: a fall requires a downward motion followed by sustained flat posture near the floor.",
+            zh:"关键点经 UDP 到达。状态机在 2.5 秒窗口内综合身体角度、框扁平度、贴地高度和下落速度。它不会因单帧触发:跌倒需要先有下落,再有持续的贴地扁平姿态。"},
   subs:[
     { id:"features", code:"features",
-      name:{en:"From Joints to Posture",zh:"由关节到姿态"},
-      summary:{en:"Per-frame body angle, box flatness, vertical center and downward velocity — all normalized.",zh:"逐帧的身体角度、框扁平度、竖直中心与下落速度 —— 全部归一化。"},
+      name:{en:"Feature extraction",zh:"特征提取"},
+      summary:{en:"Per-frame body angle, box flatness, vertical center and downward velocity, normalized.",zh:"逐帧的身体角度、框扁平度、竖直中心和下落速度,均归一化。"},
       flow:[
         {t:"17 COCO keypoints", d:{en:"shoulders, hips, knees, ankles",zh:"肩、髋、膝、踝"}},
-        {t:"body_angle", d:{en:"atan2(|dx|, |dy|) shoulder→hip",zh:"atan2(|dx|, |dy|) 肩→髋"}},
+        {t:"body_angle", d:{en:"atan2(|dx|, |dy|) shoulder->hip",zh:"atan2(|dx|, |dy|) 肩->髋"}},
         {t:"bbox_ratio = h / w", d:{en:"< 1 means flat / lying",zh:"< 1 表示扁平/躺地"}},
-        {t:"down_velocity", d:{en:"Δcenter_y / Δt (clock-jump guarded)",zh:"Δcenter_y / Δt(防时钟跳变)"}},
+        {t:"down_velocity", d:{en:"d_center_y / dt (clock-jump guarded)",zh:"d_center_y / dt(防时钟跳变)"}},
         {t:"lying_score", d:{en:"max(angle_score, flat_score)",zh:"max(angle_score, flat_score)"}}
       ],
       df:{in:["17 keypoints","bbox","timestamp"], proc:["angle","flatness","velocity","normalize by frame"], out:["per-frame Features"]},
-      why:{en:"Every quantity is divided by frame size, so switching the camera from 384 to 640 never retunes a threshold. Velocity is also guarded against NTP clock jumps — when the board's wall clock corrects, the frame's posture evidence is still kept but its (bogus) velocity is dropped.",
-           zh:"每个量都除以画面尺寸,因此摄像头从 384 换到 640 不会改动任何阈值。速度还做了防 NTP 时钟跳变:当板子的墙钟被校正时,该帧的姿态证据仍保留,但其(错误的)速度被丢弃。"} },
+      why:{en:"Every value is divided by frame size, so changing the camera from 384 to 640 does not require retuning thresholds. Velocity is guarded against NTP clock jumps: when the wall clock corrects, the frame's posture is kept but its velocity is discarded.",
+           zh:"每个量都除以画面尺寸,因此相机从 384 换到 640 无需重调阈值。速度对 NTP 时钟跳变做了防护:墙钟校正时保留该帧姿态,但丢弃其速度。"} },
     { id:"states", code:"states", customFlow:"states",
-      name:{en:"Four States, One Verdict",zh:"四态,一裁定"},
-      summary:{en:"NORMAL → WARNING → LYING → FALL_CONFIRMED, with timed recovery back to NORMAL.",zh:"NORMAL → WARNING → LYING → FALL_CONFIRMED,并带计时恢复回 NORMAL。"},
+      name:{en:"State machine",zh:"状态机"},
+      summary:{en:"NORMAL, WARNING, LYING, FALL_CONFIRMED, with timed recovery back to NORMAL.",zh:"NORMAL、WARNING、LYING、FALL_CONFIRMED,并计时恢复至 NORMAL。"},
       df:{in:["fall_score","lying_score","floor_level","entry evidence"], proc:["state transitions","sustained timers","latch + recovery"], out:["state","alert = (state == FALL_CONFIRMED)"]},
-      why:{en:"Confirmation needs lying posture AND floor-level center AND entry evidence (a real drop or a prior WARNING) sustained for ≥ 1.8 s. FALL_CONFIRMED then latches through brief pose loss, so an elder lying still — where the detector loses keypoints — stays an alarm instead of silently clearing.",
-           zh:"确认需要躺姿 且 贴地中心 且 进入证据(真实下落或先前的 WARNING)持续 ≥ 1.8 秒。随后 FALL_CONFIRMED 会在短暂丢失姿态时锁存,因此静止躺地的老人(此时检测器丢关键点)仍维持报警,而非悄悄解除。"} },
+      why:{en:"Confirmation requires lying posture, a floor-level center, and entry evidence (a real drop or a prior WARNING) sustained for at least 1.8 s. FALL_CONFIRMED then latches through brief pose loss, so a person lying still, where keypoints are often lost, stays an alarm rather than clearing.",
+           zh:"确认需要躺姿、贴地中心和进入证据(真实下落或先前的 WARNING)持续至少 1.8 秒。随后 FALL_CONFIRMED 在短暂丢失姿态时锁存,因此静止躺地(常丢关键点)仍保持报警而非解除。"} },
     { id:"scoring", code:"scoring",
-      name:{en:"Weighing the Evidence",zh:"权衡证据"},
-      summary:{en:"A window-level weighted score so one noisy frame can never raise an alarm.",zh:"窗口级加权评分,任何单帧噪声都无法触发报警。"},
+      name:{en:"Window scoring",zh:"窗口评分"},
+      summary:{en:"A window-level weighted score, so a single noisy frame cannot raise an alarm.",zh:"窗口级加权评分,单帧噪声无法触发报警。"},
       flow:[
         {t:"2.5 s window", d:{en:"recent frames only",zh:"仅最近若干帧"}},
         {t:"5 signals", d:{en:"lying ratio, lying mean, down, drop, angle change",zh:"躺比例、躺均值、下落、位移、角度变化"}},
         {t:"weighted sum", d:{en:"0.35 / 0.25 / 0.20 / 0.10 / 0.10",zh:"0.35 / 0.25 / 0.20 / 0.10 / 0.10"}},
-        {t:"− conf_penalty", d:{en:"low-confidence poses discounted",zh:"低置信姿态被折扣"}},
-        {t:"fall_score ∈ [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
+        {t:"- conf_penalty", d:{en:"low-confidence poses discounted",zh:"低置信姿态被折扣"}},
+        {t:"fall_score in [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
       ],
       df:{in:["window of Features"], proc:["aggregate 5 signals","weighted blend","penalize low conf"], out:["fall_score","debug telemetry"]},
-      why:{en:"On URFD plus in-house clips this reaches ~90% recall at a 4.6% false-positive rate. The shipped C++ is a line-by-line port of the Python reference and was proven byte-identical on a 35-clip replay corpus — so the eval scores describe the code that actually runs.",
-           zh:"在 URFD 加自采片段上,这达到约 90% 召回、4.6% 误报。上线的 C++ 是 Python 参考实现的逐行移植,并在 35 个片段的回放语料上验证为逐字节一致 —— 因此评测分数描述的就是真正运行的代码。"} }
+      why:{en:"On URFD plus in-house clips this gives about 90% recall at a 4.6% false-positive rate. The deployed C++ is a port of the Python reference and matched it byte-for-byte on a 35-clip replay set, so the eval numbers describe the code that runs.",
+           zh:"在 URFD 加自采片段上约 90% 召回、4.6% 误报。上线的 C++ 是 Python 参考的移植,并在 35 个片段的回放集上逐字节一致,因此评测数字描述的就是运行的代码。"} }
   ]
 },
 {
-  id:"alert", color:"alert", icon:"📣",
-  name:{en:"The Call for Help",zh:"求助呼叫"}, name2:{en:"the alert path",zh:"报警链路"},
-  tag:{en:"From a confirmed fall to a phone in a pocket, in about three seconds.",zh:"从确认跌倒到口袋里的手机响起,约三秒。"},
+  id:"alert", color:"alert",
+  name:{en:"Alerting",zh:"报警"}, name2:{en:"MQTT and family notification",zh:"MQTT 与家人通知"},
+  tag:{en:"A confirmed fall reaches the family in about three seconds.",zh:"确认跌倒约三秒内通知家人。"},
   file:"src/cpp_runtime/alert_service.cpp",
-  overview:{en:"A local MQTT bus decouples detection from delivery. The fall service publishes a single transition event; a separate alert service subscribes, pulls a fresh snapshot from the JPEG ring, and pushes the family over ntfy — every attempt logged for audit.",
-            zh:"本地 MQTT 总线把检测与送达解耦。跌倒服务只发布一次状态转移事件;独立的报警服务订阅它,从 JPEG 环取一张新鲜快照,经 ntfy 推送给家人 —— 每次尝试都记录可审计。"},
+  overview:{en:"A local MQTT broker separates detection from delivery. The fall service publishes one transition event; the alert service subscribes, takes a snapshot from the JPEG ring, and sends a push notification over ntfy. Every attempt is logged.",
+            zh:"本地 MQTT broker 把检测与送达分离。跌倒服务发布一次状态转移事件;报警服务订阅、从 JPEG 环取快照,经 ntfy 发送推送。每次尝试都记录。"},
   subs:[
     { id:"bus", code:"mqtt",
-      name:{en:"The Local Nervous System",zh:"本地神经系统"},
-      summary:{en:"mosquitto MQTT topics carry state and events; transitions publish exactly once.",zh:"mosquitto MQTT 主题承载状态与事件;状态转移恰好发布一次。"},
+      name:{en:"MQTT bus",zh:"MQTT 总线"},
+      summary:{en:"MQTT topics carry state and events; each transition is published once.",zh:"MQTT 主题承载状态与事件;每次转移发布一次。"},
       flow:[
-        {t:"fall_detector", d:{en:"state → FALL_CONFIRMED",zh:"状态 → FALL_CONFIRMED"}},
+        {t:"fall_detector", d:{en:"state -> FALL_CONFIRMED",zh:"状态 -> FALL_CONFIRMED"}},
         {t:"publish_event", d:{en:"eldercare/fall/event",zh:"eldercare/fall/event"}, edge:{en:"once",zh:"仅一次"}},
         {t:"mosquitto broker", d:{en:"local, retained state topic",zh:"本地,保留态主题"}},
-        {t:"alert_service", d:{en:"subscribes & reacts",zh:"订阅并响应"}}
+        {t:"alert_service", d:{en:"subscribes and reacts",zh:"订阅并响应"}}
       ],
       df:{in:["FallResult transition"], proc:["dedupe by prev_state","mosquitto_pub","record snapshot"], out:["MQTT event","MQTT retained state"]},
-      why:{en:"The board has the mosquitto_pub CLI but not the libmosquitto headers, so publishing shells out — pragmatic over pure. Because the broker is the contract, vision, fall, alert and voice can each be restarted independently without losing the others.",
-           zh:"板子有 mosquitto_pub 命令行但没有 libmosquitto 头文件,于是发布走 shell —— 务实优先于纯粹。由于总线即契约,视觉、跌倒、报警、语音可各自独立重启而互不影响。"} },
+      why:{en:"The board has the mosquitto_pub CLI but not the libmosquitto headers, so publishing runs through the CLI. Because the broker is the interface, the vision, fall, alert and voice services can each restart independently.",
+           zh:"板子有 mosquitto_pub 命令行但没有 libmosquitto 头文件,因此通过命令行发布。由于 broker 即接口,视觉、跌倒、报警、语音服务可各自独立重启。"} },
     { id:"push", code:"push",
-      name:{en:"Reaching the Family",zh:"触达家人"},
-      summary:{en:"An ntfy HTTP push plus a best-effort snapshot attachment, fully auditable.",zh:"一条 ntfy HTTP 推送,外加尽力而为的快照附件,全程可审计。"},
+      name:{en:"Family notification (ntfy)",zh:"家人通知(ntfy)"},
+      summary:{en:"An ntfy push plus a best-effort snapshot attachment, with an audit log.",zh:"一条 ntfy 推送加尽力而为的快照附件,并有审计日志。"},
       flow:[
         {t:"alert request", d:{en:"level = ok / sos",zh:"级别 = ok / sos"}},
         {t:"find_event_snapshot", d:{en:"newest JPEG from the ring",zh:"从环中取最新 JPEG"}},
-        {t:"curl → ntfy", d:{en:"Title / Priority / Tags",zh:"Title / Priority / Tags"}, edge:{en:"sos → high",zh:"sos → 高优先"}},
+        {t:"curl -> ntfy", d:{en:"Title / Priority / Tags",zh:"Title / Priority / Tags"}, edge:{en:"sos -> high",zh:"sos -> 高优先"}},
         {t:"PUT snapshot", d:{en:"image attachment",zh:"图片附件"}},
         {t:"JSONL audit log", d:{en:"every attempt recorded",zh:"记录每次尝试"}}
       ],
       df:{in:["alert level","fall ts"], proc:["snapshot lookup","ntfy push","attach image","append JSONL"], out:["family notification","audit record"]},
-      why:{en:"The snapshot is best-effort by design: a missing or failed image upload must never turn an already-sent alarm into a failed one. An SOS escalates the ntfy priority so it can break through a silenced phone. The audit log makes every suppressed or failed push explainable after the fact.",
-           zh:"快照刻意设计为尽力而为:缺失或上传失败的图片绝不能把已发出的报警变成失败。SOS 会提升 ntfy 优先级,以便穿透静音的手机。审计日志让每一次被抑制或失败的推送事后都可解释。"} }
+      why:{en:"The snapshot is best-effort: a missing or failed upload does not turn a sent alert into a failed one. An SOS raises the ntfy priority so it can reach a silenced phone. The audit log records every suppressed or failed push.",
+           zh:"快照为尽力而为:缺失或上传失败不会把已发送的报警变成失败。SOS 会提高 ntfy 优先级,以便触达静音手机。审计日志记录每次被抑制或失败的推送。"} }
   ]
 },
 {
-  id:"voice", color:"voice", icon:"🗣️",
-  name:{en:"Conversation",zh:"对话"}, name2:{en:"the voice companion",zh:"语音陪伴"},
-  tag:{en:"A companion that can hear past its own voice.",zh:"一个能听见自己声音之外的陪伴。"},
+  id:"voice", color:"voice",
+  name:{en:"Voice assistant",zh:"语音助手"}, name2:{en:"offline, full-duplex",zh:"离线全双工"},
+  tag:{en:"An offline assistant that checks on the person and avoids hearing itself.",zh:"离线助手,询问情况并避免听到自己。"},
   file:"src/cpp_runtime/voice_service.cpp",
-  overview:{en:"A fully offline, full-duplex assistant: wake word → on-device ASR → a local LLM → neural TTS. Acoustic echo cancellation stops it transcribing itself, yet a real person can still barge in over the speaker. After a fall it asks 'are you OK?' and decides whether to escalate.",
-            zh:"一个完全离线、全双工的助手:唤醒词 → 端侧 ASR → 本地 LLM → 神经 TTS。声学回声消除让它不会把自己说的话当成输入,而真人仍可越过扬声器插话。跌倒后它会问“您还好吗?”并决定是否升级。"},
+  overview:{en:"A fully offline, full-duplex assistant: wake word, on-device ASR, a local LLM, and neural TTS. Echo cancellation keeps it from transcribing its own output, while a real person can still interrupt over the speaker. After a fall it asks whether the person is all right and decides whether to escalate.",
+            zh:"完全离线、全双工的助手:唤醒词、端侧 ASR、本地 LLM 和神经 TTS。回声消除避免它转写自己的输出,同时真人仍可越过扬声器打断。跌倒后它询问是否安好,并决定是否升级。"},
   subs:[
     { id:"aec", code:"aec",
-      name:{en:"Hearing Past Itself",zh:"听见自己之外"},
-      summary:{en:"PipeWire full-duplex + speex AEC + a double-talk gate that requires energy AND decorrelation.",zh:"PipeWire 全双工 + speex AEC + 需同时满足能量与去相关的双讲门。"},
+      name:{en:"Echo cancellation (AEC)",zh:"回声消除(AEC)"},
+      summary:{en:"PipeWire full-duplex with speex AEC and a double-talk gate.",zh:"PipeWire 全双工,speex AEC 加双讲门。"},
       flow:[
-        {t:"playback x → ref_ring", d:{en:"differential speaker feeds the reference",zh:"差分扬声器喂入参考信号"}},
+        {t:"playback x -> ref_ring", d:{en:"playback feeds the reference",zh:"播放信号喂入参考"}},
         {t:"mic d", d:{en:"near-end + echo + noise",zh:"近端 + 回声 + 噪声"}},
-        {t:"speex_echo_cancellation", d:{en:"linear echo removed → residual",zh:"消去线性回声 → 残差"}},
+        {t:"speex_echo_cancellation", d:{en:"linear echo removed -> residual",zh:"消去线性回声 -> 残差"}},
         {t:"detect_double_talk", d:{en:"residual_excess && multi_band_decorrelated",zh:"residual_excess && multi_band_decorrelated"}, edge:{en:"both required",zh:"两者皆需"}},
         {t:"gate open / closed", d:{en:"real speech passes, TTS echo blocked",zh:"真人通过,TTS 回声拦截"}}
       ],
       df:{in:["mic frame","playback reference"], proc:["speex AEC","residual energy","cross-band correlation"], out:["clean near-end OR muted"]},
-      why:{en:"This board's loudspeaker echo is only weakly correlated, so energy-only gating is fooled by nonlinear residual and correlation-only gating is fooled by the weak echo. Requiring BOTH a residual-energy excess and multi-band decorrelation keeps the assistant from transcribing its own TTS while still opening the gate for a real barge-in.",
-           zh:"这块板的扬声器回声相关性很弱,因此只看能量会被非线性残差骗,只看相关性又会被弱回声骗。同时要求残差能量超标 与 多频带去相关,才能既不让助手转写自己的 TTS,又为真人插话开门。"} },
+      why:{en:"The loudspeaker echo on this board is weakly correlated, so an energy-only gate is fooled by nonlinear residual and a correlation-only gate is fooled by the weak echo. The gate requires both a residual-energy excess and multi-band decorrelation, which suppresses the assistant's own TTS while still allowing a real interruption.",
+           zh:"这块板的扬声器回声相关性弱,因此只看能量会被非线性残差骗,只看相关性会被弱回声骗。该门同时要求残差能量超标和多频带去相关,既抑制助手自身 TTS,又允许真人打断。"} },
     { id:"chain", code:"chain",
-      name:{en:"Wake, Understand, Speak",zh:"唤醒 · 理解 · 应答"},
-      summary:{en:"Silero VAD + SenseVoice ASR + qwen (llama.cpp) + Matcha/Piper TTS — every stage local.",zh:"Silero VAD + SenseVoice ASR + qwen(llama.cpp)+ Matcha/Piper TTS —— 每一级都本地。"},
+      name:{en:"Wake / ASR / LLM / TTS",zh:"唤醒 / ASR / LLM / TTS"},
+      summary:{en:"Silero VAD, SenseVoice ASR, qwen (llama.cpp) and Matcha/Piper TTS, all local.",zh:"Silero VAD、SenseVoice ASR、qwen(llama.cpp)和 Matcha/Piper TTS,全部本地。"},
       flow:[
         {t:"Silero VAD", d:{en:"endpoint the utterance",zh:"切出一句话"}},
-        {t:"SenseVoice ASR", d:{en:"offline Chinese → text",zh:"离线中文 → 文本"}},
+        {t:"SenseVoice ASR", d:{en:"offline Chinese -> text",zh:"离线中文 -> 文本"}},
         {t:"qwen LLM", d:{en:"llama-server, multi-turn history",zh:"llama-server,多轮历史"}},
-        {t:"Matcha TTS", d:{en:"neural Mandarin → audio",zh:"神经普通话 → 音频"}},
-        {t:"playback → AEC ref", d:{en:"closes the full-duplex loop",zh:"闭合全双工回路"}, edge:{en:"loop",zh:"回路"}}
+        {t:"Matcha TTS", d:{en:"neural Mandarin -> audio",zh:"神经普通话 -> 音频"}},
+        {t:"playback -> AEC ref", d:{en:"closes the full-duplex loop",zh:"闭合全双工回路"}, edge:{en:"loop",zh:"回路"}}
       ],
       df:{in:["mic audio"], proc:["VAD","ASR","local LLM","TTS"], out:["spoken reply","reference for AEC"]},
-      why:{en:"Nothing leaves the board — privacy is structural, not a policy. The C++ port re-added a multi-turn session (wake once, then keep talking) the earlier build had lost, and a rolling 15-second window of the assistant's own speech so its late-arriving echo is rejected instead of parroted back.",
-           zh:"没有任何数据出板 —— 隐私是结构性的,而非靠政策。C++ 移植重新加回了早期版本丢失的多轮会话(只需唤醒一次,随后持续对话),以及一个滚动 15 秒的“自述窗口”,使迟到的自身回声被拒绝而非被复读。"} },
+      why:{en:"No audio leaves the board. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped, and added a rolling 15-second window of the assistant's own speech so its late echo is rejected instead of repeated.",
+           zh:"没有音频离开板子。C++ 移植恢复了早期版本丢失的多轮会话(唤醒一次后持续),并加入滚动 15 秒的自述窗口,使迟到的回声被拒绝而非复读。"} },
     { id:"fallans", code:"fallans",
-      name:{en:"Answering a Fall",zh:"回应跌倒"},
-      summary:{en:"A short barge-in prompt, then echo-proof classification into ok / sos / unclear.",zh:"一句可插话的短提示,再做防回声的 ok / sos / unclear 分类。"},
+      name:{en:"Post-fall check-in",zh:"跌倒后问询"},
+      summary:{en:"A short prompt that allows interruption, then classification into ok / sos / unclear.",zh:"一句允许打断的短提示,再分类为 ok / sos / unclear。"},
       flow:[
-        {t:"FALL event", d:{en:"publish 'confirmed' first",zh:"先发布 confirmed"}},
+        {t:"FALL event", d:{en:"publish confirmed first",zh:"先发布 confirmed"}},
         {t:"speak_local_nowait", d:{en:"short, classify-neutral prompt",zh:"短的、对分类中性的提示"}, edge:{en:"non-blocking",zh:"非阻塞"}},
-        {t:"capture_vad → ASR", d:{en:"elder's reply (mixed with echo)",zh:"老人的回答(混有回声)"}},
+        {t:"capture_vad -> ASR", d:{en:"reply, mixed with echo",zh:"回答,混有回声"}},
         {t:"classify_fall_reply", d:{en:"match echo-proof markers only",zh:"只匹配防回声的标记词"}},
-        {t:"reassure / escalate", d:{en:"ok → calm · sos/unclear → family",zh:"ok → 安抚 · sos/unclear → 家人"}}
+        {t:"reassure / escalate", d:{en:"ok -> calm · sos/unclear -> family",zh:"ok -> 安抚 · sos/unclear -> 家人"}}
       ],
-      df:{in:["fall event","mic reply"], proc:["short prompt + barge-in","ASR","marker classify","re-ask once"], out:["ok / sos to alert path","spoken response"]},
-      why:{en:"The prompt is kept ~2 s and word-neutral on purpose: the live AEC can't fully cancel the speaker, and a long prompt buried the elder's shout under echo so ASR returned ''. We never subtract the prompt (that once ate the elder's own '我还好' → false SOS); we match only markers the prompt cannot contain. Silence defaults to SOS — the safe direction.",
-           zh:"提示刻意保持约 2 秒且用词中性:实时 AEC 无法完全消除扬声器,过长的提示会把老人的呼喊埋在回声里,使 ASR 返回空串。我们绝不“减去提示”(那曾把老人自己的“我还好”删掉 → 误报 SOS);只匹配提示不可能包含的标记词。沉默默认按 SOS 处理 —— 安全的一侧。"} }
+      df:{in:["fall event","mic reply"], proc:["short prompt + interruption","ASR","marker classify","re-ask once"], out:["ok / sos to alert path","spoken response"]},
+      why:{en:"The prompt is about 2 s and word-neutral on purpose. The live AEC does not fully cancel the speaker, and a long prompt buried the reply under echo so ASR returned nothing. The classifier does not subtract the prompt (that once removed the person's own '我还好' and produced a false SOS); it matches only markers the prompt cannot contain. Silence defaults to SOS.",
+           zh:"提示约 2 秒且用词中性。实时 AEC 不能完全消除扬声器,过长的提示会把回答埋在回声里使 ASR 返回空。分类器不减去提示(那曾删掉本人的“我还好”并造成误报 SOS),只匹配提示不可能包含的标记词。沉默默认按 SOS 处理。"} }
   ]
 },
 {
-  id:"ops", color:"ops", icon:"🛡️",
-  name:{en:"The Caretaker's Caretaker",zh:"守望者"}, name2:{en:"ops & infrastructure",zh:"运维与基础设施"},
-  tag:{en:"Keeping the whole thing alive, unattended.",zh:"无人值守,守住整套系统。"},
+  id:"ops", color:"ops",
+  name:{en:"Operations",zh:"运维"}, name2:{en:"runtime and monitoring",zh:"运行与监控"},
+  tag:{en:"Keeps the services running on the board without supervision.",zh:"无人值守地让板上服务持续运行。"},
   file:"systemd/ · src/cpp_runtime/health_agent.cpp",
-  overview:{en:"Six systemd services auto-start and self-heal on boot. A read-only health agent samples liveness, disk and temperature into one JSON file. And a tiny shell loop tames the cooling fan so it stops drowning out the microphone.",
-            zh:"六个 systemd 服务在开机时自启并自愈。一个只读的健康代理把存活、磁盘与温度采样进一个 JSON 文件。还有一段极小的 shell 循环驯服散热风扇,让它别再盖过麦克风。"},
+  overview:{en:"Six systemd services start and restart on boot. A read-only health agent samples liveness, disk and temperature into one JSON file. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
+            zh:"六个 systemd 服务在开机时启动并自动重启。一个只读健康代理把存活、磁盘和温度采样进一个 JSON 文件。一段小 shell 循环把散热风扇保持在安静转速,以免干扰麦克风。"},
   subs:[
     { id:"services", code:"systemd",
-      name:{en:"Six Services, Self-Healing",zh:"六服务,自愈"},
-      summary:{en:"systemd units start vision, fall, voice, alert, health and llm with Restart=always.",zh:"systemd 单元以 Restart=always 拉起视觉、跌倒、语音、报警、健康、llm。"},
+      name:{en:"systemd services",zh:"systemd 服务"},
+      summary:{en:"systemd starts vision, fall, voice, alert, health and llm with Restart=always.",zh:"systemd 以 Restart=always 启动视觉、跌倒、语音、报警、健康和 llm。"},
       flow:[
         {t:"boot", d:{en:"default.target",zh:"default.target"}},
-        {t:"systemd", d:{en:"6 units, ordered After=",zh:"6 个单元,按 After= 排序"}},
+        {t:"systemd", d:{en:"6 units, ordered with After=",zh:"6 个单元,按 After= 排序"}},
         {t:"vision / fall / voice / alert / health / llm", d:{en:"each its own process",zh:"各自独立进程"}},
-        {t:"Restart=always", d:{en:"crash → restart in 3 s",zh:"崩溃 → 3 秒重启"}, edge:{en:"self-heal",zh:"自愈"}}
+        {t:"Restart=always", d:{en:"crash -> restart in 3 s",zh:"崩溃 -> 3 秒重启"}, edge:{en:"self-heal",zh:"自愈"}}
       ],
       df:{in:["power on"], proc:["systemd ordering","ExecStart wrappers","Restart=always"], out:["6 live services","per-service logs"]},
-      why:{en:"Each subsystem is its own unit, so a crash in voice never takes down vision, and any one can be redeployed alone. Logs append per-service, which is what made the camera-flicker, fan-noise and AEC bugs traceable in the first place.",
-           zh:"每个子系统都是独立单元,因此语音崩溃不会拖垮视觉,任何一个都能单独重新部署。日志按服务追加 —— 正是它让摄像头闪烁、风扇噪声、AEC 这些 bug 一开始就可追溯。"} },
+      why:{en:"Each subsystem is its own unit, so a crash in voice does not take down vision, and any one can be redeployed alone. Logs are per service, which is how the camera-flicker, fan-noise and AEC issues were traced.",
+           zh:"每个子系统是独立单元,因此语音崩溃不影响视觉,任何一个都能单独重新部署。日志按服务分开,摄像头闪烁、风扇噪声和 AEC 问题正是这样定位的。"} },
     { id:"health", code:"health",
-      name:{en:"Vital Signs",zh:"体征监测"},
-      summary:{en:"A read-only agent samples units, TCP, disk, thermal and cpufreq into one status file.",zh:"只读代理把单元、TCP、磁盘、温度、cpufreq 采样进一个状态文件。"},
+      name:{en:"Health monitoring",zh:"健康监控"},
+      summary:{en:"A read-only agent samples units, TCP, disk, thermal and cpufreq into a status file.",zh:"只读代理把单元、TCP、磁盘、温度和 cpufreq 采样进状态文件。"},
       flow:[
         {t:"timer tick", d:{en:"periodic sample",zh:"周期采样"}},
-        {t:"systemctl is-active", d:{en:"true service state, not guesswork",zh:"真实服务态,而非猜测"}},
+        {t:"systemctl is-active", d:{en:"true service state",zh:"真实服务状态"}},
         {t:"TCP + statvfs + thermal", d:{en:"endpoints, disk, temperature",zh:"端点、磁盘、温度"}},
-        {t:"status.json", d:{en:"one file for humans & watchdogs",zh:"一个文件供人和看门狗"}}
+        {t:"status.json", d:{en:"one file for humans and watchdogs",zh:"一个文件供人和看门狗"}}
       ],
       df:{in:["system state"], proc:["unit checks","TCP probes","disk + thermal sample"], out:["status.json","OTA mark-good signal"]},
-      why:{en:"It is deliberately read-only — it observes, it never acts — so it can be trusted as the source of truth for OTA mark-good and dashboards. It follows systemd's own active/inactive state rather than grepping process names, which is far more reliable across restarts.",
-           zh:"它刻意保持只读 —— 只观察,从不动作 —— 因此可作为 OTA mark-good 与仪表盘的可信真相源。它依据 systemd 自身的 active/inactive 状态,而非 grep 进程名,在重启间可靠得多。"} },
+      why:{en:"It is read-only and never acts, so it can serve as the source of truth for OTA mark-good and dashboards. It uses systemd's active/inactive state rather than matching process names, which is more reliable across restarts.",
+           zh:"它只读、从不动作,因此可作为 OTA mark-good 与仪表盘的真相源。它使用 systemd 的 active/inactive 状态而非匹配进程名,在重启间更可靠。"} },
     { id:"fan", code:"fan",
-      name:{en:"The Quiet Fan",zh:"安静的风扇"},
-      summary:{en:"Hold the PWM fan low — with thermal hysteresis — so its noise stops burying speech.",zh:"把 PWM 风扇压低 —— 带温度滞回 —— 让噪声不再淹没语音。"},
+      name:{en:"Fan noise control",zh:"风扇噪声控制"},
+      summary:{en:"Hold the PWM fan low, with thermal hysteresis, so its noise does not mask speech.",zh:"把 PWM 风扇压低并带温度滞回,使噪声不掩盖语音。"},
       flow:[
         {t:"every 1 s", d:{en:"re-assert before the firmware does",zh:"赶在固件之前重写"}},
         {t:"read soc-thermal", d:{en:"current SoC temperature",zh:"当前 SoC 温度"}},
-        {t:"if < 72 °C → pwm = 50", d:{en:"quiet; back off if it warms up",zh:"安静;变热则退让"}, edge:{en:"hysteresis 66/72",zh:"滞回 66/72"}},
-        {t:"mic floor 10× lower", d:{en:"shouted reply now survives ASR",zh:"呼喊回答得以被 ASR 听到"}}
+        {t:"if < 72 C -> pwm = 50", d:{en:"quiet; back off if it warms up",zh:"安静;变热则退让"}, edge:{en:"hysteresis 66/72",zh:"滞回 66/72"}},
+        {t:"mic floor ~10x lower", d:{en:"a shouted reply now reaches ASR",zh:"呼喊回答得以被 ASR 听到"}}
       ],
-      df:{in:["SoC temperature"], proc:["1 s loop","hysteresis 66/72 °C","write pwm1"], out:["fan pwm = 50","usable mic"]},
-      why:{en:"This is the bug that looked like a software bug. At stock pwm=100 the fan's broadband air noise lands right in the speech band and raised the mic floor ~10×, so the elder's fall reply transcribed as '' and the check-in false-escalated to SOS. cpufreq/devfreq throttling stays fully active, so quieting the fan never removes overheat protection — worst case is throttling, not damage.",
-           zh:"这是一个看起来像软件 bug 的 bug。出厂 pwm=100 时,风扇的宽带气流噪声正落在语音频段,把麦克风底噪抬高约 10 倍,于是老人的跌倒回答被转写成空串,问候因此误升级为 SOS。cpufreq/devfreq 限频仍全程有效,因此压低风扇绝不移除过热保护 —— 最坏是降频,而非损坏。"} }
+      df:{in:["SoC temperature"], proc:["1 s loop","hysteresis 66/72 C","write pwm1"], out:["fan pwm = 50","usable mic"]},
+      why:{en:"At the stock pwm=100 the fan's broadband noise sits in the speech band and raised the microphone noise floor by about 10x, so a fall reply transcribed as empty and the check-in escalated to SOS. cpufreq/devfreq throttling stays active, so holding the fan low does not remove overheat protection; the worst case is throttling, not damage.",
+           zh:"出厂 pwm=100 时风扇宽带噪声落在语音频段,把麦克风底噪抬高约 10 倍,于是跌倒回答被转写为空,问询升级为 SOS。cpufreq/devfreq 限频仍有效,因此压低风扇不会移除过热保护;最坏是降频,而非损坏。"} }
   ]
 }
 ];
@@ -693,7 +686,7 @@ function flowSvg(steps, color){
   return out.join("");
 }
 
-/* custom state-machine diagram for judgment/states */
+/* custom state-machine diagram for fall detection */
 function stateMachineSvg(){
   const C={normal:"#22c55e",warn:"var(--fall)",lying:"#fb923c",fall:"var(--alert)"};
   const box=(x,y,w,c,t,s)=>'<rect class="stbox" x="'+x+'" y="'+y+'" width="'+w+'" height="52" rx="10" fill="rgba(255,255,255,.03)" stroke="'+c+'"/>'+
@@ -703,12 +696,12 @@ function stateMachineSvg(){
   const lbl=(x,y,t,anc)=>'<text class="fedge" x="'+x+'" y="'+y+'" text-anchor="'+(anc||"start")+'">'+esc(tr(t))+"</text>";
   let p=['<svg viewBox="0 0 560 420" class="flow" preserveAspectRatio="xMidYMin meet">'];
   p.push(box(170,10,220,C.normal,"NORMAL",{en:"standing / moving",zh:"站立 / 活动"}));
-  p.push(box(170,130,220,C.warn,"WARNING",{en:"score ≥ 0.42 or sudden drop",zh:"分数 ≥ 0.42 或骤降"}));
+  p.push(box(170,130,220,C.warn,"WARNING",{en:"score >= 0.42 or sudden drop",zh:"分数 >= 0.42 或骤降"}));
   p.push(box(170,250,220,C.lying,"LYING",{en:"flat posture detected",zh:"检测到扁平姿态"}));
   p.push(box(150,360,260,C.fall,"FALL_CONFIRMED",{en:"alert = true (latched)",zh:"alert = true(锁存)"}));
   p.push(arr(280,62,280,128));  p.push(lbl(292,98,{en:"rising fall_score",zh:"fall_score 升高"}));
   p.push(arr(280,182,280,248)); p.push(lbl(292,218,{en:"lying pose",zh:"躺姿"}));
-  p.push(arr(280,302,280,358)); p.push(lbl(292,335,{en:"floor + evidence ≥ 1.8 s",zh:"贴地 + 证据 ≥ 1.8 s"}));
+  p.push(arr(280,302,280,358)); p.push(lbl(292,335,{en:"floor + evidence >= 1.8 s",zh:"贴地 + 证据 >= 1.8 s"}));
   p.push('<path class="fln" d="M170,40 C70,70 70,250 168,266" marker-end="url(#fa)" fill="none"/>');
   p.push(lbl(40,160,{en:"sudden",zh:"骤然"})); p.push(lbl(40,178,{en:"collapse",zh:"倒地"}));
   p.push('<path class="fdash" d="M410,386 C510,330 510,90 392,40" marker-end="url(#fa)" fill="none"/>');
@@ -723,14 +716,14 @@ function dataFlow(df){
     arr.forEach(x=>{ h+='<span class="pill k">'+esc(x)+"</span>"; });
     return h+"</div>";
   };
-  return '<div class="df">'+col(tr(T.din),df.in)+'<div class="dfarr">→</div>'+col(tr(T.dproc),df.proc,true)+'<div class="dfarr">→</div>'+col(tr(T.dout),df.out)+"</div>";
+  return '<div class="df">'+col(tr(T.din),df.in)+'<div class="dfarr">-></div>'+col(tr(T.dproc),df.proc,true)+'<div class="dfarr">-></div>'+col(tr(T.dout),df.out)+"</div>";
 }
 
 function panel(titleKey, color, inner){
   return '<div class="panel" style="--bd:var(--'+color+')"><div class="ptitle"><span class="dot"></span>'+tr(T[titleKey])+"</div>"+inner+"</div>";
 }
 
-/* ---------- master architecture diagram (clickable) ---------- */
+/* ---------- system overview diagram (clickable) ---------- */
 function archDiagram(){
   const b=(href,x,y,w,h,cls,t,s)=>'<a href="#/'+href+'"><rect class="b '+cls+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="10"/>'+
     '<text class="dt" x="'+(x+w/2)+'" y="'+(y+(s?h/2-2:h/2+5))+'" text-anchor="middle">'+t+"</text>"+
@@ -741,16 +734,16 @@ function archDiagram(){
   const ln=(x1,y1,x2,y2,d)=>'<line class="'+(d?"dln2":"dln")+'" x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" marker-end="url(#fa)"/>';
   let p=['<svg viewBox="0 0 680 470" role="img"><style>.b{fill:rgba(255,255,255,.03);stroke-width:1.6}.b.hw{stroke:var(--hw)}.b.vis{stroke:var(--vis)}.b.fall{stroke:var(--fall)}.b.alert{stroke:var(--alert)}.b.voice{stroke:var(--voice)}.b.ops{stroke:var(--ops)}.dln{stroke:#5b6c8a;stroke-width:1.6;fill:none}.dln2{stroke:#5b6c8a;stroke-width:1.6;fill:none;stroke-dasharray:5 4}a{cursor:pointer}</style>'];
   p.push(plain(40,20,300,52,"Camera + ISP + mic",{en:"ov13855 · RKAIQ · es8388",zh:"ov13855 · RKAIQ · es8388"}));
-  p.push(b("vision",40,108,300,58,"vis","① Sight",{en:"NPU pose · 3 contexts · ~15 fps",zh:"NPU 姿态 · 3 上下文 · ~15 fps"}));
-  p.push(b("judgment",40,200,300,58,"fall","② Judgment",{en:"temporal state machine",zh:"时序状态机"}));
-  p.push(b("alert",40,292,300,58,"alert","③ The Call for Help",{en:"MQTT → ntfy + snapshot",zh:"MQTT → ntfy + 快照"}));
+  p.push(b("vision",40,108,300,58,"vis","1. Vision",{en:"NPU pose · 3 contexts · ~15 fps",zh:"NPU 姿态 · 3 上下文 · ~15 fps"}));
+  p.push(b("judgment",40,200,300,58,"fall","2. Fall detection",{en:"temporal state machine",zh:"时序状态机"}));
+  p.push(b("alert",40,292,300,58,"alert","3. Alerting",{en:"MQTT -> ntfy + snapshot",zh:"MQTT -> ntfy + 快照"}));
   p.push(plain(40,384,300,52,"Family phone",{en:"push + snapshot + live RTSP",zh:"推送 + 快照 + 实时 RTSP"}));
   p.push(ln(190,72,190,106)); p.push(ln(190,166,190,198)); p.push(ln(190,258,190,290)); p.push(ln(190,350,190,382));
-  p.push(b("voice",390,108,250,150,"voice","④ Conversation",{en:"offline wake · ASR · LLM · TTS · AEC",zh:"离线唤醒 · ASR · LLM · TTS · AEC"}));
+  p.push(b("voice",390,108,250,150,"voice","4. Voice assistant",{en:"offline wake · ASR · LLM · TTS · AEC",zh:"离线唤醒 · ASR · LLM · TTS · AEC"}));
   p.push(ln(340,229,388,200,true));
   p.push(ln(388,150,342,135,true));
-  p.push('<text class="dsec" x="515" y="278" text-anchor="middle">'+esc(tr({en:"fall check-in ↔ escalate",zh:"跌倒问询 ↔ 升级"}))+"</text>");
-  p.push(b("ops",390,292,250,58,"ops","⑤ Caretaker",{en:"systemd · health · quiet fan",zh:"systemd · 健康 · 静音风扇"}));
+  p.push('<text class="dsec" x="515" y="278" text-anchor="middle">'+esc(tr({en:"fall check-in / escalate",zh:"跌倒问询 / 升级"}))+"</text>");
+  p.push(b("ops",390,292,250,58,"ops","5. Operations",{en:"systemd · health · fan",zh:"systemd · 健康 · 风扇"}));
   p.push(ln(515,350,360,384,true));
   p.push("</svg>");
   return p.join("");
@@ -762,11 +755,10 @@ function home(){
     '<a class="mcard" href="#/'+m.id+'" style="--bd:var(--'+m.color+')">'+
       '<span class="bar"></span>'+
       '<span class="cnt">'+m.subs.length+" · "+tr(T.subs)+"</span>"+
-      '<div class="ico">'+m.icon+"</div>"+
       "<h3>"+(i+1)+". "+esc(tr(m.name))+"</h3>"+
       '<div class="nm2">'+esc(tr(m.name2))+"</div>"+
       "<p>"+esc(tr(m.tag))+"</p>"+
-      '<div class="go">'+tr(T.tap)+"</div>"+
+      '<div class="go">'+tr(T.tap)+" →</div>"+
     "</a>"
   )).join("");
   return ''+
@@ -792,11 +784,11 @@ function home(){
       '<p class="sub">'+tr(T.arch_sub)+"</p>"+
       '<div class="diagram">'+archDiagram()+
         '<div class="legend">'+
-          '<span><i style="background:var(--vis)"></i>Sight</span>'+
-          '<span><i style="background:var(--fall)"></i>Judgment</span>'+
-          '<span><i style="background:var(--alert)"></i>Alert</span>'+
+          '<span><i style="background:var(--vis)"></i>Vision</span>'+
+          '<span><i style="background:var(--fall)"></i>Fall detection</span>'+
+          '<span><i style="background:var(--alert)"></i>Alerting</span>'+
           '<span><i style="background:var(--voice)"></i>Voice</span>'+
-          '<span><i style="background:var(--ops)"></i>Ops</span>'+
+          '<span><i style="background:var(--ops)"></i>Operations</span>'+
         "</div>"+
       "</div>"+
     "</section>"+
@@ -819,13 +811,10 @@ function moduleView(m){
     '<div class="crumb"><a href="#/">'+tr(T.home)+'</a><span>›</span>'+esc(tr(m.name))+"</div>"+
     "<section style='padding-top:14px'>"+
       '<div class="mhead" style="--bd:var(--'+m.color+')">'+
-        '<div class="ico">'+m.icon+"</div>"+
-        "<div>"+
-          "<h1>"+esc(tr(m.name))+"</h1>"+
-          '<div class="nm2">'+esc(tr(m.name2))+"</div>"+
-          '<p class="tag">'+esc(tr(m.overview))+"</p>"+
-          '<div class="srcpill">📁 '+esc(m.file)+"</div>"+
-        "</div>"+
+        "<h1>"+esc(tr(m.name))+"</h1>"+
+        '<div class="nm2">'+esc(tr(m.name2))+"</div>"+
+        '<p class="tag">'+esc(tr(m.overview))+"</p>"+
+        '<div class="srcpill">'+tr(T.source)+": "+esc(m.file)+"</div>"+
       "</div>"+
       '<div class="secttl" style="margin-top:22px"><h2>'+tr(T.subs)+"</h2></div>"+
       '<p class="sub">'+tr(T.subs_sub)+"</p>"+
@@ -845,9 +834,8 @@ function subView(m,s){
     '<div class="crumb"><a href="#/">'+tr(T.home)+'</a><span>›</span><a href="#/'+m.id+'">'+esc(tr(m.name))+'</a><span>›</span>'+esc(tr(s.name))+"</div>"+
     "<section style='padding-top:14px'>"+
       '<div class="mhead" style="--bd:var(--'+m.color+')">'+
-        '<div class="ico">'+m.icon+"</div>"+
-        "<div><h1>"+esc(tr(s.name))+"</h1>"+
-        '<p class="tag">'+esc(tr(s.summary))+"</p></div>"+
+        "<h1>"+esc(tr(s.name))+"</h1>"+
+        '<p class="tag">'+esc(tr(s.summary))+"</p>"+
       "</div>"+
       (flow?panel("flow",m.color,flow):"")+
       (s.df?panel("data",m.color,dataFlow(s.df)):"")+
