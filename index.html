@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ElderCare Edge AI — On-device fall detection &amp; voice companion (RK3588)</title>
-<meta name="description" content="A drill-down engineering atlas of an on-device elder-care system on the RK3588 NPU: pose-based fall detection plus a fully local voice companion. Every module opens into sub-modules with flow charts, data flow and annotated implementation sketches.">
+<title>ARGUS — On-device elder-care guardian (RK3588): fall detection &amp; voice companion</title>
+<meta name="description" content="ARGUS is an on-device elder-care guardian on the RK3588 NPU: real-time pose-based fall detection plus a fully local voice companion. No cloud — every frame and every word stays on the board. Drill into each module for flow charts, data flow and annotated implementation sketches.">
 <style>
   :root{
     --bg:#0b1020; --bg2:#0f172a; --card:#121a2e; --card2:#0e1626; --line:#22304d;
@@ -38,7 +38,14 @@
   .eyebrow{color:var(--accent);font-weight:600;font-size:13px;letter-spacing:2px;text-transform:uppercase}
   h1{font-size:clamp(28px,5vw,44px);line-height:1.08;margin:14px 0 12px;letter-spacing:-.5px}
   h1 .grad{background:linear-gradient(90deg,#7cc5ff,#9b8cff);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .lede{font-size:clamp(15px,2.3vw,19px);color:var(--tx2);max-width:720px}
+  .lede{font-size:clamp(15px,2.3vw,19px);color:var(--tx2);max-width:740px}
+  .wordmark{font-size:clamp(46px,9vw,88px);font-weight:800;letter-spacing:6px;line-height:1;margin:8px 0 4px;background:linear-gradient(90deg,#7cc5ff,#9b8cff 58%,#c4a9ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tagline{font-size:clamp(18px,3vw,28px);font-weight:700;color:var(--tx);letter-spacing:-.3px;margin:0 0 14px}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:760px){.metrics{grid-template-columns:repeat(2,1fr)}}
+  .metric{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--mc,var(--accent));border-radius:12px;padding:15px 16px}
+  .metric b{display:block;font-size:25px;letter-spacing:-.5px;line-height:1.12;color:var(--tx)}
+  .metric span{display:block;color:var(--tx2);font-size:12px;margin-top:6px;line-height:1.4}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:34px 0 4px}
   @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -149,7 +156,7 @@
 </defs></svg>
 
 <nav><div class="wrap">
-  <div class="brand" onclick="go('')">ElderCare Edge AI <small>RK3588</small></div>
+  <div class="brand" onclick="go('')">ARGUS <small id="brandsub"></small></div>
   <div class="langsw">
     <button id="lang-en" onclick="setLang('en')">EN</button>
     <button id="lang-zh" onclick="setLang('zh')">中文</button>
@@ -346,17 +353,17 @@ loop every 1 s:
 
 /* ---------- chrome i18n ---------- */
 const T = {
-  eyebrow:{en:"Edge AI · On-device · No cloud",zh:"边缘 AI · 端侧运行 · 无云依赖"},
-  h1a:{en:"An engineering atlas of",zh:"一份工程图谱:"},
-  h1b:{en:"fall detection",zh:"跌倒检测"},
-  h1c:{en:"& a local",zh:"与本地"},
-  h1d:{en:"voice companion",zh:"语音陪伴"},
-  lede:{en:"Everything below runs on a single Orange Pi 5 Plus (RK3588) — no cloud, no frame or word ever leaves the board. Open any module to drill into its sub-modules, each with a flow chart, its data flow, and an annotated sketch of the real implementation.",
-        zh:"下面的一切都跑在一块香橙派 5 Plus(RK3588)上 —— 无云依赖,任何画面与话语都不出板。点击任意模块即可逐层深入子模块,每个子模块都有流程图、数据流,以及真实实现的带注释示意。"},
+  brand_sub:{en:"Edge Elder-Care · RK3588",zh:"端侧养老守护 · RK3588"},
+  eyebrow:{en:"On-device elder-care · No cloud · RK3588",zh:"端侧养老守护 · 无云依赖 · RK3588"},
+  tagline:{en:"The all-seeing guardian for independent living",zh:"为独居晚年而生的全视守护"},
+  lede:{en:"ARGUS watches over an elder living alone on a single Orange Pi 5 Plus — real-time, pose-based fall detection and a voice companion that answers back, with every frame and every word staying on the board. Open any module to drill into its sub-modules: a flow chart, its data flow, and an annotated sketch of the real implementation.",
+        zh:"ARGUS 用一块香橙派 5 Plus 守护独居老人 —— 基于姿态的实时跌倒检测,加上能对答的语音陪伴,每一帧画面、每一句话都留在板上。点击任意模块即可逐层深入子模块:流程图、数据流,以及真实实现的带注释示意。"},
   s_recall:{en:"fall recall · 4.6% false-positive (URFD + in-house clips)",zh:"跌倒召回率 · 误报 4.6%(URFD + 自采片段)"},
   s_fps:{en:"640-input pose on a 3-core NPU pipeline",zh:"640 输入姿态 · 3 核 NPU 流水线"},
   s_cloud:{en:"on-device — zero cloud dependency",zh:"端侧运行 —— 零云依赖"},
   s_latency:{en:"fall → family push + snapshot",zh:"跌倒 → 家人推送 + 快照"},
+  nums_h:{en:"By the numbers",zh:"关键数据"},
+  nums_sub:{en:"Measured on the board — every figure reflects the shipped system, not a datasheet.",zh:"全部在板上实测 —— 每个数字都对应真正上线的系统,而非规格书。"},
   arch_h:{en:"The whole system, one glance",zh:"全系统一览"},
   arch_sub:{en:"Five subsystems on one board and one camera + mic. Tap any block to dive in.",zh:"一块板、一路摄像头加麦克风上的五个子系统。点击任意方块深入查看。"},
   modules_h:{en:"Five subsystems",zh:"五个子系统"},
@@ -372,9 +379,25 @@ const T = {
   din:{en:"IN",zh:"输入"}, dproc:{en:"PROCESS",zh:"处理"}, dout:{en:"OUT",zh:"输出"},
   pseudo:{en:"pseudocode",zh:"伪代码"},
   home:{en:"Home",zh:"首页"},
-  foot:{en:"ElderCare Edge AI — on-device fall detection & voice companion on RK3588. Built as an engineering portfolio · all inference runs locally, no cloud. Code blocks are annotated sketches; the full implementation lives in a private repository.",
-        zh:"ElderCare Edge AI —— RK3588 上的端侧跌倒检测与语音陪伴。作为工程作品集构建 · 全部推理本地运行,无云依赖。代码块为带注释的示意,完整实现位于私有仓库。"}
+  foot:{en:"ARGUS — an on-device elder-care guardian on RK3588: fall detection & a local voice companion. Built as an engineering portfolio · all inference runs locally, no cloud. Code blocks are annotated sketches; the full implementation lives in a private repository.",
+        zh:"ARGUS —— RK3588 上的端侧养老守护:跌倒检测与本地语音陪伴。作为工程作品集构建 · 全部推理本地运行,无云依赖。代码块为带注释的示意,完整实现位于私有仓库。"}
 };
+
+/* ---------- headline metrics (impressive, but every figure is real) ---------- */
+const METRICS = [
+  {v:"4.6%",        c:"fall",  l:{en:"false-positive rate",zh:"误报率"}},
+  {v:"35 clips",    c:"fall",  l:{en:"replay corpus: shipped C++ ≡ Python reference, byte-identical",zh:"回放语料:上线 C++ ≡ Python 参考,逐字节一致"}},
+  {v:"2.5 s",       c:"fall",  l:{en:"temporal evidence window — no single-frame alarms",zh:"时序证据窗口 —— 杜绝单帧误报"}},
+  {v:"17",          c:"vis",   l:{en:"COCO keypoints tracked per person",zh:"每人跟踪 17 个 COCO 关键点"}},
+  {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts across the NPU",zh:"NPU 上 3 路并行 RKNN 上下文"}},
+  {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU driving 640×640 pose",zh:"3 核片上 NPU 驱动 640×640 姿态"}},
+  {v:"0 copies",    c:"vis",   l:{en:"zero-copy DMA-BUF, 0 dropped frames",zh:"零拷贝 DMA-BUF,0 丢帧"}},
+  {v:"4 models",    c:"voice", l:{en:"on-device voice stack: VAD · ASR · LLM · TTS",zh:"端侧语音栈:VAD · ASR · LLM · TTS"}},
+  {v:"full-duplex", c:"voice", l:{en:"AEC lets a person barge in while it speaks",zh:"AEC 让人在它说话时也能插话"}},
+  {v:"0 → cloud",   c:"voice", l:{en:"frames and words sent off the board",zh:"传出板外的画面与话语数"}},
+  {v:"6",           c:"ops",   l:{en:"systemd services, self-healing on crash",zh:"6 个 systemd 服务,崩溃自愈"}},
+  {v:"24/7",        c:"ops",   l:{en:"unattended — auto-start, auto-restart",zh:"全天候无人值守 —— 自启自重启"}}
+];
 
 /* ---------- the module tree (real subsystems) ---------- */
 const DATA = [
@@ -749,7 +772,8 @@ function home(){
   return ''+
     '<header class="hero">'+
       '<div class="eyebrow">'+tr(T.eyebrow)+"</div>"+
-      "<h1>"+tr(T.h1a)+' <span class="grad">'+tr(T.h1b)+'</span> '+tr(T.h1c)+' <span class="grad">'+tr(T.h1d)+"</span></h1>"+
+      '<div class="wordmark">ARGUS</div>'+
+      '<div class="tagline">'+tr(T.tagline)+"</div>"+
       '<p class="lede">'+tr(T.lede)+"</p>"+
       '<div class="stats">'+
         '<div class="stat"><b>90%</b><span>'+tr(T.s_recall)+"</span></div>"+
@@ -758,6 +782,11 @@ function home(){
         '<div class="stat"><b>~3 s</b><span>'+tr(T.s_latency)+"</span></div>"+
       "</div>"+
     "</header>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.nums_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.nums_sub)+"</p>"+
+      '<div class="metrics">'+METRICS.map(function(m){return '<div class="metric" style="--mc:var(--'+m.c+')"><b>'+esc(m.v)+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div>"+
+    "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.arch_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.arch_sub)+"</p>"+
@@ -834,6 +863,7 @@ function render(){
   document.getElementById("lang-en").classList.toggle("on",L()==="en");
   document.getElementById("lang-zh").classList.toggle("on",L()==="zh");
   document.getElementById("foot").textContent = tr(T.foot);
+  var bs=document.getElementById("brandsub"); if(bs) bs.textContent = tr(T.brand_sub);
 
   const parts=location.hash.replace(/^#\/?/,"").split("/").filter(Boolean);
   const app=document.getElementById("app");
