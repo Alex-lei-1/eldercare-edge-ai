@@ -201,7 +201,7 @@ request_buffers(VIDIOC_REQBUFS, count = 8, MMAP)        // deep enough for 3 in-
 for (i = 0; i < 8; ++i) {
     query(VIDIOC_QUERYBUF, i)                           // offset / length / planes
     mmap(buffer[i])                                     // CPU-visible view
-    fd[i] = export(VIDIOC_EXPBUF, i)                    // DMA-BUF fd for RGA / NPU
+    fd[i] = export(VIDIOC_EXPBUF, i)                    // DMA-BUF fd, RGA reads it directly
     queue(VIDIOC_QBUF, i)                               // give the empty buffer to the driver
 }
 stream_on(VIDIOC_STREAMON)                              // camera/ISP starts filling buffers
@@ -222,13 +222,17 @@ queue(VIDIOC_QBUF, k)                        // return it; the camera may overwr
 </script>
 
 <script type="text/plain" data-src id="src-rga" data-lang="cpp" data-file="src/cpp_edge/camera_preprocess_rga_zero_copy.cpp">
-// Model wants 640 RGB; the camera gives NV12. Do the convert on the RGA 2D engine
-// instead of CPU OpenCV (NV12 -> RGB -> resize -> letterbox).
-rga_resize_fd_to_fd(
-    src_fd = v4l2_dmabuf,        // camera NV12 buffer, by fd
-    dst_fd = rknn_input_dmabuf)  // the buffer the NPU is bound to
-// RGA does colorspace + resize + letterbox, writing straight into the RKNN-bound
-// buffer, so rknn_inputs_set does not copy a CPU buffer every frame.
+// auto backend = the DEPLOYED path. Model wants 640 RGB; the camera gives NV12.
+// RGA does the convert on hardware instead of CPU OpenCV.
+rga_convert(src_fd = v4l2_dmabuf,            // camera NV12 buffer, read by fd (no CPU copy)
+            NV12 -> RGB, resize, letterbox)  // ~1.3 ms on the RGA 2D engine
+rknn_inputs_set(ctx, rgb)                    // hands the input to the NPU (~11 ms / frame)
+rknn_run(ctx)
+
+// The full zero-copy path is NOT used here:
+//   rga_resize_fd_to_fd(...) -> rknn_set_io_mem(...)   // bind RGA output straight to the NPU
+// On the 640 model it measured ~210 ms per inference, and it is disabled across the 3
+// parallel workers (a shared io-mem binding is unsafe with several frames in flight).
 </script>
 
 <script type="text/plain" data-src id="src-parallel" data-lang="cpp" data-file="src/cpp_edge/main_yolo_pose_rknn_camera.cpp">
@@ -447,7 +451,7 @@ const METRICS = [
   {v:"17",          c:"vis",   l:{en:"COCO keypoints tracked per person",zh:"每人跟踪 17 个 COCO 关键点"}},
   {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts on the NPU",zh:"NPU 上 3 路 RKNN 上下文并行"}},
   {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU running 640×640 pose",zh:"3 核片上 NPU,跑 640×640 姿态"}},
-  {v:"0 copies",    c:"vis",   l:{en:"zero-copy DMA-BUF, 0 dropped frames",zh:"DMA-BUF 零拷贝,一帧不丢"}},
+  {v:"1.3 ms",      c:"vis",   l:{en:"RGA hardware preprocess/frame (NV12->RGB + letterbox)",zh:"每帧 RGA 硬件预处理(NV12->RGB + letterbox)"}},
   {v:"5 models",    c:"voice", l:{en:"on-device voice stack: wake, VAD, ASR, LLM, TTS",zh:"本地语音五件套:唤醒、VAD、ASR、LLM、TTS"}},
   {v:"full-duplex", c:"voice", l:{en:"AEC, so a person can interrupt while it speaks",zh:"AEC 加持,它说话时人也能插话"}},
   {v:"local",       c:"voice", l:{en:"wake, ASR, Qwen LLM and TTS all run on the board",zh:"唤醒、ASR、Qwen LLM、TTS 全在板上跑"}},
@@ -462,8 +466,8 @@ const DATA = [
   name:{en:"Vision pipeline",zh:"视觉流水线"}, name2:{en:"camera to pose",zh:"从相机到姿态"},
   tag:{en:"Camera frames to pose keypoints on the NPU, about 15 fps.",zh:"相机画面进 NPU,输出人体姿态关键点,约 15 fps。"},
   file:"src/cpp_edge/main_yolo_pose_rknn_camera.cpp",
-  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 DMA-BUF path delivers NV12 frames to three parallel RKNN contexts running YOLOv8n-pose. For each person it produces a bounding box, 17 COCO keypoints and a track id, then sends the result three ways without copying on the hot path.",
-            zh:"MIPI 相机先接 RK3588 的硬件 ISP;8 缓冲的 V4L2 DMA-BUF 把 NV12 画面送进三个并行的 RKNN 上下文,跑 YOLOv8n-pose。每检测到一个人,就给出边界框、17 个 COCO 关键点和一个跟踪 id,再在热路径上零拷贝地分三路送出去。"},
+  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 DMA-BUF path delivers NV12 frames, RGA does the preprocessing on hardware, and three parallel RKNN contexts run YOLOv8n-pose. For each person it produces a bounding box, 17 COCO keypoints and a track id, then fans the result out three ways.",
+            zh:"MIPI 相机先接 RK3588 的硬件 ISP;8 缓冲的 V4L2 DMA-BUF 交付 NV12 画面,RGA 在硬件上做预处理,三个并行的 RKNN 上下文跑 YOLOv8n-pose。每检测到一个人,就给出边界框、17 个 COCO 关键点和一个跟踪 id,再分三路送出去。"},
   subs:[
     { id:"boot", code:"boot",
       name:{en:"Boot & entry",zh:"启动与入口"},
@@ -506,16 +510,16 @@ const DATA = [
            zh:"cv::Mat 多数时候只是 mmap buffer 的视图,并不拥有像素。要是提前 QBUF 还接着用这个视图,摄像头就会往同一块内存写下一帧,于是出现撕裂(上半旧帧、下半新帧)。这里 RTSP 是安全的:push_nv12 会先把 NV12 拷进 GStreamer buffer 再返回,所以它返回之后再 QBUF 没问题。"} },
     { id:"rga", code:"rga",
       name:{en:"RGA preprocessing",zh:"RGA 预处理"},
-      summary:{en:"Convert NV12 to RGB, resize and letterbox on the RGA 2D engine, writing straight into the RKNN-bound input buffer.",zh:"在 RGA 2D 引擎上把 NV12 转 RGB、缩放、letterbox,直接写进 RKNN 绑定的输入 buffer。"},
+      summary:{en:"RGA does NV12->RGB, resize and letterbox on hardware (~1.3 ms/frame); the result is handed to the NPU with rknn_inputs_set.",zh:"RGA 在硬件上做 NV12->RGB、缩放、letterbox(每帧约 1.3 ms);结果再用 rknn_inputs_set 交给 NPU。"},
       flow:[
-        {t:"camera NV12 fd", d:{en:"V4L2 DMA-BUF",zh:"V4L2 DMA-BUF"}},
-        {t:"rga_resize_fd_to_fd", d:{en:"colorspace + resize + letterbox",zh:"色彩空间 + 缩放 + letterbox"}, edge:{en:"on RGA",zh:"走 RGA"}},
-        {t:"RKNN-bound DMA-BUF", d:{en:"the model input buffer",zh:"模型输入 buffer"}},
-        {t:"RKNN reads it", d:{en:"no per-frame CPU copy",zh:"无逐帧 CPU 拷贝"}}
+        {t:"camera NV12 fd", d:{en:"V4L2 DMA-BUF, read by RGA",zh:"V4L2 DMA-BUF,RGA 直接读"}},
+        {t:"RGA convert", d:{en:"NV12->RGB + resize + letterbox, ~1.3 ms",zh:"NV12->RGB + 缩放 + letterbox,约 1.3 ms"}, edge:{en:"on hardware",zh:"硬件上"}},
+        {t:"rknn_inputs_set", d:{en:"copy the input into the NPU, ~11 ms",zh:"把输入拷进 NPU,约 11 ms"}},
+        {t:"rknn_run", d:{en:"inference on the NPU core",zh:"在 NPU 核上推理"}}
       ],
-      df:{in:["NV12 DMA-BUF fd"], proc:["RGA NV12 -> RGB","resize + letterbox"], out:["RGB in RKNN-bound buffer"]},
-      why:{en:"The usual path is CPU OpenCV (NV12 to RGB, resize, letterbox) and then rknn_inputs_set copies a CPU buffer every frame. Doing it fd-to-fd on the RGA writes the result straight into the buffer the NPU reads, so the main inference input avoids the CPU conversion and the per-frame copy. It is not that there is zero memcpy anywhere, just that the hot input path is offloaded to hardware.",
-           zh:"常规做法是 CPU OpenCV(NV12 转 RGB、缩放、letterbox),然后 rknn_inputs_set 每帧拷一份 CPU buffer。改成在 RGA 上 fd 到 fd,结果直接写进 NPU 要读的那块 buffer,主推理输入这条路就省掉了 CPU 转换和逐帧拷贝。不是说全程一点 memcpy 都没有,而是把最热的输入路径卸载给了硬件。"} },
+      df:{in:["NV12 DMA-BUF fd"], proc:["RGA NV12->RGB","resize + letterbox","rknn_inputs_set"], out:["detections"]},
+      why:{en:"Where it is genuinely zero-copy: capture to RGA. The frame is an mmap view and RGA reads the camera buffer by DMA-BUF fd, so there is no CPU colorspace convert. Where it is NOT: the inference input. The deployed path calls rknn_inputs_set every frame (about 11 ms measured). The full zero-copy path (rga_resize_fd_to_fd then rknn_set_io_mem, binding the RGA output straight to the NPU) is not used: on the 640 model it measured ~210 ms per inference, and it is disabled across the 3 parallel workers because a shared io-mem binding is unsafe with several frames in flight. So the design trades a truly zero-copy input for 640 accuracy plus 3-way parallelism.",
+           zh:"真正零拷贝的是前半段:采集到 RGA。帧是 mmap 视图,RGA 通过 DMA-BUF fd 直接读相机 buffer,这一步没有 CPU 颜色转换。不零拷贝的是推理输入:部署每帧都调用 rknn_inputs_set(实测约 11 ms)。完整的零拷贝路径(rga_resize_fd_to_fd 之后 rknn_set_io_mem,把 RGA 输出直接绑给 NPU)没有采用:它在 640 模型上单次推理实测约 210 ms,而且在 3 路并行 worker 下被禁用(多帧在飞时共享一块 io-mem 绑定不安全)。所以这里是用“真零拷贝输入”换来了 640 精度和三路并行。"} },
     { id:"parallel", code:"parallel",
       name:{en:"Parallel NPU inference",zh:"NPU 并行推理"},
       summary:{en:"One RKNN context per NPU core; a worker pool holds the 640 model at about 15 fps.",zh:"每个 NPU 核一个 RKNN 上下文,用线程池把 640 模型稳在约 15 fps。"},
