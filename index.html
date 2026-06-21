@@ -448,7 +448,7 @@ const T = {
 const METRICS = [
   {v:{en:"58 / 60",zh:"58 / 60"},      c:"fall", l:{en:"falls caught in a 2026-06-21 field test (97% recall)",zh:"2026-06-21 实测命中的跌倒(召回 97%)"}},
   {v:{en:"1 / 60",zh:"1 / 60"},        c:"fall", l:{en:"false alarm on 60 daily actions (1.7%)",zh:"60 个日常动作里误报 1 次(1.7%)"}},
-  {v:{en:"recall-first",zh:"召回优先"},c:"fall", l:{en:"a missed fall costs far more than a false alarm, so it errs toward alerting",zh:"漏报的代价远大于误报,所以宁可多报"}},
+  {v:{en:"18/20 night",zh:"夜光 18/20"}, c:"fall", l:{en:"both misses and the false alarm were in low light (90% night recall), the part being improved",zh:"漏的 2 个和那次误报都在夜光(夜光召回 90%),正在改进"}},
   {v:"17",          c:"vis",   l:{en:"COCO keypoints tracked per person",zh:"每人跟踪 17 个 COCO 关键点"}},
   {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts on the NPU",zh:"NPU 上 3 路 RKNN 上下文并行"}},
   {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU running 640×640 pose",zh:"3 核片上 NPU,跑 640×640 姿态"}},
@@ -598,8 +598,8 @@ const DATA = [
         {t:"fall_score in [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
       ],
       df:{in:["window of Features"], proc:["aggregate 5 signals","weighted blend","penalize low conf"], out:["fall_score","debug telemetry"]},
-      why:{en:"In a 60-clip field test on 2026-06-21 the detector caught 58 of 60 falls (97% recall) and raised 1 false alarm on 60 daily actions (1.7%). The trade-off is deliberate: a missed fall (someone on the floor, unnoticed) costs far more than a false alarm (a family member glances at their phone), so it is tuned recall-first. Time from the fall to the alert averages about 3 s on fast falls (measured from the floor moment, not the clip start); slow slides take longer and are the known hard case. The C++ detector is a line-for-line port of the Python reference.",
-           zh:"2026-06-21 的一次 60 段实测里,检测器在 60 个跌倒中命中 58 个(召回 97%),在 60 个日常动作里误报 1 次(1.7%)。这个取舍是刻意的:漏报(老人躺在地上没人发现)的代价,远大于误报(家人多看一眼手机),所以按召回优先来调。从倒地到报警,快速跌倒平均约 3 秒(从倒地那一刻算,不是从录像开头);慢速滑倒更慢,是已知难点。C++ 检测器是 Python 参考版的逐行移植。"} }
+      why:{en:"In a 60-clip field test on 2026-06-21 it caught 58 of 60 falls (97% recall) with 1 false alarm (1.7%). Both misses and the false alarm happened in low light: in normal light it caught every fall with no false alarm, while night recall was 18 of 20 (90%), the part still being improved with the 640 model and ISP night tuning. The trade-off is deliberate: a missed fall costs far more than a false alarm, so it is tuned recall-first. Time from the fall to the alert averages about 3 s on fast falls, measured from the floor moment, not the clip start.",
+           zh:"2026-06-21 的一次 60 段实测:60 个跌倒命中 58(召回 97%),误报 1 次(1.7%)。漏掉的 2 个和那次误报都发生在夜光下:常光下每个跌倒都抓到、没有误报,夜光召回为 20 个里 18 个(90%),也是还在用 640 模型和 ISP 夜间调校改进的部分。这个取舍是刻意的:漏报的代价远大于误报,所以按召回优先来调。从倒地到报警,快速跌倒平均约 3 秒,从倒地那一刻算,不是从录像开头。"} }
   ]
 },
 {
