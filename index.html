@@ -161,13 +161,66 @@
 <footer><div class="wrap" id="foot"></div></footer>
 
 <!-- =============== IMPLEMENTATION SKETCHES (annotated pseudocode; full source is in a private repo) =============== -->
-<script type="text/plain" data-src id="src-capture" data-lang="cpp" data-file="src/cpp_edge/camera_v4l2.cpp">
-// Request a deep V4L2 pool, then export each buffer as a DMA-BUF fd.
-request_buffers(count = 8, memory = MMAP)        // deep enough for 3 in-flight frames
-for each buffer i in pool:
-    fd = export_dma_buf(i)                        // VIDIOC_EXPBUF, O_CLOEXEC
-    pool[i].dmabuf = fd                           // RGA + NPU read this fd directly
-// → an NV12 frame is never copied through user space (zero-copy handoff)
+<script type="text/plain" data-src id="src-boot" data-lang="sh" data-file="systemd/eldercare-vision.service + run_pose_camera.sh + main()">
+# systemd unit: pin to the A76 cores, enable RTSP, run the launcher
+[Service]
+CPUAffinity=4 5 6 7
+Environment=RTSP_OUTPUT_ENABLE=1
+ExecStart=.../run_pose_camera.sh
+
+# run_pose_camera.sh: ONE process owns the camera and the whole AI path
+taskset -c 4-7 main_yolo_pose_rknn_camera \
+    --model yolov8n-pose.rknn --camera-device /dev/video12 \
+    --width 640 --height 480 --fps 15 --fourcc NV12 \
+    --preprocess-backend auto --rknn-parallel-contexts 3 \
+    --parallel-hold-v4l2-dmabuf --npu-core 0 \
+    --rtsp-output-enable --save-frames --save-dir /dev/shm/eldercare_frames
+
+# main(): runs once at startup
+cfg      = parse_camera_app_config(argc, argv)
+pose_udp = PoseUdpSender(127.0.0.1:5800)      # to fall_service
+rtsp_out = RtspOutputServer(:8554/eldercare)  # to family viewers
+rknn_init(ctx, yolov8n-pose.rknn)             # load the model
+rknn_set_core_mask(ctx, NPU core 0)
+</script>
+
+<script type="text/plain" data-src id="src-v4l2open" data-lang="cpp" data-file="src/cpp_edge/camera_v4l2.cpp">
+// V4L2MMapCamera::open(): configure_format -> init_mmap -> start_stream
+set_format(VIDIOC_S_FMT, 640x480)
+if (pixel_format != V4L2_PIX_FMT_NV12) return false;   // driver MUST output NV12
+
+request_buffers(VIDIOC_REQBUFS, count = 8, MMAP)        // deep enough for 3 in-flight frames
+for (i = 0; i < 8; ++i) {
+    query(VIDIOC_QUERYBUF, i)                           // offset / length / planes
+    mmap(buffer[i])                                     // CPU-visible view
+    fd[i] = export(VIDIOC_EXPBUF, i)                    // DMA-BUF fd for RGA / NPU
+    queue(VIDIOC_QBUF, i)                               // give the empty buffer to the driver
+}
+stream_on(VIDIOC_STREAMON)                              // camera/ISP starts filling buffers
+</script>
+
+<script type="text/plain" data-src id="src-lifecycle" data-lang="cpp" data-file="src/cpp_edge/camera_v4l2.cpp + main loop">
+// One capture-loop iteration. A buffer is only safe to touch between DQBUF and QBUF.
+poll(camera_fd, 1000)                       // wait until a frame is ready
+k = dequeue(VIDIOC_DQBUF)                    // driver: "buffer k is filled, it is yours"
+
+frame  = Mat_view(mmap[k])                   // a VIEW over the mmap buffer, not a copy
+dmabuf = fd[k]                               // the same buffer, as a DMA-BUF fd
+
+// RGA -> RKNN -> tracking -> pose UDP -> RTSP push all read this buffer here
+
+queue(VIDIOC_QBUF, k)                        // return it; the camera may overwrite it now
+// keeping frame/dmabuf past QBUF causes tearing (top = old frame, bottom = new)
+</script>
+
+<script type="text/plain" data-src id="src-rga" data-lang="cpp" data-file="src/cpp_edge/camera_preprocess_rga_zero_copy.cpp">
+// Model wants 640 RGB; the camera gives NV12. Do the convert on the RGA 2D engine
+// instead of CPU OpenCV (NV12 -> RGB -> resize -> letterbox).
+rga_resize_fd_to_fd(
+    src_fd = v4l2_dmabuf,        // camera NV12 buffer, by fd
+    dst_fd = rknn_input_dmabuf)  // the buffer the NPU is bound to
+// RGA does colorspace + resize + letterbox, writing straight into the RKNN-bound
+// buffer, so rknn_inputs_set does not copy a CPU buffer every frame.
 </script>
 
 <script type="text/plain" data-src id="src-parallel" data-lang="cpp" data-file="src/cpp_edge/main_yolo_pose_rknn_camera.cpp">
@@ -193,14 +246,16 @@ iou(a, b):                                 // standard intersection-over-union
 // pipeline: decode anchors -> restore coords -> NMS(iou) -> assign track id
 </script>
 
-<script type="text/plain" data-src id="src-outputs" data-lang="cpp" data-file="src/cpp_edge/pose_udp_sender.cpp">
-// Per-frame pose over localhost UDP. Datagram shape consumed by the fall service:
-//   { ts, frame_id, w, h,
-//     persons: [ { track_id, conf, bbox:[x1,y1,x2,y2], kpts:[[x,y,c] x17 COCO] } ] }
-json = build_datagram(ts, frame_id, w, h, detections)
-send_udp(fd, json, NON_BLOCKING)           // fire-and-forget
-// EAGAIN / ECONNREFUSED are fine (no listener yet) and must not stall the loop.
-// A dropped datagram is acceptable; the state machine integrates over seconds.
+<script type="text/plain" data-src id="src-outputs" data-lang="cpp" data-file="src/cpp_edge/pose_udp_sender.cpp + rtsp_output_server.cpp">
+// Output 1: pose over localhost UDP, for fall_service. Datagram shape:
+//   { ts, frame_id, w, h, persons:[ { track_id, conf, bbox:[x1,y1,x2,y2], kpts:[[x,y,c] x17] } ] }
+send_udp(pose_json, NON_BLOCKING)    // fire-and-forget; a dropped frame is fine,
+                                     // the fall state machine integrates over seconds
+
+// Output 2: RTSP, served by THIS process (no second owner of /dev/video12)
+appsrc(NV12) -> queue(leaky=downstream) -> mpph264enc -> h264parse -> rtph264pay
+rtsp.push_nv12(frame)                // copies into a GStreamer buffer, then returns,
+                                     // so QBUF after it returns is safe
 </script>
 
 <script type="text/plain" data-src id="src-features" data-lang="cpp" data-file="src/cpp_runtime/fall_detector.cpp">
@@ -402,18 +457,57 @@ const DATA = [
   overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 DMA-BUF path delivers NV12 frames to three parallel RKNN contexts running YOLOv8n-pose. For each person it produces a bounding box, 17 COCO keypoints and a track id, then sends the result three ways without copying on the hot path.",
             zh:"MIPI 相机先接 RK3588 的硬件 ISP;8 缓冲的 V4L2 DMA-BUF 把 NV12 画面送进三个并行的 RKNN 上下文,跑 YOLOv8n-pose。每检测到一个人,就给出边界框、17 个 COCO 关键点和一个跟踪 id,再在热路径上零拷贝地分三路送出去。"},
   subs:[
-    { id:"capture", code:"capture",
-      name:{en:"Capture & ISP",zh:"采集与 ISP"},
-      summary:{en:"The hardware ISP sets exposure; a zero-copy V4L2 ring delivers NV12 frames.",zh:"曝光交给硬件 ISP,NV12 画面通过零拷贝的 V4L2 缓冲环送出来。"},
+    { id:"boot", code:"boot",
+      name:{en:"Boot & entry",zh:"启动与入口"},
+      summary:{en:"systemd pins the process to the A76 cores and launches one program that owns the camera and the whole AI path.",zh:"systemd 把进程绑到 A76 大核,启动一个独占摄像头、跑完整条 AI 链路的程序。"},
       flow:[
-        {t:"ov13855 sensor", d:{en:"MIPI CSI raw Bayer",zh:"MIPI CSI 原始 Bayer"}},
-        {t:"RKAIQ 3A ISP", d:{en:"auto-exposure, 60 Hz anti-flicker, low-light IQ tuning",zh:"自动曝光、60 Hz 防频闪、暗光 IQ 调校"}, edge:{en:"in hardware",zh:"硬件内"}},
-        {t:"V4L2 /dev/video12", d:{en:"NV12, REQBUFS count = 8",zh:"NV12,REQBUFS count = 8"}},
-        {t:"EXPBUF -> DMA-BUF fd", d:{en:"handed straight to RGA / NPU",zh:"直接交给 RGA / NPU"}, edge:{en:"zero copy",zh:"零拷贝"}}
+        {t:"systemd", d:{en:"eldercare-vision.service · CPU 4-7 · RTSP on",zh:"eldercare-vision.service · CPU 4-7 · 开 RTSP"}},
+        {t:"run_pose_camera.sh", d:{en:"taskset -c 4-7 + all flags",zh:"taskset -c 4-7 + 全部参数"}},
+        {t:"main(): parse args", d:{en:"CameraAppConfig",zh:"CameraAppConfig"}},
+        {t:"init outputs", d:{en:"PoseUdpSender + RtspOutputServer",zh:"PoseUdpSender + RtspOutputServer"}},
+        {t:"rknn_init + core mask", d:{en:"load YOLOv8-pose, bind NPU core 0",zh:"加载 YOLOv8-pose,绑 NPU core 0"}, edge:{en:"once",zh:"仅一次"}}
       ],
-      df:{in:["MIPI CSI raw"], proc:["RKAIQ AE / AWB","60 Hz anti-flicker","V4L2 8-buf pool"], out:["NV12 DMA-BUF fd"]},
-      why:{en:"Auto-exposure oscillated when a person approached, which caused visible flicker. The fix was at the ISP IQ level: a stable exposure curve and 60 Hz anti-flicker for the local mains, rather than software brightening. The sensor adapts to a dark room without artifacts.",
-           zh:"有人走近时自动曝光会来回拉扯,画面肉眼可见地闪。问题出在 ISP,所以修复也放在 IQ 层:固定一条稳定的曝光曲线,再按本地 60 Hz 市电做防频闪,而不是用软件硬提亮。这样传感器既能适应暗房间,也不会出现伪影。"} },
+      df:{in:["power on"], proc:["systemd unit","run script + flags","main init"], out:["camera-owner process","UDP + RTSP ready","RKNN context"]},
+      why:{en:"One process owns /dev/video12 and runs the whole path (capture, inference, UDP, RTSP). RTSP is not a separate camera server, which avoids a second process fighting for the device. The unit pins the work to the A76 cores; the script also passes --capture-cpus 0-3, a scheduling detail worth tidying later.",
+           zh:"一个进程独占 /dev/video12,跑完整条链路(采集、推理、UDP、RTSP)。RTSP 不是单独的摄像头服务,避免第二个进程来抢设备。unit 把活儿绑在 A76 大核;脚本里还传了 --capture-cpus 0-3,这个调度细节以后可以再理顺。"} },
+    { id:"v4l2open", code:"v4l2open",
+      name:{en:"Opening V4L2",zh:"V4L2 打开"},
+      summary:{en:"Force NV12, request an 8-buffer pool, then mmap and export each buffer as a DMA-BUF fd.",zh:"强制 NV12,申请 8 个 buffer 的池子,再把每个 buffer mmap 并导出成 DMA-BUF fd。"},
+      flow:[
+        {t:"ov13855 + RKAIQ ISP", d:{en:"sensor + auto-exposure / anti-flicker",zh:"传感器 + 自动曝光 / 防频闪"}},
+        {t:"VIDIOC_S_FMT", d:{en:"640x480, driver must output NV12",zh:"640x480,驱动必须输出 NV12"}},
+        {t:"VIDIOC_REQBUFS", d:{en:"count = 8 (MMAP)",zh:"count = 8(MMAP)"}, edge:{en:"why 8: notes",zh:"为何 8:见要点"}},
+        {t:"per buffer x8", d:{en:"QUERYBUF -> mmap -> EXPBUF",zh:"QUERYBUF -> mmap -> EXPBUF"}},
+        {t:"QBUF x8 -> STREAMON", d:{en:"hand buffers over, start streaming",zh:"buffer 全交给驱动,开始采集"}}
+      ],
+      df:{in:["/dev/video12"], proc:["S_FMT NV12","REQBUFS = 8","QUERYBUF + mmap + EXPBUF","QBUF + STREAMON"], out:["mmap CPU views","DMA-BUF fds","streaming"]},
+      why:{en:"The point of V4L2 here is not just getting an image, it is getting the underlying buffer plus a DMA-BUF fd. The pool is 8 deep because 3 parallel RKNN contexts may hold several DQBUF'd frames at once; too few buffers and the driver has nowhere to write the next frame and stalls. The driver allocates them, not malloc or OpenCV. (The flicker when someone approached was fixed one layer up, in the ISP IQ tuning.)",
+           zh:"这里用 V4L2 的意义不只是拿一张图,而是拿到底层 buffer 加一个 DMA-BUF fd。池子做到 8 个,是因为 3 个并行 RKNN 上下文可能同时 hold 住好几帧;buffer 太少,驱动就没地方写下一帧,会卡住。buffer 是驱动分配的,不是 malloc 也不是 OpenCV。(有人靠近时画面闪那个问题,是在上游的 ISP IQ 调校里修掉的。)"} },
+    { id:"lifecycle", code:"lifecycle",
+      name:{en:"Frame & buffer lifecycle",zh:"每帧与 buffer 生命周期"},
+      summary:{en:"Each frame: DQBUF, read it as a view, process, then QBUF. The window between DQBUF and QBUF is the only safe time to touch it.",zh:"每帧:DQBUF 取出、以视图读、处理,再 QBUF 归还。DQBUF 到 QBUF 之间是唯一能安全使用它的窗口。"},
+      flow:[
+        {t:"poll + VIDIOC_DQBUF", d:{en:"driver: buffer k is filled",zh:"驱动:第 k 块已填好"}},
+        {t:"cv::Mat view", d:{en:"a view over mmap, not a copy",zh:"mmap 的视图,不是拷贝"}},
+        {t:"dmabuf fd", d:{en:"same buffer, for RGA / RKNN",zh:"同一块,给 RGA / RKNN"}},
+        {t:"process in place", d:{en:"RGA -> RKNN -> track -> UDP -> RTSP",zh:"RGA -> RKNN -> 跟踪 -> UDP -> RTSP"}},
+        {t:"VIDIOC_QBUF", d:{en:"return; driver may overwrite",zh:"归还;驱动可覆盖"}, edge:{en:"order matters",zh:"顺序要对"}}
+      ],
+      df:{in:["queued buffers"], proc:["DQBUF","view + fd","process in place","QBUF"], out:["one frame's results","buffer recycled"]},
+      why:{en:"A cv::Mat is usually just a view over the mmap buffer; it does not own the pixels. QBUF early while still using the view and the camera starts writing the next frame into the same memory, which gives tearing (top half old frame, bottom half new). RTSP is safe here because push_nv12 copies into a GStreamer buffer before returning, so QBUF after it returns is fine.",
+           zh:"cv::Mat 多数时候只是 mmap buffer 的视图,并不拥有像素。要是提前 QBUF 还接着用这个视图,摄像头就会往同一块内存写下一帧,于是出现撕裂(上半旧帧、下半新帧)。这里 RTSP 是安全的:push_nv12 会先把 NV12 拷进 GStreamer buffer 再返回,所以它返回之后再 QBUF 没问题。"} },
+    { id:"rga", code:"rga",
+      name:{en:"RGA preprocessing",zh:"RGA 预处理"},
+      summary:{en:"Convert NV12 to RGB, resize and letterbox on the RGA 2D engine, writing straight into the RKNN-bound input buffer.",zh:"在 RGA 2D 引擎上把 NV12 转 RGB、缩放、letterbox,直接写进 RKNN 绑定的输入 buffer。"},
+      flow:[
+        {t:"camera NV12 fd", d:{en:"V4L2 DMA-BUF",zh:"V4L2 DMA-BUF"}},
+        {t:"rga_resize_fd_to_fd", d:{en:"colorspace + resize + letterbox",zh:"色彩空间 + 缩放 + letterbox"}, edge:{en:"on RGA",zh:"走 RGA"}},
+        {t:"RKNN-bound DMA-BUF", d:{en:"the model input buffer",zh:"模型输入 buffer"}},
+        {t:"RKNN reads it", d:{en:"no per-frame CPU copy",zh:"无逐帧 CPU 拷贝"}}
+      ],
+      df:{in:["NV12 DMA-BUF fd"], proc:["RGA NV12 -> RGB","resize + letterbox"], out:["RGB in RKNN-bound buffer"]},
+      why:{en:"The usual path is CPU OpenCV (NV12 to RGB, resize, letterbox) and then rknn_inputs_set copies a CPU buffer every frame. Doing it fd-to-fd on the RGA writes the result straight into the buffer the NPU reads, so the main inference input avoids the CPU conversion and the per-frame copy. It is not that there is zero memcpy anywhere, just that the hot input path is offloaded to hardware.",
+           zh:"常规做法是 CPU OpenCV(NV12 转 RGB、缩放、letterbox),然后 rknn_inputs_set 每帧拷一份 CPU buffer。改成在 RGA 上 fd 到 fd,结果直接写进 NPU 要读的那块 buffer,主推理输入这条路就省掉了 CPU 转换和逐帧拷贝。不是说全程一点 memcpy 都没有,而是把最热的输入路径卸载给了硬件。"} },
     { id:"parallel", code:"parallel",
       name:{en:"Parallel NPU inference",zh:"NPU 并行推理"},
       summary:{en:"One RKNN context per NPU core; a worker pool holds the 640 model at about 15 fps.",zh:"每个 NPU 核一个 RKNN 上下文,用线程池把 640 模型稳在约 15 fps。"},
