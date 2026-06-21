@@ -139,6 +139,14 @@
   svg .dts{font:400 11px -apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;fill:#9fb0c7}
   svg .dsec{font:600 12px -apple-system,"Segoe UI","PingFang SC",sans-serif;fill:#7e90ad}
 
+  /* field demo (real screenshots) */
+  .demo{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:16px 0 4px}
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:680px){.shots{grid-template-columns:1fr}}
+  .shot{margin:0;background:var(--card2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .shot img{display:block;width:100%;height:auto}
+  .shot figcaption{padding:10px 12px;font-size:13px;color:var(--tx2);border-top:1px solid var(--line)}
+
   footer{border-top:1px solid var(--line);padding:28px 0 56px;color:var(--tx3);font-size:13px;margin-top:24px}
 </style>
 </head>
@@ -596,6 +604,14 @@ const DATA = [
   file:"src/cpp_runtime/alert_service.cpp",
   overview:{en:"A local MQTT broker separates detection from delivery. The fall service publishes one transition event; the alert service subscribes, takes a snapshot from the JPEG ring, and sends a push notification over ntfy. Every attempt is logged.",
             zh:"用一个本地 MQTT broker 把“检测”和“通知”解耦开:跌倒服务只发一条状态变化事件,报警服务订到之后,从 JPEG 环里取一张快照,再通过 ntfy 推给家人。每一次推送都会记进日志。"},
+  demo:{
+    title:{en:"From the field: what the family receives",zh:"实拍:家人手机收到的推送"},
+    note:{en:"Real ntfy pushes from a board test on 2026-06-20. The same fall, two outcomes, decided by the voice check-in.",zh:"2026-06-20 板子实测时,家人手机真实收到的 ntfy 推送。同样一次摔倒,两种结局,由语音问询决定。"},
+    shots:[
+      {img:"assets/demo-fall-ok.jpg", cap:{en:"Reply \"I'm fine\" -> resolved (ok), normal priority",zh:"回答“我还好” -> 已报平安(ok),普通优先级"}},
+      {img:"assets/demo-fall-sos.jpg", cap:{en:"Reply \"help\" -> needs help (sos), high priority",zh:"回答“救命” -> 需要帮助(sos),高优先级"}}
+    ]
+  },
   subs:[
     { id:"bus", code:"mqtt",
       name:{en:"MQTT bus",zh:"MQTT 总线"},
@@ -813,6 +829,15 @@ function dataFlow(df){
   return '<div class="df">'+col(tr(T.din),df.in)+'<div class="dfarr">-></div>'+col(tr(T.dproc),df.proc,true)+'<div class="dfarr">-></div>'+col(tr(T.dout),df.out)+"</div>";
 }
 
+function demoBlock(d, color){
+  const shots=d.shots.map(function(s){
+    return '<figure class="shot"><img src="'+s.img+'" alt="'+esc(tr(s.cap))+'"><figcaption>'+esc(tr(s.cap))+"</figcaption></figure>";
+  }).join("");
+  return '<div class="demo" style="--bd:var(--'+color+')"><div class="ptitle"><span class="dot"></span>'+esc(tr(d.title))+"</div>"+
+         '<p class="sub" style="margin:-4px 0 0">'+esc(tr(d.note))+"</p>"+
+         '<div class="shots">'+shots+"</div></div>";
+}
+
 function panel(titleKey, color, inner){
   return '<div class="panel" style="--bd:var(--'+color+')"><div class="ptitle"><span class="dot"></span>'+tr(T[titleKey])+"</div>"+inner+"</div>";
 }
@@ -910,6 +935,7 @@ function moduleView(m){
         '<p class="tag">'+esc(tr(m.overview))+"</p>"+
         '<div class="srcpill">'+tr(T.source)+": "+esc(m.file)+"</div>"+
       "</div>"+
+      (m.demo ? demoBlock(m.demo, m.color) : "")+
       '<div class="secttl" style="margin-top:22px"><h2>'+tr(T.subs)+"</h2></div>"+
       '<p class="sub">'+tr(T.subs_sub)+"</p>"+
       '<div class="grid g3">'+cards+"</div>"+
