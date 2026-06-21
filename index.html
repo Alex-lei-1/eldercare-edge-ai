@@ -422,7 +422,7 @@ const T = {
   s_recall:{en:"recall: 58 of 60 falls caught in a 2026-06-21 field test",zh:"召回:2026-06-21 实测 60 个跌倒命中 58 个"},
   s_fpr:{en:"false alarms: 1 in 60 daily actions",zh:"误报:60 个日常动作里仅 1 次"},
   s_cloud:{en:"all AI runs on the board; video & audio never leave",zh:"所有 AI 在设备端跑,画面和声音不出板"},
-  s_latency:{en:"avg latency, fall to confirmed alert",zh:"从摔倒到确认报警的平均时延"},
+  s_latency:{en:"time from the fall to the alert (fast falls, from the floor moment)",zh:"从倒地到报警的时间(快速跌倒)"},
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
   source:{en:"Source",zh:"源码"},
@@ -598,8 +598,8 @@ const DATA = [
         {t:"fall_score in [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
       ],
       df:{in:["window of Features"], proc:["aggregate 5 signals","weighted blend","penalize low conf"], out:["fall_score","debug telemetry"]},
-      why:{en:"In a 60-clip field test on 2026-06-21 the detector caught 58 of 60 falls (97% recall) and raised 1 false alarm on 60 daily actions (1.7%). The trade-off is deliberate: a missed fall (someone on the floor, unnoticed) costs far more than a false alarm (a family member glances at their phone), so it is tuned recall-first. The C++ detector is a line-for-line port of the Python reference.",
-           zh:"2026-06-21 的一次 60 段实测里,检测器在 60 个跌倒中命中 58 个(召回 97%),在 60 个日常动作里误报 1 次(1.7%)。这个取舍是刻意的:漏报(老人躺在地上没人发现)的代价,远大于误报(家人多看一眼手机),所以按召回优先来调。C++ 检测器是 Python 参考版的逐行移植。"} }
+      why:{en:"In a 60-clip field test on 2026-06-21 the detector caught 58 of 60 falls (97% recall) and raised 1 false alarm on 60 daily actions (1.7%). The trade-off is deliberate: a missed fall (someone on the floor, unnoticed) costs far more than a false alarm (a family member glances at their phone), so it is tuned recall-first. Time from the fall to the alert averages about 3 s on fast falls (measured from the floor moment, not the clip start); slow slides take longer and are the known hard case. The C++ detector is a line-for-line port of the Python reference.",
+           zh:"2026-06-21 的一次 60 段实测里,检测器在 60 个跌倒中命中 58 个(召回 97%),在 60 个日常动作里误报 1 次(1.7%)。这个取舍是刻意的:漏报(老人躺在地上没人发现)的代价,远大于误报(家人多看一眼手机),所以按召回优先来调。从倒地到报警,快速跌倒平均约 3 秒(从倒地那一刻算,不是从录像开头);慢速滑倒更慢,是已知难点。C++ 检测器是 Python 参考版的逐行移植。"} }
   ]
 },
 {
@@ -894,8 +894,8 @@ function home(){
       '<div class="stats">'+
         '<div class="stat"><b>97%</b><span>'+tr(T.s_recall)+"</span></div>"+
         '<div class="stat"><b>1.7%</b><span>'+tr(T.s_fpr)+"</span></div>"+
+        '<div class="stat"><b>~3 s</b><span>'+tr(T.s_latency)+"</span></div>"+
         '<div class="stat"><b>~15 fps</b><span>'+tr(T.s_fps)+"</span></div>"+
-        '<div class="stat"><b>'+tr({en:"on-device",zh:"全本地"})+"</b><span>"+tr(T.s_cloud)+"</span></div>"+
       "</div>"+
     "</header>"+
     "<section>"+
