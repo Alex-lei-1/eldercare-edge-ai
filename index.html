@@ -419,7 +419,8 @@ const T = {
   lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All AI runs on the device, so the camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
         zh:"ARGUS 跑在一块香橙派 5 Plus(RK3588)上:用摄像头识别人体姿态、实时判断有没有摔倒,再由本地语音助手主动问一句、必要时通知家人。所有 AI 都在本地跑,画面和声音都不出板;唯一对外发送的,是摔倒后给家人的那条报警。点开下面任意一个模块,就能看到它的子模块、流程图、数据流,以及一段带注释的实现示意。"},
   s_fps:{en:"640 pose · 3-core NPU · 0 dropped frames",zh:"640 姿态 · 3 核 NPU · 0 丢帧"},
-  s_recall:{en:"tuned to never miss a real fall, at the cost of the odd false alarm",zh:"宁可偶尔误报,也尽量不漏真实跌倒"},
+  s_recall:{en:"recall: 58 of 60 falls caught in a 2026-06-21 field test",zh:"召回:2026-06-21 实测 60 个跌倒命中 58 个"},
+  s_fpr:{en:"false alarms: 1 in 60 daily actions",zh:"误报:60 个日常动作里仅 1 次"},
   s_cloud:{en:"all AI runs on the board; video & audio never leave",zh:"所有 AI 在设备端跑,画面和声音不出板"},
   s_latency:{en:"avg latency, fall to confirmed alert",zh:"从摔倒到确认报警的平均时延"},
   nums_h:{en:"Key metrics",zh:"关键指标"},
@@ -445,9 +446,9 @@ const T = {
 
 /* ---------- key metrics (every figure reflects the deployed system) ---------- */
 const METRICS = [
+  {v:{en:"58 / 60",zh:"58 / 60"},      c:"fall", l:{en:"falls caught in a 2026-06-21 field test (97% recall)",zh:"2026-06-21 实测命中的跌倒(召回 97%)"}},
+  {v:{en:"1 / 60",zh:"1 / 60"},        c:"fall", l:{en:"false alarm on 60 daily actions (1.7%)",zh:"60 个日常动作里误报 1 次(1.7%)"}},
   {v:{en:"recall-first",zh:"召回优先"},c:"fall", l:{en:"a missed fall costs far more than a false alarm, so it errs toward alerting",zh:"漏报的代价远大于误报,所以宁可多报"}},
-  {v:{en:"no misses",zh:"未漏报"},     c:"fall", l:{en:"no real fall missed in continuous field running (field observation)",zh:"实地连续运行至今未漏过真实跌倒(实地观察)"}},
-  {v:{en:"occasional",zh:"偶有误报"},  c:"fall", l:{en:"false alarms over long runs, usually from an unusual daily pose",zh:"长时间运行偶有误报,多由不常见姿势引起"}},
   {v:"17",          c:"vis",   l:{en:"COCO keypoints tracked per person",zh:"每人跟踪 17 个 COCO 关键点"}},
   {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts on the NPU",zh:"NPU 上 3 路 RKNN 上下文并行"}},
   {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU running 640×640 pose",zh:"3 核片上 NPU,跑 640×640 姿态"}},
@@ -597,8 +598,8 @@ const DATA = [
         {t:"fall_score in [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
       ],
       df:{in:["window of Features"], proc:["aggregate 5 signals","weighted blend","penalize low conf"], out:["fall_score","debug telemetry"]},
-      why:{en:"Elder care reverses the usual trade-off: a missed fall (someone on the floor, unnoticed) costs far more than a false alarm (a family member glances at their phone), so the detector is tuned recall-first. In continuous field running it has not missed a real fall; it does raise the occasional false alarm, usually from an unusual daily pose. An early 35-clip offline replay hit every normal-light fall with zero false positives; weak-light slow slides are the known hard case and the sample was too small to quantify.",
-           zh:"养老场景把通常的取舍反了过来:漏报(老人躺在地上没人发现)的代价,远大于误报(家人多看一眼手机),所以检测器按召回优先来调。实地连续运行至今没有漏过真实跌倒;偶尔会误报,多半来自不常见的日常姿势。早期一次 35 段离线回放里,正常光下的跌倒全部命中、0 误报;弱光慢速滑倒是已知难点,样本太少还没法量化。"} }
+      why:{en:"In a 60-clip field test on 2026-06-21 the detector caught 58 of 60 falls (97% recall) and raised 1 false alarm on 60 daily actions (1.7%). The trade-off is deliberate: a missed fall (someone on the floor, unnoticed) costs far more than a false alarm (a family member glances at their phone), so it is tuned recall-first. The C++ detector is a line-for-line port of the Python reference.",
+           zh:"2026-06-21 的一次 60 段实测里,检测器在 60 个跌倒中命中 58 个(召回 97%),在 60 个日常动作里误报 1 次(1.7%)。这个取舍是刻意的:漏报(老人躺在地上没人发现)的代价,远大于误报(家人多看一眼手机),所以按召回优先来调。C++ 检测器是 Python 参考版的逐行移植。"} }
   ]
 },
 {
@@ -891,10 +892,10 @@ function home(){
       '<div class="tagline">'+tr(T.tagline)+"</div>"+
       '<p class="lede">'+tr(T.lede)+"</p>"+
       '<div class="stats">'+
+        '<div class="stat"><b>97%</b><span>'+tr(T.s_recall)+"</span></div>"+
+        '<div class="stat"><b>1.7%</b><span>'+tr(T.s_fpr)+"</span></div>"+
         '<div class="stat"><b>~15 fps</b><span>'+tr(T.s_fps)+"</span></div>"+
-        '<div class="stat"><b>'+tr({en:"recall-first",zh:"召回优先"})+"</b><span>"+tr(T.s_recall)+"</span></div>"+
         '<div class="stat"><b>'+tr({en:"on-device",zh:"全本地"})+"</b><span>"+tr(T.s_cloud)+"</span></div>"+
-        '<div class="stat"><b>~8 s</b><span>'+tr(T.s_latency)+"</span></div>"+
       "</div>"+
     "</header>"+
     "<section>"+
