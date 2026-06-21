@@ -347,14 +347,14 @@ loop every 1 s:
 /* ---------- chrome i18n ---------- */
 const T = {
   brand_sub:{en:"Edge elder-care · RK3588",zh:"端侧养老 · RK3588"},
-  eyebrow:{en:"On-device · RK3588 · No cloud",zh:"本地运行 · 不上云 · RK3588"},
-  tagline:{en:"Fall detection and a local voice assistant for elderly care, fully on-device.",zh:"为居家养老打造的跌倒检测与本地语音助手,全程在设备本地运行。"},
-  lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All inference runs on the device; no video or audio is sent to the cloud. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
-        zh:"ARGUS 跑在一块香橙派 5 Plus(RK3588)上:用摄像头识别人体姿态、实时判断有没有摔倒,再由本地语音助手主动问一句、必要时通知家人。所有推理都在本地完成,画面和声音都不上云。点开下面任意一个模块,就能看到它的子模块、流程图、数据流,以及一段带注释的实现示意。"},
-  s_recall:{en:"fall recall · 4.6% false-positive (URFD + in-house clips)",zh:"跌倒召回率 · 误报 4.6%(URFD + 自采片段)"},
-  s_fps:{en:"640-input pose on a 3-core NPU pipeline",zh:"640 分辨率姿态估计 · 3 核 NPU 流水线"},
-  s_cloud:{en:"on-device, no cloud dependency",zh:"全程本地,不依赖云端"},
-  s_latency:{en:"fall to family push + snapshot",zh:"从摔倒到家人收到推送和快照"},
+  eyebrow:{en:"On-device AI · RK3588",zh:"端侧 AI · RK3588"},
+  tagline:{en:"Fall detection and a local voice assistant for elderly care, running on the device.",zh:"为居家养老打造的跌倒检测与本地语音助手,在设备本地运行。"},
+  lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All AI runs on the device, so the camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
+        zh:"ARGUS 跑在一块香橙派 5 Plus(RK3588)上:用摄像头识别人体姿态、实时判断有没有摔倒,再由本地语音助手主动问一句、必要时通知家人。所有 AI 都在本地跑,画面和声音都不出板;唯一对外发送的,是摔倒后给家人的那条报警。点开下面任意一个模块,就能看到它的子模块、流程图、数据流,以及一段带注释的实现示意。"},
+  s_fps:{en:"640 pose · 3-core NPU · 0 dropped frames",zh:"640 姿态 · 3 核 NPU · 0 丢帧"},
+  s_recall:{en:"false positives across the 35-clip eval",zh:"35 段评测中的误报数"},
+  s_cloud:{en:"fall recall: 100% normal light, 50% weak light",zh:"跌倒召回:正常光 100%、弱光 50%"},
+  s_latency:{en:"avg latency, fall to confirmed alert",zh:"从摔倒到确认报警的平均时延"},
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
   source:{en:"Source",zh:"源码"},
@@ -378,16 +378,16 @@ const T = {
 
 /* ---------- key metrics (every figure reflects the deployed system) ---------- */
 const METRICS = [
-  {v:"4.6%",        c:"fall",  l:{en:"false-positive rate",zh:"误报率"}},
-  {v:"35 clips",    c:"fall",  l:{en:"replay set: deployed C++ matched the Python reference byte-for-byte",zh:"35 段回放里,上线 C++ 与 Python 参考逐字节一致"}},
+  {v:"80%",         c:"fall",  l:{en:"fall recall on the 35-clip eval (100% in normal light)",zh:"35 段评测的跌倒召回(正常光 100%)"}},
+  {v:"0 FP",        c:"fall",  l:{en:"false positives on that eval (FPR 0%)",zh:"该评测中误报为 0(FPR 0%)"}},
   {v:"2.5 s",       c:"fall",  l:{en:"temporal evidence window, no single-frame alarms",zh:"时序判定窗口,不会因为单帧就报警"}},
   {v:"17",          c:"vis",   l:{en:"COCO keypoints tracked per person",zh:"每人跟踪 17 个 COCO 关键点"}},
   {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts on the NPU",zh:"NPU 上 3 路 RKNN 上下文并行"}},
   {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU running 640×640 pose",zh:"3 核片上 NPU,跑 640×640 姿态"}},
   {v:"0 copies",    c:"vis",   l:{en:"zero-copy DMA-BUF, 0 dropped frames",zh:"DMA-BUF 零拷贝,一帧不丢"}},
-  {v:"4 models",    c:"voice", l:{en:"on-device voice stack: VAD, ASR, LLM, TTS",zh:"本地语音四件套:VAD、ASR、LLM、TTS"}},
+  {v:"5 models",    c:"voice", l:{en:"on-device voice stack: wake, VAD, ASR, LLM, TTS",zh:"本地语音五件套:唤醒、VAD、ASR、LLM、TTS"}},
   {v:"full-duplex", c:"voice", l:{en:"AEC, so a person can interrupt while it speaks",zh:"AEC 加持,它说话时人也能插话"}},
-  {v:"0",           c:"voice", l:{en:"frames or words sent to the cloud",zh:"上云的画面和语音,一概没有"}},
+  {v:"local",       c:"voice", l:{en:"wake, ASR, Qwen LLM and TTS all run on the board",zh:"唤醒、ASR、Qwen LLM、TTS 全在板上跑"}},
   {v:"6",           c:"ops",   l:{en:"systemd services, restart on crash",zh:"6 个 systemd 服务,崩了自动拉起"}},
   {v:"24/7",        c:"ops",   l:{en:"unattended; auto-start and auto-restart",zh:"无人值守,开机自启、崩溃自重启"}}
 ];
@@ -424,8 +424,8 @@ const DATA = [
         {t:"results map by frame_id", d:{en:"reassembled in capture order",zh:"按采集顺序重排"}}
       ],
       df:{in:["NV12 frame job"], proc:["RGA NV12 -> RGB","YOLOv8n-pose 640","3 NPU cores"], out:["detections (ordered)"]},
-      why:{en:"The 384 model missed lying and distant poses (about 81% recall, versus 100% for 640). Instead of trading accuracy, three parallel contexts brought 640 back to about 15 fps. The full rknn_set_io_mem zero-copy path measured about 2x slower for 640, so the pipeline keeps RGA pre-processing with rknn_inputs_set.",
-           zh:"384 模型会漏掉躺地和远距离的姿态(召回约 81%,640 能到 100%)。与其牺牲精度,不如用三个并行上下文把 640 重新拉回约 15 fps。另外,看着更快的 rknn_set_io_mem 全零拷贝路径,实测在 640 上反而慢约 2 倍,所以流水线还是用 RGA 预处理配合 rknn_inputs_set。"} },
+      why:{en:"On 35 archived weak-light / action snapshots the 384 model recovered only 28, while the 640 model recovered all 35, so the deployment uses 640. Three parallel RKNN contexts keep it at about 15 fps (14.97 measured, 0 dropped frames). The full rknn_set_io_mem zero-copy path was actually slower here, about 210 ms per inference (~4.6 fps), so the pipeline keeps RGA pre-processing with rknn_inputs_set.",
+           zh:"在 35 段弱光/动作存档里,384 模型只找回 28 段,640 模型 35 段全找回,所以部署用的是 640。三个并行 RKNN 上下文把它稳在约 15 fps(实测 14.97,0 丢帧)。看着更快的 rknn_set_io_mem 全零拷贝路径,在这块板上反而更慢,单次推理约 210 ms(约 4.6 fps),所以流水线仍用 RGA 预处理配合 rknn_inputs_set。"} },
     { id:"postprocess", code:"postprocess",
       name:{en:"Pose decode & tracking",zh:"姿态解码与跟踪"},
       summary:{en:"Decode the pose grid, undo letterbox, run NMS, assign a track id.",zh:"解码姿态网格、还原 letterbox、做 NMS、分配跟踪 id。"},
@@ -491,14 +491,14 @@ const DATA = [
         {t:"fall_score in [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
       ],
       df:{in:["window of Features"], proc:["aggregate 5 signals","weighted blend","penalize low conf"], out:["fall_score","debug telemetry"]},
-      why:{en:"On URFD plus in-house clips this gives about 90% recall at a 4.6% false-positive rate. The deployed C++ is a port of the Python reference and matched it byte-for-byte on a 35-clip replay set, so the eval numbers describe the code that runs.",
-           zh:"在 URFD 和自采片段上,召回约 90%、误报 4.6%。上线的 C++ 是从 Python 参考版移植过来的,在 35 段回放上和参考版逐字节一致,所以这些评测数字对应的就是真正在跑的代码。"} }
+      why:{en:"On the 35-clip evaluation the deployed detector reaches 80% overall fall recall with 0 false positives (FPR 0%): 100% recall in normal light and 50% in weak light, which is the current weak spot, at about 8 s average latency from fall to confirmation. The C++ detector is a port of the Python reference, so these numbers describe the code that runs.",
+           zh:"在 35 段评测集上,部署的检测器整体跌倒召回 80%、误报为 0(FPR 0%):正常光召回 100%,弱光 50%(目前的薄弱点),从摔倒到确认平均约 8 秒。C++ 检测器是 Python 参考版的移植,所以这些数字描述的就是真正在跑的代码。"} }
   ]
 },
 {
   id:"alert", color:"alert",
   name:{en:"Alerting",zh:"报警"}, name2:{en:"MQTT and family notification",zh:"MQTT 与家人通知"},
-  tag:{en:"A confirmed fall reaches the family in about three seconds.",zh:"从确认摔倒到家人收到通知,大约三秒。"},
+  tag:{en:"Once a fall is confirmed, the family is pushed within seconds.",zh:"摔倒一旦确认,几秒内推送到家人手机。"},
   file:"src/cpp_runtime/alert_service.cpp",
   overview:{en:"A local MQTT broker separates detection from delivery. The fall service publishes one transition event; the alert service subscribes, takes a snapshot from the JPEG ring, and sends a push notification over ntfy. Every attempt is logged.",
             zh:"用一个本地 MQTT broker 把“检测”和“通知”解耦开:跌倒服务只发一条状态变化事件,报警服务订到之后,从 JPEG 环里取一张快照,再通过 ntfy 推给家人。每一次推送都会记进日志。"},
@@ -553,13 +553,13 @@ const DATA = [
            zh:"这块板子的喇叭回声相关性很弱:只看能量,会被非线性残差骗;只看相关性,又会被弱回声骗。所以这道门要求“残差能量超标”和“多频带不相关”两个条件同时成立,既压得住助手自己的 TTS,又放得进真人插话。"} },
     { id:"chain", code:"chain",
       name:{en:"Wake / ASR / LLM / TTS",zh:"唤醒 / ASR / LLM / TTS"},
-      summary:{en:"Silero VAD, SenseVoice ASR, qwen (llama.cpp) and Matcha/Piper TTS, all local.",zh:"Silero VAD、SenseVoice ASR、qwen(llama.cpp)和 Matcha/Piper TTS,全部本地。"},
+      summary:{en:"KWS wake-word, Silero VAD, SenseVoice ASR, Qwen2.5-1.5B (llama.cpp) and Matcha TTS (Piper fallback), all on the board.",zh:"KWS 唤醒词、Silero VAD、SenseVoice ASR、Qwen2.5-1.5B(llama.cpp)和 Matcha TTS(Piper 兜底),全部在板上。"},
       flow:[
+        {t:"KWS wake-word", d:{en:"sherpa-onnx zipformer (zh-en)",zh:"sherpa-onnx zipformer(中英)"}},
         {t:"Silero VAD", d:{en:"endpoint the utterance",zh:"切出一句话"}},
         {t:"SenseVoice ASR", d:{en:"offline Chinese -> text",zh:"离线中文 -> 文本"}},
-        {t:"qwen LLM", d:{en:"llama-server, multi-turn history",zh:"llama-server,多轮历史"}},
-        {t:"Matcha TTS", d:{en:"neural Mandarin -> audio",zh:"神经普通话 -> 音频"}},
-        {t:"playback -> AEC ref", d:{en:"closes the full-duplex loop",zh:"闭合全双工回路"}, edge:{en:"loop",zh:"回路"}}
+        {t:"Qwen2.5-1.5B", d:{en:"llama.cpp, local :8081, multi-turn",zh:"llama.cpp,本地 :8081,多轮"}},
+        {t:"Matcha TTS -> playback", d:{en:"Piper fallback; also feeds AEC reference",zh:"Piper 兜底;并喂回 AEC 参考"}, edge:{en:"loop",zh:"回路"}}
       ],
       df:{in:["mic audio"], proc:["VAD","ASR","local LLM","TTS"], out:["spoken reply","reference for AEC"]},
       why:{en:"No audio leaves the board. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped, and added a rolling 15-second window of the assistant's own speech so its late echo is rejected instead of repeated.",
@@ -768,10 +768,10 @@ function home(){
       '<div class="tagline">'+tr(T.tagline)+"</div>"+
       '<p class="lede">'+tr(T.lede)+"</p>"+
       '<div class="stats">'+
-        '<div class="stat"><b>90%</b><span>'+tr(T.s_recall)+"</span></div>"+
         '<div class="stat"><b>~15 fps</b><span>'+tr(T.s_fps)+"</span></div>"+
-        '<div class="stat"><b>100%</b><span>'+tr(T.s_cloud)+"</span></div>"+
-        '<div class="stat"><b>~3 s</b><span>'+tr(T.s_latency)+"</span></div>"+
+        '<div class="stat"><b>0 FP</b><span>'+tr(T.s_recall)+"</span></div>"+
+        '<div class="stat"><b>80%</b><span>'+tr(T.s_cloud)+"</span></div>"+
+        '<div class="stat"><b>~8 s</b><span>'+tr(T.s_latency)+"</span></div>"+
       "</div>"+
     "</header>"+
     "<section>"+
