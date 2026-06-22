@@ -444,7 +444,7 @@ const T = {
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
   bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
-  skel_cap:{en:"Low-light inference: in a dark room the 640 model finds the person fallen on the floor (confidence 0.76) and draws a 17-point pose skeleton, 70 ms on the NPU.",zh:"弱光下的真实推理:在昏暗的房间里,640 模型检出躺倒在地的人(置信度 0.76)并画出 17 点姿态骨架,NPU 上 70 ms。"},
+  skel_cap:{en:"Night enhancement, measured. Left: the raw low-light frame, the 640 model finds the fallen person at 0.75. Right: after a luma-gated gamma 0.7 + CLAHE lift the frame is much brighter and detection holds at 0.74. The same step takes the lighter 384 model from about 10% to about 73% recall on very dark frames.",zh:"夜间增强实测。左:原始弱光帧,640 模型检出躺倒的人,置信度 0.75;右:经亮度门控的 gamma 0.7 + CLAHE 提亮后,画面明显变亮,检测仍保持在 0.74。同一处理让更轻量的 384 模型在极暗帧上的召回从约 10% 提到约 73%。"},
   source:{en:"Source",zh:"源码"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
