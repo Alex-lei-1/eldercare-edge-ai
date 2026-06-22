@@ -973,7 +973,7 @@ function archDiagram(){
 
 /* ---------- views ---------- */
 function benchChart(){
-  return '<svg role="img" viewBox="0 0 680 540" width="100%" xmlns="http://www.w3.org/2000/svg">'+
+  return '<svg role="img" viewBox="0 0 680 730" width="100%" xmlns="http://www.w3.org/2000/svg">'+
     '<title>'+esc(tr({en:"ARGUS benchmark comparison",zh:"ARGUS 实测对比"}))+'</title>'+
     '<rect x="2" y="4" width="676" height="170" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="40" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Per-frame time breakdown (640 · 3 cores)",zh:"每帧耗时分解(640 · 3 核并行)"}))+'</text>'+
@@ -1004,6 +1004,17 @@ function benchChart(){
     '<rect x="40" y="476" width="588" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="618" y="494" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">14.7 fps</text>'+
     '<text x="28" y="524" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"The full zero-copy path is 3x slower on 640, so we use RGA + parallel.",zh:"看似先进的全零拷贝在 640 上反而慢 3 倍,所以选 RGA + 并行。"}))+'</text>'+
+    '<rect x="2" y="550" width="676" height="176" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
+    '<text x="28" y="586" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Night enhancement keeps the frame rate (measured)",zh:"开夜间增强,帧率不掉(实测)"}))+'</text>'+
+    '<line x1="640" y1="600" x2="640" y2="698" stroke="#d9cdb8" stroke-width="1.5" stroke-dasharray="3 3"/>'+
+    '<text x="636" y="596" text-anchor="end" font-family="sans-serif" font-size="11" fill="#9b8e7e">'+esc(tr({en:"camera limit 15 fps",zh:"相机上限 15fps"}))+'</text>'+
+    '<text x="40" y="618" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"3 cores, enhancement off",zh:"3 核并行 · 关增强"}))+'</text>'+
+    '<rect x="40" y="624" width="588" height="22" rx="6" fill="#bcd0c4"/>'+
+    '<text x="622" y="640" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#46685a">14.70 fps</text>'+
+    '<text x="40" y="664" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"3 cores + night enhancement (live)",zh:"3 核并行 + 夜间增强(生产)"}))+'</text>'+
+    '<rect x="40" y="670" width="599" height="22" rx="6" fill="#3f8f6b"/>'+
+    '<text x="633" y="686" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">14.97 fps</text>'+
+    '<text x="28" y="718" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"Enhancement adds 5.2 ms CPU/frame and overlaps NPU inference; the bottleneck stays the 15 fps camera, so the rate holds with 0 dropped frames.",zh:"增强只占 CPU 5.2ms/帧,与 NPU 推理重叠;瓶颈仍是 15fps 相机,帧率不掉、0 丢帧。"}))+'</text>'+
     '</svg>';
 }
 
