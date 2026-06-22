@@ -42,11 +42,21 @@
   .lede{font-size:clamp(15px,2.3vw,19px);color:var(--tx2);max-width:740px}
   .wordmark{font-size:clamp(44px,8.5vw,82px);font-weight:800;letter-spacing:2px;line-height:1;margin:10px 0 6px;color:#3a2e26}
   .tagline{font-size:clamp(18px,3vw,27px);font-weight:700;color:var(--tx);letter-spacing:-.2px;margin:0 0 14px}
+  .herowrap{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center}
+  @media(max-width:760px){.herowrap{grid-template-columns:1fr;gap:16px}}
+  .heroart svg{width:100%;height:auto;display:block}
+  .brand .logo{vertical-align:-7px;margin-right:7px}
   .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
   @media(max-width:760px){.metrics{grid-template-columns:repeat(2,1fr)}}
-  .metric{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--mc,var(--accent));border-radius:14px;padding:16px;box-shadow:var(--sh)}
-  .metric b{display:block;font-size:24px;letter-spacing:-.3px;line-height:1.15;color:var(--tx)}
-  .metric span{display:block;color:var(--tx2);font-size:12px;margin-top:6px;line-height:1.45}
+  .mgroup{margin:0 0 22px}
+  .mgroup:last-child{margin-bottom:0}
+  .mgtitle{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;color:var(--tx);margin:0 0 12px}
+  .mgtitle .gd{width:11px;height:11px;border-radius:4px;background:var(--gc,var(--accent))}
+  .mgrow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:680px){.mgrow{grid-template-columns:repeat(2,1fr)}}
+  .mitem{background:var(--card2);border-radius:12px;padding:15px 16px}
+  .mitem b{display:block;font-size:23px;letter-spacing:-.3px;line-height:1.1;color:var(--tx)}
+  .mitem span{display:block;color:var(--tx2);font-size:12.5px;margin-top:7px;line-height:1.45}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:34px 0 4px}
   @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -159,7 +169,7 @@
 </defs></svg>
 
 <nav><div class="wrap">
-  <div class="brand" onclick="go('')">ARGUS <small id="brandsub"></small></div>
+  <div class="brand" onclick="go('')"><svg class="logo" width="30" height="30" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#fff" stroke="#e7a85a" stroke-width="2.5"/><path d="M11 19 Q15 13 19 19" fill="none" stroke="#3f8f6b" stroke-width="2.6" stroke-linecap="round"/><path d="M21 19 Q25 13 29 19" fill="none" stroke="#3f8f6b" stroke-width="2.6" stroke-linecap="round"/><path d="M13 25 Q20 31 27 25" fill="none" stroke="#3f8f6b" stroke-width="2.6" stroke-linecap="round"/></svg>ARGUS <small id="brandsub"></small></div>
   <div class="langsw">
     <button id="lang-en" onclick="setLang('en')">EN</button>
     <button id="lang-zh" onclick="setLang('zh')">中文</button>
@@ -447,20 +457,98 @@ const T = {
 };
 
 /* ---------- key metrics (every figure reflects the deployed system) ---------- */
-const METRICS = [
-  {v:{en:"58 / 60",zh:"58 / 60"},      c:"fall", l:{en:"falls caught in a 2026-06-21 field test (97% recall)",zh:"2026-06-21 实测命中的跌倒(召回 97%)"}},
-  {v:{en:"1 / 60",zh:"1 / 60"},        c:"fall", l:{en:"false alarm on 60 daily actions (1.7%)",zh:"60 个日常动作里误报 1 次(1.7%)"}},
-  {v:{en:"18/20 night",zh:"夜光 18/20"}, c:"fall", l:{en:"both misses and the false alarm were in low light (90% night recall), the part being improved",zh:"漏的 2 个和那次误报都在夜光(夜光召回 90%),正在改进"}},
-  {v:"17",          c:"vis",   l:{en:"COCO keypoints tracked per person",zh:"每人跟踪 17 个 COCO 关键点"}},
-  {v:"3×",          c:"vis",   l:{en:"parallel RKNN contexts on the NPU",zh:"NPU 上 3 路 RKNN 上下文并行"}},
-  {v:"6 TOPS",      c:"vis",   l:{en:"3-core on-chip NPU running 640×640 pose",zh:"3 核片上 NPU,跑 640×640 姿态"}},
-  {v:"1.3 ms",      c:"vis",   l:{en:"RGA hardware preprocess/frame (NV12->RGB + letterbox)",zh:"每帧 RGA 硬件预处理(NV12->RGB + letterbox)"}},
-  {v:{en:"5 models",zh:"5 个模型"},  c:"voice", l:{en:"on-device voice stack: wake, VAD, ASR, LLM, TTS",zh:"本地语音五件套:唤醒、VAD、ASR、LLM、TTS"}},
-  {v:{en:"full-duplex",zh:"全双工"}, c:"voice", l:{en:"AEC, so a person can interrupt while it speaks",zh:"AEC 加持,它说话时人也能插话"}},
-  {v:{en:"local",zh:"全本地"},       c:"voice", l:{en:"wake, ASR, Qwen LLM and TTS all run on the board",zh:"唤醒、ASR、Qwen LLM、TTS 全在板上跑"}},
-  {v:"6",           c:"ops",   l:{en:"systemd services, restart on crash",zh:"6 个 systemd 服务,崩了自动拉起"}},
-  {v:"24/7",        c:"ops",   l:{en:"unattended; auto-start and auto-restart",zh:"无人值守,开机自启、崩溃自重启"}}
+const METRIC_GROUPS = [
+  {title:{en:"Detection",zh:"检测能力"}, c:"voice", items:[
+    {v:{en:"58 / 60",zh:"58 / 60"}, l:{en:"falls caught (97% recall)",zh:"命中跌倒(召回 97%)"}},
+    {v:{en:"1 / 60",zh:"1 / 60"},   l:{en:"false alarm (1.7%)",zh:"误报(1.7%)"}},
+    {v:{en:"18 / 20",zh:"18 / 20"}, l:{en:"night recall · weak spot",zh:"夜光召回 · 薄弱点"}},
+    {v:{en:"~3 s",zh:"~3 s"},       l:{en:"floor to alert",zh:"从倒地到报警"}}
+  ]},
+  {title:{en:"Real-time",zh:"实时性能"}, c:"vis", items:[
+    {v:{en:"~15 fps",zh:"~15 fps"}, l:{en:"640 pose · 0 dropped",zh:"640 姿态 · 0 丢帧"}},
+    {v:{en:"3×",zh:"3×"},           l:{en:"parallel RKNN contexts",zh:"并行 RKNN 上下文"}},
+    {v:{en:"6 TOPS",zh:"6 TOPS"},   l:{en:"3-core on-chip NPU",zh:"3 核片上 NPU"}},
+    {v:{en:"1.3 ms",zh:"1.3 ms"},   l:{en:"RGA preprocess / frame",zh:"每帧 RGA 预处理"}}
+  ]},
+  {title:{en:"System & privacy",zh:"系统与隐私"}, c:"ops", items:[
+    {v:{en:"5 models",zh:"5 个模型"},  l:{en:"wake · VAD · ASR · LLM · TTS",zh:"唤醒·VAD·ASR·LLM·TTS"}},
+    {v:{en:"full-duplex",zh:"全双工"}, l:{en:"AEC barge-in",zh:"AEC 可打断"}},
+    {v:{en:"6",zh:"6"},               l:{en:"systemd services, self-heal",zh:"systemd 服务,自愈"}},
+    {v:{en:"on-device",zh:"全本地"},   l:{en:"all AI runs on the board",zh:"所有 AI 在板上跑"}}
+  ]}
 ];
+
+/* ---------- hero illustration (warm home-monitoring scene) ---------- */
+const HEROART = `<svg role="img" viewBox="0 0 680 420" width="100%" xmlns="http://www.w3.org/2000/svg">
+<title>ARGUS 居家监护插画</title><desc>暖色手绘:老人坐在沙发上,身上有姿态检测关键点,一台小巧的摄像头温柔看护,右上家人手机显示一切安好。</desc>
+<rect x="2" y="2" width="676" height="416" rx="30" fill="#fdf6ea"/>
+<path d="M2 300 Q340 286 678 300 L678 388 Q340 416 2 388 Z" fill="#f3ddbd"/>
+<ellipse cx="348" cy="360" rx="250" ry="34" fill="#eccfa2" opacity="0.6"/>
+<circle cx="588" cy="120" r="120" fill="#f7e6c8" opacity="0.45"/>
+<rect x="566" y="250" width="20" height="70" rx="8" fill="#b07d4f"/>
+<path d="M576 256 C540 244 540 198 576 196 C612 198 612 244 576 256 Z" fill="#5f9e7b"/>
+<path d="M576 250 C548 232 552 206 576 210 C600 206 604 232 576 250 Z" fill="#6fb58c"/>
+<path d="M576 232 C560 222 562 208 576 210 C590 208 592 222 576 232 Z" fill="#8fc9a6"/>
+<path d="M556 320 L596 320 L590 286 L562 286 Z" fill="#cf8a55"/>
+<rect x="86" y="262" width="92" height="14" rx="7" fill="#c08a5a"/>
+<rect x="100" y="276" width="9" height="44" rx="4" fill="#a9744f"/>
+<rect x="156" y="276" width="9" height="44" rx="4" fill="#a9744f"/>
+<polygon points="150,210 160,206 318,250 308,278" fill="#f6d98a" opacity="0.35"/>
+<rect x="104" y="222" width="62" height="40" rx="18" fill="#dbe7e2" stroke="#a9c2ba" stroke-width="2"/>
+<rect x="129" y="210" width="10" height="16" rx="4" fill="#a9c2ba"/>
+<circle cx="158" cy="242" r="17" fill="#ffffff" stroke="#e7a85a" stroke-width="3.5"/>
+<circle cx="158" cy="242" r="9" fill="#fbeede"/>
+<path d="M147 239 Q153 231 159 239" fill="none" stroke="#2f8f6b" stroke-width="3" stroke-linecap="round"/>
+<path d="M157 239 Q163 231 169 239" fill="none" stroke="#2f8f6b" stroke-width="3" stroke-linecap="round"/>
+<path d="M150 248 Q158 255 167 248" fill="none" stroke="#2f8f6b" stroke-width="3" stroke-linecap="round"/>
+<ellipse cx="360" cy="350" rx="150" ry="20" fill="#e3c89c" opacity="0.6"/>
+<rect x="256" y="300" width="208" height="44" rx="18" fill="#bd8254"/>
+<rect x="246" y="246" width="34" height="92" rx="16" fill="#c98f64"/>
+<rect x="440" y="246" width="34" height="92" rx="16" fill="#c98f64"/>
+<path d="M276 300 Q276 244 318 240 L402 240 Q444 244 444 300 Z" fill="#d29c70"/>
+<rect x="286" y="292" width="148" height="22" rx="11" fill="#c2895c"/>
+<rect x="334" y="296" width="17" height="56" rx="8" fill="#7a6f86"/>
+<rect x="369" y="296" width="17" height="56" rx="8" fill="#7a6f86"/>
+<ellipse cx="340" cy="356" rx="15" ry="8" fill="#7a5a3c"/>
+<ellipse cx="380" cy="356" rx="15" ry="8" fill="#7a5a3c"/>
+<path d="M322 300 Q318 274 332 274 L388 274 Q402 274 398 300 Q360 308 322 300 Z" fill="#e08a4a"/>
+<path d="M328 286 L392 286 M326 295 L394 295" stroke="#cf7833" stroke-width="2" stroke-linecap="round"/>
+<rect x="330" y="214" width="60" height="86" rx="26" fill="#6f9bb5"/>
+<path d="M334 244 Q318 256 318 286" fill="none" stroke="#6f9bb5" stroke-width="17" stroke-linecap="round"/>
+<path d="M386 244 Q402 256 402 286" fill="none" stroke="#6f9bb5" stroke-width="17" stroke-linecap="round"/>
+<circle cx="360" cy="188" r="29" fill="#f2d2b3"/>
+<path d="M331 188 Q331 152 360 152 Q389 152 389 188 Q389 170 360 168 Q331 170 331 188 Z" fill="#ece4d6"/>
+<path d="M348 188 Q352 182 356 188" fill="none" stroke="#5b4a3a" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M364 188 Q368 182 372 188" fill="none" stroke="#5b4a3a" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M352 198 Q360 205 368 198" fill="none" stroke="#5b4a3a" stroke-width="2.2" stroke-linecap="round"/>
+<circle cx="344" cy="195" r="4.6" fill="#eeab93" opacity="0.7"/>
+<circle cx="376" cy="195" r="4.6" fill="#eeab93" opacity="0.7"/>
+<line x1="360" y1="214" x2="360" y2="236" stroke="#2f8f6b" stroke-width="2.4"/>
+<line x1="340" y1="238" x2="380" y2="238" stroke="#2f8f6b" stroke-width="2.4"/>
+<line x1="340" y1="238" x2="336" y2="284" stroke="#2f8f6b" stroke-width="2.4"/>
+<line x1="380" y1="238" x2="384" y2="284" stroke="#2f8f6b" stroke-width="2.4"/>
+<line x1="336" y1="284" x2="384" y2="284" stroke="#2f8f6b" stroke-width="2.4"/>
+<circle cx="360" cy="214" r="4.8" fill="#3f8f6b" stroke="#fff" stroke-width="1.8"/>
+<circle cx="340" cy="238" r="4.8" fill="#3f8f6b" stroke="#fff" stroke-width="1.8"/>
+<circle cx="380" cy="238" r="4.8" fill="#3f8f6b" stroke="#fff" stroke-width="1.8"/>
+<circle cx="336" cy="284" r="4.8" fill="#3f8f6b" stroke="#fff" stroke-width="1.8"/>
+<circle cx="384" cy="284" r="4.8" fill="#3f8f6b" stroke="#fff" stroke-width="1.8"/>
+<rect x="498" y="92" width="124" height="158" rx="22" fill="#ffffff" stroke="#e7c79c" stroke-width="2"/>
+<rect x="510" y="110" width="100" height="122" rx="13" fill="#f3f8f1"/>
+<circle cx="560" cy="148" r="21" fill="#f2d2b3"/>
+<path d="M539 148 Q539 126 560 126 Q581 126 581 148 Q571 138 560 138 Q549 138 539 148 Z" fill="#ece4d6"/>
+<circle cx="554" cy="149" r="2.1" fill="#5b4a3a"/>
+<circle cx="566" cy="149" r="2.1" fill="#5b4a3a"/>
+<path d="M555 155 Q560 159 565 155" fill="none" stroke="#5b4a3a" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="584" cy="164" r="12" fill="#3f8f6b"/>
+<path d="M578 164 L582 168 L590 159" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="524" y="190" width="72" height="9" rx="4.5" fill="#cde7da"/>
+<rect x="538" y="207" width="44" height="8" rx="4" fill="#ece4d6"/>
+<rect x="548" y="240" width="24" height="4" rx="2" fill="#e7c79c"/>
+<path d="M444 150 C438 143 428 147 432 155 C435 161 444 165 444 165 C444 165 453 161 456 155 C460 147 450 143 444 150 Z" fill="#e08a4a"/>
+<circle cx="300" cy="150" r="3.6" fill="#e6bd92"/>
+<circle cx="476" cy="210" r="3.4" fill="#e6bd92"/>
+</svg>`;
 
 /* ---------- subsystem tree ---------- */
 const DATA = [
@@ -889,21 +977,20 @@ function home(){
   )).join("");
   return ''+
     '<header class="hero">'+
-      '<div class="eyebrow">'+tr(T.eyebrow)+"</div>"+
-      '<div class="wordmark">ARGUS</div>'+
-      '<div class="tagline">'+tr(T.tagline)+"</div>"+
-      '<p class="lede">'+tr(T.lede)+"</p>"+
-      '<div class="stats">'+
-        '<div class="stat"><b>97%</b><span>'+tr(T.s_recall)+"</span></div>"+
-        '<div class="stat"><b>1.7%</b><span>'+tr(T.s_fpr)+"</span></div>"+
-        '<div class="stat"><b>~3 s</b><span>'+tr(T.s_latency)+"</span></div>"+
-        '<div class="stat"><b>~15 fps</b><span>'+tr(T.s_fps)+"</span></div>"+
+      '<div class="herowrap">'+
+        '<div class="herotext">'+
+          '<div class="eyebrow">'+tr(T.eyebrow)+"</div>"+
+          '<div class="wordmark">ARGUS</div>'+
+          '<div class="tagline">'+tr(T.tagline)+"</div>"+
+          '<p class="lede" style="margin-bottom:0">'+tr(T.lede)+"</p>"+
+        "</div>"+
+        '<div class="heroart">'+HEROART+"</div>"+
       "</div>"+
     "</header>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.nums_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.nums_sub)+"</p>"+
-      '<div class="metrics">'+METRICS.map(function(m){return '<div class="metric" style="--mc:var(--'+m.c+')"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div>"+
+      METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.arch_h)+"</h2></div>"+
