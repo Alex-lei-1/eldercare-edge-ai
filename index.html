@@ -57,6 +57,9 @@
   .mitem{background:var(--card2);border-radius:12px;padding:15px 16px}
   .mitem b{display:block;font-size:23px;letter-spacing:-.3px;line-height:1.1;color:var(--tx)}
   .mitem span{display:block;color:var(--tx2);font-size:12.5px;margin-top:7px;line-height:1.45}
+  .benchwrap{margin-top:22px}
+  .bttl{font-size:14px;font-weight:700;color:var(--tx);margin:0 0 8px}
+  .benchwrap svg{width:100%;height:auto;display:block}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:34px 0 4px}
   @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -437,6 +440,7 @@ const T = {
   s_latency:{en:"time from the fall to the alert (fast falls, from the floor moment)",zh:"从倒地到报警的时间(快速跌倒)"},
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
+  bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
   source:{en:"Source",zh:"源码"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
@@ -964,6 +968,41 @@ function archDiagram(){
 }
 
 /* ---------- views ---------- */
+function benchChart(){
+  return '<svg role="img" viewBox="0 0 680 540" width="100%" xmlns="http://www.w3.org/2000/svg">'+
+    '<title>'+esc(tr({en:"ARGUS benchmark comparison",zh:"ARGUS 实测对比"}))+'</title>'+
+    '<rect x="2" y="4" width="676" height="170" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
+    '<text x="28" y="40" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Per-frame time breakdown (640 · 3 cores)",zh:"每帧耗时分解(640 · 3 核并行)"}))+'</text>'+
+    '<rect x="40" y="58" width="10" height="28" fill="#8fc9a6"/>'+
+    '<rect x="50" y="58" width="62" height="28" fill="#e7b277"/>'+
+    '<rect x="112" y="58" width="513" height="28" fill="#d98a45"/>'+
+    '<rect x="625" y="58" width="15" height="28" fill="#b3a0c2"/>'+
+    '<text x="368" y="76" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#5a3416">'+esc(tr({en:"NPU rknn_run ≈ 100 ms",zh:"NPU 推理 rknn_run ≈ 100 ms"}))+'</text>'+
+    '<rect x="40" y="104" width="11" height="11" rx="2" fill="#8fc9a6"/><text x="57" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"RGA 2ms",zh:"RGA 2ms"}))+'</text>'+
+    '<rect x="190" y="104" width="11" height="11" rx="2" fill="#e7b277"/><text x="207" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"input-set 12ms",zh:"输入设置 12ms"}))+'</text>'+
+    '<rect x="350" y="104" width="11" height="11" rx="2" fill="#d98a45"/><text x="367" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"NPU 100ms",zh:"NPU 推理 100ms"}))+'</text>'+
+    '<rect x="510" y="104" width="11" height="11" rx="2" fill="#b3a0c2"/><text x="527" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"post 3ms",zh:"后处理 3ms"}))+'</text>'+
+    '<text x="28" y="152" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"~117 ms/frame → ~8.5 fps on one core; 3 in parallel → ~15 fps, near the camera limit.",zh:"单帧约 117 ms → 单核约 8.5 fps;3 核并行 → 约 15 fps,逼近相机上限。"}))+'</text>'+
+    '<rect x="2" y="190" width="676" height="150" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
+    '<text x="28" y="226" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Recall in low light / lying (offline snapshots)",zh:"弱光 / 躺地检出率(离线快照)"}))+'</text>'+
+    '<text x="40" y="252" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"384 quantized",zh:"384 量化模型"}))+'</text>'+
+    '<rect x="40" y="258" width="484" height="24" rx="6" fill="#e0985a"/>'+
+    '<text x="534" y="276" font-family="sans-serif" font-size="14" font-weight="500" fill="#b06a2e">80.6%</text>'+
+    '<text x="40" y="304" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"640 (deployed)",zh:"640 模型(部署)"}))+'</text>'+
+    '<rect x="40" y="310" width="600" height="24" rx="6" fill="#3f8f6b"/>'+
+    '<text x="630" y="328" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">100%</text>'+
+    '<rect x="2" y="356" width="676" height="178" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
+    '<text x="28" y="392" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Throughput (640 model)",zh:"吞吐对比(640 模型)"}))+'</text>'+
+    '<text x="40" y="418" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"full zero-copy (set_io_mem)",zh:"完整零拷贝 set_io_mem"}))+'</text>'+
+    '<rect x="40" y="424" width="184" height="24" rx="6" fill="#c2a48a"/>'+
+    '<text x="234" y="442" font-family="sans-serif" font-size="14" font-weight="500" fill="#8a6a4a">4.6 fps</text>'+
+    '<text x="40" y="470" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"RGA + 3-core parallel (deployed)",zh:"RGA + 3 核并行(部署)"}))+'</text>'+
+    '<rect x="40" y="476" width="588" height="24" rx="6" fill="#3f8f6b"/>'+
+    '<text x="618" y="494" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">14.7 fps</text>'+
+    '<text x="28" y="524" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"The full zero-copy path is 3x slower on 640, so we use RGA + parallel.",zh:"看似先进的全零拷贝在 640 上反而慢 3 倍,所以选 RGA + 并行。"}))+'</text>'+
+    '</svg>';
+}
+
 function home(){
   const cards=DATA.map((m,i)=>(
     '<a class="mcard" href="#/'+m.id+'" style="--bd:var(--'+m.color+')">'+
@@ -991,6 +1030,7 @@ function home(){
       '<div class="secttl"><h2>'+tr(T.nums_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.nums_sub)+"</p>"+
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
+      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.arch_h)+"</h2></div>"+
