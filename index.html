@@ -60,6 +60,9 @@
   .benchwrap{margin-top:22px}
   .bttl{font-size:14px;font-weight:700;color:var(--tx);margin:0 0 8px}
   .benchwrap svg{width:100%;height:auto;display:block}
+  .skelfig{margin:18px 0 0;background:var(--card2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .skelfig img{display:block;width:100%;height:auto}
+  .skelfig figcaption{padding:11px 14px;font-size:13px;color:var(--tx2);border-top:1px solid var(--line)}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:34px 0 4px}
   @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -441,6 +444,7 @@ const T = {
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
   bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
+  skel_cap:{en:"Real inference: the 640 model finds the lying person and overlays a 17-point skeleton (confidence 0.78), from the low-light / action eval set.",zh:"真实推理:640 模型检出躺倒的人并叠加 17 点骨架(置信度 0.78),取自弱光 / 动作评测集。"},
   source:{en:"Source",zh:"源码"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
@@ -1031,6 +1035,7 @@ function home(){
       '<p class="sub">'+tr(T.nums_sub)+"</p>"+
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
+      '<figure class="skelfig"><img src="assets/detect-skeleton.jpg" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.arch_h)+"</h2></div>"+
