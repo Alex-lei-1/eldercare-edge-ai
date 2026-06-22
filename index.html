@@ -63,6 +63,7 @@
   .skelfig{margin:18px 0 0;background:var(--card2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
   .skelfig img{display:block;width:100%;height:auto}
   .skelfig figcaption{padding:11px 14px;font-size:13px;color:var(--tx2);border-top:1px solid var(--line)}
+  .abnote{margin-top:8px;font-size:13px;line-height:1.55;color:var(--tx2)}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:34px 0 4px}
   @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -444,7 +445,9 @@ const T = {
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
   bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
-  skel_cap:{en:"Night enhancement, measured. Left: the raw low-light frame, the 640 model finds the fallen person at 0.75. Right: after a luma-gated gamma 0.7 + CLAHE lift the frame is much brighter and detection holds at 0.74. The same step takes the lighter 384 model from about 10% to about 73% recall on very dark frames.",zh:"夜间增强实测。左:原始弱光帧,640 模型检出躺倒的人,置信度 0.75;右:经亮度门控的 gamma 0.7 + CLAHE 提亮后,画面明显变亮,检测仍保持在 0.74。同一处理让更轻量的 384 模型在极暗帧上的召回从约 10% 提到约 73%。"},
+  skel_cap:{en:"Night enhancement, measured. Left: the raw low-light frame, the 640 model finds the fallen person at 0.75. Right: after a luma-gated gamma 0.7 + CLAHE lift the frame is much brighter and detection holds at 0.74.",zh:"夜间增强实测。左:原始弱光帧,640 模型检出躺倒的人,置信度 0.75;右:经亮度门控的 gamma 0.7 + CLAHE 提亮后,画面明显变亮,检测仍保持在 0.74。"},
+  ab_title:{en:"Shrink exposure for fps, recover recall with enhancement (35 clips, measured)",zh:"为提帧率缩曝光,用夜间增强把召回补回来(35 段实测)"},
+  ab_note:{en:"To lift night fps from 8 to 15 we must shorten exposure; a shorter exposure is a darker frame and fewer detections. Dimming the 35 eval snapshots to 1/2 and 1/3 exposure: the 640 model falls from 100% to 88.6% and night enhancement brings it back to 94.3%. The lighter 384 model falls more (77% to 69%); enhancement lifts its 1/3-exposure case from 68.6% to 82.9%. Enhancement only fires on dark frames (luma<70), so the full-exposure bars are identical.",zh:"为把夜间帧率从 8 提到 15,必须缩短曝光;曝光越短画面越暗、检出越少。把 35 段评测快照压到 1/2、1/3 曝光后:640 从 100% 掉到 88.6%,夜间增强把它拉回 94.3%;更轻量的 384 掉得更多(77% 到 69%),增强把它 1/3 曝光这档从 68.6% 救回 82.9%。增强只在画面暗(luma<70)时触发,所以全曝光那档两根柱一样高。"},
   source:{en:"Source",zh:"源码"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
@@ -1018,6 +1021,35 @@ function benchChart(){
     '</svg>';
 }
 
+function abChart(){
+  var groups=[{l:{en:"full exposure",zh:"全曝光"}},{l:{en:"1/2 exposure",zh:"1/2 曝光"}},{l:{en:"1/3 exposure",zh:"1/3 曝光"}}];
+  var data={"640":[[100,100],[94.3,94.3],[88.6,94.3]],"384":[[77.1,77.1],[74.3,85.7],[68.6,82.9]]};
+  var cx=[170,360,550];
+  function panel(model,top,title){
+    var base=top+168, scale=1.32;
+    var s='<text x="28" y="'+(top+16)+'" font-family="sans-serif" font-size="14" font-weight="600" fill="#33302b">'+esc(title)+'</text>';
+    s+='<line x1="40" y1="'+base+'" x2="650" y2="'+base+'" stroke="#e9e0d3"/>';
+    data[model].forEach(function(pair,gi){
+      var c=cx[gi];
+      [["#c2a48a",pair[0],-42],["#3f8f6b",pair[1],6]].forEach(function(b){
+        var v=b[1], h=v*scale, x=c+b[2], y=base-h;
+        s+='<rect x="'+x+'" y="'+y.toFixed(1)+'" width="36" height="'+h.toFixed(1)+'" rx="4" fill="'+b[0]+'"/>';
+        s+='<text x="'+(x+18)+'" y="'+(y-5).toFixed(1)+'" text-anchor="middle" font-family="sans-serif" font-size="11.5" font-weight="500" fill="#6f655b">'+Math.round(v)+'%</text>';
+      });
+      s+='<text x="'+c+'" y="'+(base+18)+'" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr(groups[gi].l))+'</text>';
+    });
+    return s;
+  }
+  return '<svg role="img" viewBox="0 0 680 500" width="100%" xmlns="http://www.w3.org/2000/svg">'+
+    '<title>'+esc(tr({en:"Exposure vs detection rate, with and without enhancement",zh:"曝光与检出率,加不加增强对比"}))+'</title>'+
+    '<rect x="2" y="4" width="676" height="492" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
+    '<rect x="408" y="14" width="12" height="12" rx="2" fill="#c2a48a"/><text x="426" y="24" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"no enhancement",zh:"未增强"}))+'</text>'+
+    '<rect x="548" y="14" width="12" height="12" rx="2" fill="#3f8f6b"/><text x="566" y="24" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"+ night enhancement",zh:"+ 夜间增强"}))+'</text>'+
+    panel("640",30,tr({en:"640 model — detection rate",zh:"640 模型 — 检出率"}))+
+    panel("384",262,tr({en:"384 model — detection rate",zh:"384 模型 — 检出率"}))+
+    '</svg>';
+}
+
 function home(){
   const cards=DATA.map((m,i)=>(
     '<a class="mcard" href="#/'+m.id+'" style="--bd:var(--'+m.color+')">'+
@@ -1046,6 +1078,7 @@ function home(){
       '<p class="sub">'+tr(T.nums_sub)+"</p>"+
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
+      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.ab_title))+"</div>"+abChart()+'<div class="abnote">'+esc(tr(T.ab_note))+"</div></div>"+
       '<figure class="skelfig"><img src="assets/detect-skeleton.jpg" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
     "</section>"+
     "<section>"+
