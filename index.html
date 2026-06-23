@@ -79,6 +79,8 @@
   .bugcard h4{margin:0 0 8px;font-size:14px;font-weight:500;color:var(--tx)}
   .bcl{font-size:12.5px;line-height:1.5;color:var(--tx2);margin-top:5px}
   .bcl span{display:inline-block;min-width:50px;color:var(--accent);font-weight:500;text-transform:lowercase}
+  .bce{margin-top:7px;border-top:1px dashed var(--line);padding-top:7px}
+  .bce code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--tx)}
   .qawrap{display:grid;gap:10px}
   .qa{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:11px 14px}
   .qq{font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px}
@@ -466,20 +468,20 @@ const T = {
   bugs_h:{en:"Real bugs I fixed",zh:"真实修过的 bug"},
   tradeoffs_h:{en:"Why these trade-offs",zh:"为什么这么取舍"},
   prodproto_h:{en:"Production vs prototype",zh:"生产 vs 原型"},
-  b_sym:{en:"symptom",zh:"现象"}, b_cause:{en:"cause",zh:"根因"}, b_fix:{en:"fix",zh:"修复"},
+  b_sym:{en:"symptom",zh:"现象"}, b_cause:{en:"cause",zh:"根因"}, b_fix:{en:"fix",zh:"修复"}, b_ev:{en:"evidence",zh:"证据"},
   lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All AI runs on the device, so the camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
         zh:"ARGUS 跑在一块香橙派 5 Plus(RK3588)上:用摄像头识别人体姿态、实时判断有没有摔倒,再由本地语音助手主动问一句、必要时通知家人。所有 AI 都在本地跑,画面和声音都不出板;唯一对外发送的,是摔倒后给家人的那条报警。点开下面任意一个模块,就能看到它的子模块、流程图、数据流,以及一段带注释的实现示意。"},
   s_fps:{en:"640 pose · 3-core NPU · 0 dropped frames",zh:"640 姿态 · 3 核 NPU · 0 丢帧"},
   s_recall:{en:"recall: 58 of 60 falls caught in a 2026-06-21 field test",zh:"召回:2026-06-21 实测 60 个跌倒命中 58 个"},
-  s_fpr:{en:"false alarms: 1 in 60 daily actions",zh:"误报:60 个日常动作里仅 1 次"},
+  s_fpr:{en:"1 false alarm in a 60-clip field test",zh:"误报:60 段实测里仅 1 次"},
   s_cloud:{en:"all AI runs on the board; video & audio never leave",zh:"所有 AI 在设备端跑,画面和声音不出板"},
   s_latency:{en:"time from the fall to the alert (fast falls, from the floor moment)",zh:"从倒地到报警的时间(快速跌倒)"},
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
   bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
-  skel_cap:{en:"Night enhancement, measured. Left: the raw low-light frame, the 640 model finds the fallen person at 0.75. Right: after a luma-gated gamma 0.7 + CLAHE lift the frame is much brighter and detection holds at 0.74.",zh:"夜间增强实测。左:原始弱光帧,640 模型检出躺倒的人,置信度 0.75;右:经亮度门控的 gamma 0.7 + CLAHE 提亮后,画面明显变亮,检测仍保持在 0.74。"},
+  skel_cap:{en:"Night enhancement, measured. Left: the raw low-light frame, the 640 model finds the fallen person at 0.75. Right: after a luma-gated gamma 0.7 + CLAHE lift the frame is much brighter and detection holds at 0.74. This is an evaluated optional low-light path, not the default production flag in run_pose_camera.sh.",zh:"夜间增强实测。左:原始弱光帧,640 模型检出躺倒的人,置信度 0.75;右:经亮度门控的 gamma 0.7 + CLAHE 提亮后,画面明显变亮,检测仍保持在 0.74。这是一条评估用的可选弱光路径,不是 run_pose_camera.sh 里的默认生产开关。"},
   ab_title:{en:"Shrink exposure for fps, recover recall with enhancement (35 clips, measured)",zh:"为提帧率缩曝光,用夜间增强把召回补回来(35 段实测)"},
-  ab_note:{en:"To lift night fps from 8 to 15 we must shorten exposure; a shorter exposure is a darker frame and fewer detections. Dimming the 35 eval snapshots to 1/2 and 1/3 exposure: the 640 model falls from 100% to 88.6% and night enhancement brings it back to 94.3%. The lighter 384 model falls more (77% to 69%); enhancement lifts its 1/3-exposure case from 68.6% to 82.9%. Enhancement only fires on dark frames (luma<70), so the full-exposure bars are identical.",zh:"为把夜间帧率从 8 提到 15,必须缩短曝光;曝光越短画面越暗、检出越少。把 35 段评测快照压到 1/2、1/3 曝光后:640 从 100% 掉到 88.6%,夜间增强把它拉回 94.3%;更轻量的 384 掉得更多(77% 到 69%),增强把它 1/3 曝光这档从 68.6% 救回 82.9%。增强只在画面暗(luma<70)时触发,所以全曝光那档两根柱一样高。"},
+  ab_note:{en:"To lift night fps from 8 to 15 we must shorten exposure; a shorter exposure is a darker frame and fewer detections. Dimming the 35 eval snapshots to 1/2 and 1/3 exposure: the 640 model falls from 100% to 88.6% and night enhancement brings it back to 94.3%. The lighter 384 model falls more (77% to 69%); enhancement lifts its 1/3-exposure case from 68.6% to 82.9%. Enhancement only fires on dark frames (luma<70), so the full-exposure bars are identical. This whole low-light path is an evaluated optional flag, not the production default in run_pose_camera.sh.",zh:"为把夜间帧率从 8 提到 15,必须缩短曝光;曝光越短画面越暗、检出越少。把 35 段评测快照压到 1/2、1/3 曝光后:640 从 100% 掉到 88.6%,夜间增强把它拉回 94.3%;更轻量的 384 掉得更多(77% 到 69%),增强把它 1/3 曝光这档从 68.6% 救回 82.9%。增强只在画面暗(luma<70)时触发,所以全曝光那档两根柱一样高。这条弱光路径整体是评估用的可选开关,不是 run_pose_camera.sh 里的生产默认。"},
   source:{en:"Source",zh:"源码"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
@@ -491,9 +493,9 @@ const T = {
   subs:{en:"Sub-modules",zh:"子模块"},
   subs_sub:{en:"Each sub-module has a flow chart, its data flow, and an annotated implementation sketch.",zh:"每个子模块都配了流程图、数据流,以及一段带注释的实现示意。"},
   modules_h:{en:"Subsystems",zh:"子系统"},
-  modules_sub:{en:"Five subsystems, each with its own sub-modules.",zh:"五个子系统,每个还能继续往下看子模块。"},
+  modules_sub:{en:"Five runtime subsystems plus OTA/rollback inside Operations, each with its own sub-modules.",zh:"五个运行子系统,外加 Operations 里的 OTA/回滚,每个还能继续往下看子模块。"},
   arch_h:{en:"System overview",zh:"系统总览"},
-  arch_sub:{en:"Five subsystems on one board, one camera and one mic. Click any block to open it.",zh:"一块板、一路摄像头、一个麦克风,撑起五个子系统。点哪块就进哪块。"},
+  arch_sub:{en:"Five runtime subsystems on one board, one camera and one mic; OTA and rollback live inside Operations. Click any block to open it.",zh:"一块板、一路摄像头、一个麦克风,撑起五个运行子系统;OTA 与回滚在 Operations 里。点哪块就进哪块。"},
   tap:{en:"Open module",zh:"查看模块"},
   foot:{en:"ARGUS: on-device fall detection and a local voice assistant on RK3588. Engineering portfolio project; all inference runs locally. Code blocks are annotated sketches; the full implementation is in a private repository.",
         zh:"ARGUS:RK3588 上的端侧跌倒检测与本地语音助手。工程作品集项目,全部推理本地运行。代码块为带注释的示意,完整实现位于私有仓库。"}
@@ -508,7 +510,7 @@ const METRIC_GROUPS = [
   ]},
   {title:{en:"Safety",zh:"安全(跌倒→报警)"}, c:"fall", items:[
     {v:{en:"58 / 60",zh:"58 / 60"}, l:{en:"falls caught, field test (97%)",zh:"实测召回(97%)"}},
-    {v:{en:"1 / 60",zh:"1 / 60"},   l:{en:"false alarm on daily actions",zh:"日常动作误报(1.7%)"}},
+    {v:{en:"1 / 60",zh:"1 / 60"},   l:{en:"false alarm, 60-clip field test",zh:"误报,60 段实测(1.7%)"}},
     {v:{en:"~3 s",zh:"~3 s"},       l:{en:"floor to alert (fast falls)",zh:"倒地到报警(快速跌倒)"}},
     {v:{en:"flow",zh:"链路"},       l:{en:"pose UDP → C++ state machine → MQTT → alert",zh:"姿态 UDP → C++ 状态机 → MQTT → 报警"}}
   ]},
@@ -519,7 +521,7 @@ const METRIC_GROUPS = [
     {v:{en:"full-duplex",zh:"全双工"}, l:{en:"Speex AEC barge-in",zh:"Speex AEC 可打断"}}
   ]},
   {title:{en:"Operations",zh:"运维"}, c:"ops", items:[
-    {v:{en:"7 + 2",zh:"7 + 2"},     l:{en:"runtime services + optional units",zh:"运行服务 + 可选单元"}},
+    {v:{en:"6+1+2",zh:"6+1+2"},     l:{en:"6 always-on + 1 on-demand OTA + 2 optional units",zh:"6 常驻 + 1 按需 OTA + 2 可选单元"}},
     {v:{en:"JSON",zh:"JSON"},       l:{en:"health: liveness / disk / temp",zh:"健康:存活 / 磁盘 / 温度"}},
     {v:{en:"OTA",zh:"OTA"},         l:{en:"verify → atomic switch → rollback",zh:"校验 → 原子切换 → 回滚"}},
     {v:{en:"on-device",zh:"全本地"}, l:{en:"video & audio never leave",zh:"画面与音频不出板"}}
@@ -605,8 +607,8 @@ const DATA = [
   name:{en:"Vision pipeline",zh:"视觉流水线"}, name2:{en:"camera to pose",zh:"从相机到姿态"},
   tag:{en:"Camera frames to pose keypoints on the NPU, about 15 fps.",zh:"相机画面进 NPU,输出人体姿态关键点,约 15 fps。"},
   file:"src/cpp_edge/main_yolo_pose_rknn_camera.cpp",
-  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 DMA-BUF path delivers NV12 frames, RGA does the preprocessing on hardware, and three parallel RKNN contexts run YOLOv8n-pose. For each person it produces a bounding box, 17 COCO keypoints and a track id, then fans the result out three ways.",
-            zh:"MIPI 相机先接 RK3588 的硬件 ISP;8 缓冲的 V4L2 DMA-BUF 交付 NV12 画面,RGA 在硬件上做预处理,三个并行的 RKNN 上下文跑 YOLOv8n-pose。每检测到一个人,就给出边界框、17 个 COCO 关键点和一个跟踪 id,再分三路送出去。"},
+  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 mmap/DMA-BUF capture path delivers NV12 frames; the deployed auto preprocess path uses RGA where the buffer layout supports it and falls back safely when it does not, and the RKNN input is still sent through rknn_inputs_set for the 3-context production path. Three parallel RKNN contexts run YOLOv8n-pose; for each person it produces a bounding box, 17 COCO keypoints and a track id, then fans the result out three ways.",
+            zh:"MIPI 相机先接 RK3588 的硬件 ISP;8 缓冲的 V4L2 mmap/DMA-BUF 采集路径交付 NV12 画面。部署用的是 auto 预处理:buffer 布局支持时走 RGA,不支持就安全回退;为 3 上下文的生产路径,RKNN 输入仍走 rknn_inputs_set。三个并行 RKNN 上下文跑 YOLOv8n-pose;每检测到一个人,就给出边界框、17 个 COCO 关键点和一个跟踪 id,再分三路送出去。"},
   subs:[
     { id:"boot", code:"boot",
       name:{en:"Boot & entry",zh:"启动与入口"},
@@ -839,7 +841,7 @@ const DATA = [
       ],
       df:{in:["mic audio"], proc:["VAD","ASR","local LLM","TTS"], out:["spoken reply","reference for AEC"]},
       why:{en:"No audio leaves the board. The local LLM is a real Qwen2.5-1.5B served by llama.cpp on :8081, not a canned fallback, and TTS prefers Matcha (resident at startup) with Piper as a lazy fallback. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped. Endpoints are tuned for elders: it wakes after 520 ms of trailing silence and ends a user turn after 1000 ms; an active session stays open 90 s before dropping back to wake mode, and recorded audio is capped at 512 MB with a 24 h TTL.",
-           zh:"音频一点都不出板子。C++ 版本补回了早期版本弄丢的多轮对话(唤醒一次之后就能接着聊),还加了一个滚动 15 秒的“自己刚说过的话”窗口,这样迟到的回声会被认出来丢掉,而不是被它当真又复述一遍。"} },
+           zh:"音频一点都不出板子。本地大模型是 llama.cpp 跑的 Qwen2.5-1.5B,不是写死的兜底回复;TTS 优先 Matcha(启动即常驻)、Piper 兜底。C++ 版本还补回了早期弄丢的多轮对话(唤醒一次就能接着聊)。端点按老人节奏:尾静音 520 ms 触发唤醒、用户一句话静音 1000 ms 结束,活跃会话保持 90 秒再退回唤醒模式,录下的音频上限 512 MB、保留 24 小时。"} },
     { id:"fallans", code:"fallans",
       name:{en:"Post-fall check-in",zh:"跌倒后问询"},
       summary:{en:"A short prompt that allows interruption, then classification into ok / sos / unclear.",zh:"一句允许打断的短提示,再分类为 ok / sos / unclear。"},
@@ -867,7 +869,7 @@ const DATA = [
            zh:"即便有 AEC,助手也可能听到自己话音的尾巴再去回答,形成回路。三道闸挡住它:用最长公共子序列把新采集和它最近说过的话比对,重合度高的丢掉;它讲故事或笑话前那几句固定开场会被识别并拒掉;以及几乎不成话的碎片(Silero 概率低、只有一两个 CJK 字)按噪声处理。这些都是板子上真实踩到的 bug,不是纸上谈兵。"} },
     { id:"latency", code:"latency",
       name:{en:"Measured latency",zh:"实测延迟"},
-      summary:{en:"End-to-end voice latency, taken from the board's own timing logs.",zh:"端到端语音延迟,取自板子自己的 timing 日志。"},
+      summary:{en:"End-to-end voice latency, measured from voice.log timing lines on the board.",zh:"端到端语音延迟,取自板子 voice.log 的 timing 行实测。"},
       flow:[
         {t:"wake KWS ~0.2 s", d:{en:"sherpa zipformer",zh:"sherpa zipformer"}},
         {t:"user ASR ~0.3-0.8 s", d:{en:"SenseVoice, one utterance",zh:"SenseVoice,一句话"}},
@@ -922,8 +924,8 @@ const DATA = [
         {t:"restart -> health gate", d:{en:"unhealthy -> roll back",zh:"不健康 -> 回滚"}}
       ],
       df:{in:["package URL + sha256"], proc:["verify","patch or full unpack","atomic activate","restart + health gate"], out:["new release OR rolled back"]},
-      why:{en:"Application updates land in releases/ and are activated by renaming a symlink, so a reader always sees either the whole old release or the whole new one, never a half-written tree. Before any xdelta3 patch, every old file is hash-checked, because one modified byte makes a binary patch undefined. After the switch the services restart and the health agent is the gate: if it does not come back healthy, the agent rolls the symlink back. The system partition is handled differently and stated honestly: the agent delegates it to RAUC, which owns the A/B boot slots, and a rauc mark-good hook confirms a good boot. Full A/B board validation is tracked separately, not claimed here.",
-           zh:"应用更新落在 releases/,靠 rename 一个 symlink 激活,所以读者要么看到整套旧版本、要么整套新版本,绝不会撞上写了一半的目录树。任何 xdelta3 补丁之前,每个旧文件都先校验哈希,因为旧文件改了一个字节,二进制补丁的结果就是未定义的。切换之后服务重启,健康代理就是那道闸:如果没回到健康状态,agent 会把 symlink 回滚。系统分区是另一套、也照实说:agent 把它交给 RAUC,由 RAUC 管 A/B 启动槽,一个 rauc mark-good 钩子确认这次启动是好的。完整的 A/B 整板验证单独跟踪,这里不夸口已完成。"} },
+      why:{en:"Application updates land in releases/ and are activated by renaming a symlink, so a reader always sees either the whole old release or the whole new one, never a half-written tree. Before any xdelta3 patch, every old file is hash-checked, because one modified byte makes a binary patch undefined. After the switch the services restart and the health agent is the gate: if it does not come back healthy, the agent rolls the symlink back. The system partition is handled differently and stated honestly: the agent delegates it to RAUC, which owns the A/B boot slots, and a rauc mark-good hook confirms a good boot. The application and layered OTA paths have C++ self-tests; full RAUC slot validation is listed as the next system-level validation step, not claimed as done.",
+           zh:"应用更新落在 releases/,靠 rename 一个 symlink 激活,所以读者要么看到整套旧版本、要么整套新版本,绝不会撞上写了一半的目录树。任何 xdelta3 补丁之前,每个旧文件都先校验哈希,因为旧文件改了一个字节,二进制补丁的结果就是未定义的。切换之后服务重启,健康代理就是那道闸:如果没回到健康状态,agent 会把 symlink 回滚。系统分区是另一套、也照实说:agent 把它交给 RAUC,由 RAUC 管 A/B 启动槽,一个 rauc mark-good 钩子确认这次启动是好的。应用层和分层 OTA 都带 C++ 自检;完整的 RAUC 分区验证列为下一步的系统级验证,没有夸口已完成。"} },
     { id:"fan", code:"fan",
       name:{en:"Fan noise control",zh:"风扇噪声控制"},
       summary:{en:"Hold the PWM fan low, with thermal hysteresis, so its noise does not mask speech.",zh:"把 PWM 风扇压低、配上温度滞回,别让风噪盖过说话声。"},
@@ -1150,36 +1152,44 @@ function abChart(){
 const BUGS=[
  {t:{en:"RTSP viewer flicker",zh:"RTSP 观看端闪烁"},
   sym:{en:"the picture flickered or dropped when a second phone connected",zh:"第二部手机连上时画面闪烁、掉流"},
-  cause:{en:"all clients shared one GStreamer media",zh:"所有客户端共用一套 GStreamer media"},
-  fix:{en:"per-client media/appsrc; results reordered by frame_id",zh:"每客户端独立 media/appsrc;结果按 frame_id 重排"}},
+  cause:{en:"shared media/appsrc plus out-of-order parallel results made timestamps and frame order fragile",zh:"共用一套 media/appsrc,加上并行结果乱序,让时间戳和帧序都变脆弱"},
+  fix:{en:"per-client media/appsrc; results reordered by frame_id",zh:"每客户端独立 media/appsrc;结果按 frame_id 重排"},
+  ev:"main_yolo_pose_rknn_camera.cpp (per-client appsrc) + vision.log"},
  {t:{en:"Chinese TTS fallback",zh:"中文 TTS 兜底"},
   sym:{en:"Chinese came out wrong or silent",zh:"中文被读错或读空"},
   cause:{en:"a fragile Python fallback; the OpenAI TTS path was dead code",zh:"旧 Python 兜底不稳,OpenAI TTS 路径是死代码"},
-  fix:{en:"Matcha primary, Piper fallback, forced espeak -v zh in the fall dialogue",zh:"Matcha 主用、Piper 兜底,跌倒对话强制 espeak -v zh"}},
+  fix:{en:"Matcha primary, Piper fallback, forced espeak -v zh in the fall dialogue",zh:"Matcha 主用、Piper 兜底,跌倒对话强制 espeak -v zh"},
+  ev:"voice_service.cpp synth_matcha / ensure_piper / espeak -v zh"},
  {t:{en:"Network-down alert stall",zh:"断网报警卡死"},
   sym:{en:"a dead network froze the alert and the voice prompt",zh:"断网时报警和语音播报一起卡住"},
   cause:{en:"the push and TTS blocked the main path",zh:"推送和 TTS 阻塞了主路径"},
-  fix:{en:"publish MQTT confirmed before speaking; curl bounded to 20 s, 2 retries",zh:"先发 MQTT confirmed 再播报;curl 限时 20 秒、重试 2 次"}},
+  fix:{en:"publish MQTT confirmed before speaking; curl bounded to 20 s, 2 retries",zh:"先发 MQTT confirmed 再播报;curl 限时 20 秒、重试 2 次"},
+  ev:"alert_service.cpp curl --max-time 20 --retry 2"},
  {t:{en:"NTP false fall",zh:"NTP 假跌倒"},
   sym:{en:"a clock correction spiked a false fall",zh:"系统校时瞬间误报一次跌倒"},
   cause:{en:"velocity = d_center_y / dt, and dt collapsed on the jump",zh:"速度 = Δcenter_y / Δt,跳变把 Δt 压到极小"},
-  fix:{en:"clock-jump guard: keep the posture, discard that frame's velocity",zh:"时钟跳变兜底:保留姿态、丢弃该帧速度"}},
+  fix:{en:"clock-jump guard: keep the posture, discard that frame's velocity",zh:"时钟跳变兜底:保留姿态、丢弃该帧速度"},
+  ev:"fall_detector.cpp dt guard + fall_detector_test.cpp"},
  {t:{en:"LLM call blocking",zh:"LLM 调用阻塞"},
   sym:{en:"the whole voice thread froze while the LLM replied",zh:"LLM 回答时整个语音线程卡住"},
   cause:{en:"an early popen + fgets read the output synchronously",zh:"早期用 popen + fgets 同步读输出"},
-  fix:{en:"stream clause-by-clause over curl, with a non-streaming fallback",zh:"改 curl 流式分句,带非流式回落"}},
+  fix:{en:"stream clause-by-clause over curl, with a non-streaming fallback",zh:"改 curl 流式分句,带非流式回落"},
+  ev:"voice_service.cpp curl streaming + non-streaming fallback"},
  {t:{en:"Voice self-talk loop",zh:"语音自言自语"},
   sym:{en:"it answered its own speech and looped",zh:"它把自己说的话当输入又应答,循环"},
   cause:{en:"AEC residual plus repeating its own preface",zh:"AEC 残留 + 复述自己的开场白"},
-  fix:{en:"rolling LCS speech window, preface echo reject, fragment drop",zh:"滚动 LCS 语音窗、开场白拒识、碎片丢弃"}},
+  fix:{en:"rolling LCS speech window, preface echo reject, fragment drop",zh:"滚动 LCS 语音窗、开场白拒识、碎片丢弃"},
+  ev:"voice_service.cpp is_assistant_story_preface_echo"},
  {t:{en:"Wake false trigger",zh:"唤醒空触发"},
   sym:{en:"noise woke it and transcribed nothing",zh:"噪声误唤醒、转写为空"},
   cause:{en:"low-energy frames and a hallucinated lone CJK char",zh:"低能量帧 + 凭空蹦出的单个 CJK 字"},
-  fix:{en:"noise gate + Silero probability + CJK-count drop",zh:"噪声门 + Silero 概率 + CJK 计数丢弃"}},
+  fix:{en:"noise gate + Silero probability + CJK-count drop",zh:"噪声门 + Silero 概率 + CJK 计数丢弃"},
+  ev:"voice_service.cpp --self-test"},
  {t:{en:"Log / output growth",zh:"日志 / 输出膨胀"},
   sym:{en:"audio and logs slowly filled the disk",zh:"音频和日志慢慢把磁盘填满"},
   cause:{en:"unbounded writes",zh:"无上限写入"},
-  fix:{en:"512 MB / 24 h TTL on voice output, pruned every 60 s",zh:"语音输出 512MB / 24h TTL,每 60 秒清理"}}
+  fix:{en:"512 MB / 24 h TTL on voice output, pruned every 60 s",zh:"语音输出 512MB / 24h TTL,每 60 秒清理"},
+  ev:"voice_service.cpp prune_file_ring (512MB / 24h)"}
 ];
 
 const TRADEOFFS=[
@@ -1206,7 +1216,8 @@ function engNotes(){
     return '<div class="bugcard"><h4>'+esc(tr(b.t))+'</h4>'+
       '<div class="bcl"><span>'+esc(tr(T.b_sym))+'</span>'+esc(tr(b.sym))+'</div>'+
       '<div class="bcl"><span>'+esc(tr(T.b_cause))+'</span>'+esc(tr(b.cause))+'</div>'+
-      '<div class="bcl"><span>'+esc(tr(T.b_fix))+'</span>'+esc(tr(b.fix))+'</div></div>';
+      '<div class="bcl"><span>'+esc(tr(T.b_fix))+'</span>'+esc(tr(b.fix))+'</div>'+
+      '<div class="bcl bce"><span>'+esc(tr(T.b_ev))+'</span><code>'+esc(b.ev)+'</code></div></div>';
   }).join("");
   var qa=TRADEOFFS.map(function(q){
     return '<div class="qa"><div class="qq">'+esc(tr(q.q))+'</div><div class="qaa">'+esc(tr(q.a))+'</div></div>';
