@@ -520,6 +520,7 @@ const T = {
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测,对应真正在跑的系统,而不是规格书上的标称值。"},
   bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
+  lld_h:{en:"Why 640 + 3 cores + enhancement, not 384",zh:"为什么是 640 + 3 核 + 增强,而不是 384"},
   skel_cap:{en:"Same enhanced low-light frame, two models. Left: the lighter, faster 384 model finds nobody (people=0, even after enhancement). Right: the 640 model detects the fallen person at 0.76 with a 17-point pose skeleton. So rather than drop to a faster-but-weaker 384, the deployment keeps 640 and recovers the frame rate with 3 parallel NPU cores (~15 fps, 0 dropped); night enhancement here is an evaluated optional aid, not the run_pose_camera.sh default.",zh:"同一张增强后的弱光帧,两个模型。左:更轻、更快的 384 模型检测不到人(people=0,即便增强后也是);右:640 模型检出躺倒的人(0.76)并画出 17 点骨架。所以没有退到更快但更弱的 384,而是保留 640、用 3 个并行 NPU 核把帧率追回来(约 15fps、0 丢帧);这里的夜间增强是评估用的可选增益,不是 run_pose_camera.sh 的默认。"},
   ab_title:{en:"Shrink exposure for fps, recover recall with enhancement (35 clips, measured)",zh:"为提帧率缩曝光,用夜间增强把召回补回来(35 段实测)"},
   ab_note:{en:"To lift night fps from 8 to 15 we must shorten exposure; a shorter exposure is a darker frame and fewer detections. Dimming the 35 eval snapshots to 1/2 and 1/3 exposure: the 640 model falls from 100% to 88.6% and night enhancement brings it back to 94.3%. The lighter 384 model falls more (77% to 69%); enhancement lifts its 1/3-exposure case from 68.6% to 82.9%. Enhancement only fires on dark frames (luma<70), so the full-exposure bars are identical. This whole low-light path is an evaluated optional flag, not the production default in run_pose_camera.sh.",zh:"为把夜间帧率从 8 提到 15,必须缩短曝光;曝光越短画面越暗、检出越少。把 35 段评测快照压到 1/2、1/3 曝光后:640 从 100% 掉到 88.6%,夜间增强把它拉回 94.3%;更轻量的 384 掉得更多(77% 到 69%),增强把它 1/3 曝光这档从 68.6% 救回 82.9%。增强只在画面暗(luma<70)时触发,所以全曝光那档两根柱一样高。这条弱光路径整体是评估用的可选开关,不是 run_pose_camera.sh 里的生产默认。"},
@@ -1509,6 +1510,27 @@ function sourceMap(){
   }).join("")+'</div>';
 }
 
+function lowlightDecision(){
+  var rows=[
+    {cond:{en:"Long exposure ~125 ms (bright frame)",zh:"长曝光 ~125ms(画面亮)"}, res:{en:"8 fps, drops frames",zh:"8 fps,掉帧"}, ok:false},
+    {cond:{en:"Short exposure + 384 model (save compute)",zh:"缩曝光 + 384 模型(省算力)"}, res:{en:"15 fps but people=0, misses the person",zh:"15 fps 但 people=0,检不到人"}, ok:false},
+    {cond:{en:"Short exposure + 640 + 3-core parallel + night enhancement",zh:"缩曝光 + 640 + 3 核并行 + 夜间增强"}, res:{en:"15 fps, 0 dropped, detected 0.76 + skeleton",zh:"15 fps、0 丢帧,检出 0.76 + 骨架"}, ok:true}
+  ];
+  var s='<svg role="img" viewBox="0 0 680 224" width="100%" xmlns="http://www.w3.org/2000/svg">';
+  s+='<title>'+esc(tr({en:"Night low-light decision chain",zh:"夜间弱光决策链"}))+'</title>';
+  rows.forEach(function(r,i){
+    var y=8+i*70;
+    var fill=r.ok?"#ecf6f0":"#fbf1ec", stroke=r.ok?"#3f8f6b":"#e3b6a4", txc=r.ok?"#2c6b4f":"#9a6450";
+    s+='<rect x="2" y="'+y+'" width="676" height="58" rx="12" fill="'+fill+'" stroke="'+stroke+'"/>';
+    s+='<text x="22" y="'+(y+25)+'" font-family="sans-serif" font-size="13.5" font-weight="500" fill="#33302b">'+esc(tr(r.cond))+'</text>';
+    s+='<text x="22" y="'+(y+46)+'" font-family="sans-serif" font-size="12.5" fill="'+txc+'">'+esc(tr({en:"result: ",zh:"结果:"}))+esc(tr(r.res))+'</text>';
+    s+='<circle cx="648" cy="'+(y+29)+'" r="14" fill="'+(r.ok?"#3f8f6b":"#cf6a52")+'"/>';
+    s+='<text x="648" y="'+(y+35)+'" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" fill="#ffffff">'+(r.ok?"✓":"✗")+'</text>';
+  });
+  s+='</svg>';
+  return s;
+}
+
 function home(){
   const cards=DATA.map((m,i)=>(
     '<a class="mcard" href="#/'+m.id+'" style="--bd:var(--'+m.color+')">'+
@@ -1539,6 +1561,7 @@ function home(){
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.ab_title))+"</div>"+abChart()+'<div class="abnote">'+esc(tr(T.ab_note))+"</div></div>"+
+      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.lld_h))+"</div>"+lowlightDecision()+"</div>"+
       '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=384v640" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
     "</section>"+
     "<section>"+
