@@ -90,6 +90,25 @@
   .rmwhen{font-size:11px;font-weight:500;color:#fff;background:var(--wc);padding:2px 8px;border-radius:8px;white-space:nowrap}
   .rmrow{font-size:12.5px;line-height:1.5;color:var(--tx2);margin-top:4px}
   .rmrow span{display:inline-block;min-width:46px;color:var(--accent);font-weight:500;text-transform:lowercase}
+  .petbl,.smap,.vtbl{margin-top:6px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);font-size:12.5px}
+  .petrow{display:grid;grid-template-columns:minmax(0,1.6fr) 0.9fr minmax(0,2fr);gap:10px;align-items:baseline;padding:9px 14px;border-top:1px solid var(--line)}
+  .petbl .petrow:first-child{border-top:none}
+  .pepath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent)}
+  .pest{font-weight:500;color:var(--warm)}
+  .pewhy{color:var(--tx2)}
+  .vthead,.vtrow{display:grid;grid-template-columns:0.9fr 1.1fr 1.1fr 1.4fr 1.1fr;gap:10px;padding:9px 14px;border-top:1px solid var(--line)}
+  .vthead{border-top:none;font-weight:500;color:var(--tx);background:var(--card2)}
+  .vtrow{color:var(--tx2)}
+  .vok{color:var(--accent);font-weight:500}
+  .vtrow code,.smf{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+  .smrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;align-items:baseline;padding:9px 14px;border-top:1px solid var(--line)}
+  .smap .smrow:first-child{border-top:none}
+  .smq{color:var(--tx2)}
+  .smf{color:var(--accent)}
+  .pvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:6px}
+  .pvbox{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--gc);border-radius:12px;padding:12px 14px}
+  .pvk{font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px}
+  .pvitem{font-size:12.5px;color:var(--tx2);margin:3px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
   .qawrap{display:grid;gap:10px}
   .qa{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:11px 14px}
   .qq{font-size:14px;font-weight:500;color:var(--tx);margin-bottom:4px}
@@ -481,6 +500,16 @@ const T = {
   roadmap_h:{en:"Roadmap & future work",zh:"路线图与未来工作"},
   roadmap_sub:{en:"Layered by time and risk: now (production stabilization), 1-2 months (reliability + measurement), 3-6 months (industrialization), and research (model/data/system co-design). Each item is problem -> current status -> next step -> acceptance metric. This is also the honest answer to 'what would you improve next'.",zh:"按时间和风险分层:现在(生产稳定化)、1-2 月(可靠性 + 度量)、3-6 月(工业化)、研究方向(模型/数据/系统协同)。每条都写 问题 -> 现状 -> 下一步 -> 验收指标。这也是对'下一步你会改什么'最诚实的回答。"},
   rm_p:{en:"problem",zh:"问题"}, rm_s:{en:"now",zh:"现状"}, rm_n:{en:"next",zh:"下一步"}, rm_m:{en:"metric",zh:"验收"},
+  b_lesson:{en:"lesson",zh:"教训"},
+  prodexp_h:{en:"Production vs experimental",zh:"生产 vs 实验"},
+  prodexp_sub:{en:"Which vision paths actually ship, and which are implemented but held back.",zh:"视觉链路里哪些真正上生产,哪些已实现但暂不默认。"},
+  val_h:{en:"Validation matrix",zh:"验证矩阵"},
+  val_sub:{en:"What is tested, the current result, the evidence, and the next test.",zh:"测了什么、当前结果、证据,以及下一步要测什么。"},
+  v_area:{en:"area",zh:"项目"}, v_test:{en:"test",zh:"测试方法"}, v_result:{en:"current result",zh:"当前结果"}, v_ev:{en:"evidence",zh:"证据"}, v_next:{en:"next test",zh:"下一步"},
+  privacy_h:{en:"Privacy boundary",zh:"隐私边界"},
+  privacy_sub:{en:"What never leaves the board, what may, and how it is protected.",zh:"什么绝不出板、什么可能出板,以及怎么保护。"},
+  srcmap_h:{en:"Source map",zh:"源码索引"},
+  srcmap_sub:{en:"Straight from a question to the file that answers it.",zh:"从一个问题直接跳到回答它的源文件。"},
   lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All AI runs on the device, so the camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
         zh:"ARGUS 跑在一块香橙派 5 Plus(RK3588)上:用摄像头识别人体姿态、实时判断有没有摔倒,再由本地语音助手主动问一句、必要时通知家人。所有 AI 都在本地跑,画面和声音都不出板;唯一对外发送的,是摔倒后给家人的那条报警。点开下面任意一个模块,就能看到它的子模块、流程图、数据流,以及一段带注释的实现示意。"},
   s_fps:{en:"640 pose · 3-core NPU · 0 dropped frames",zh:"640 姿态 · 3 核 NPU · 0 丢帧"},
@@ -1166,42 +1195,50 @@ const BUGS=[
   sym:{en:"the picture flickered or dropped when a second phone connected",zh:"第二部手机连上时画面闪烁、掉流"},
   cause:{en:"shared GStreamer media plus out-of-order parallel results made timestamps/frame order fragile",zh:"共用一套 GStreamer media,加上并行结果乱序,让时间戳和帧序都变脆弱"},
   fix:{en:"per-client media/appsrc; results reordered by frame_id",zh:"每客户端独立 media/appsrc;结果按 frame_id 重排"},
-  ev:"src/cpp_edge/rtsp_output_server.cpp + vision.log"},
+  ev:"src/cpp_edge/rtsp_output_server.cpp + vision.log",
+  ls:{en:"media timestamp/buffer ownership must match frame ownership",zh:"媒体时间戳/buffer 的归属,必须和帧的归属一致"}},
  {t:{en:"Chinese TTS fallback",zh:"中文 TTS 兜底"},
   sym:{en:"Chinese came out wrong or silent",zh:"中文被读错或读空"},
   cause:{en:"a fragile Python fallback; the OpenAI TTS path was dead code",zh:"旧 Python 兜底不稳,OpenAI TTS 路径是死代码"},
   fix:{en:"Matcha primary, Piper fallback, a CJK-aware local TTS fallback and regenerated cached emergency prompts",zh:"Matcha 主用、Piper 兜底,再加一层 CJK 友好的本地 TTS 兜底,并重新生成缓存的应急提示"},
-  ev:"src/cpp_runtime/voice_service.cpp synth_companion_cached"},
+  ev:"src/cpp_runtime/voice_service.cpp synth_companion_cached",
+  ls:{en:"a fallback you never exercise is the same as no fallback",zh:"从来不被触发的兜底,等于没有兜底"}},
  {t:{en:"Network-down alert stall",zh:"断网报警卡死"},
   sym:{en:"a dead network froze the alert and the voice prompt",zh:"断网时报警和语音播报一起卡住"},
   cause:{en:"the push and TTS blocked the main path",zh:"推送和 TTS 阻塞了主路径"},
   fix:{en:"publish MQTT confirmed before speaking; curl bounded to 20 s, 2 retries",zh:"先发 MQTT confirmed 再播报;curl 限时 20 秒、重试 2 次"},
-  ev:"src/cpp_runtime/alert_service.cpp (curl --max-time 20 --retry 2)"},
+  ev:"src/cpp_runtime/alert_service.cpp (curl --max-time 20 --retry 2)",
+  ls:{en:"the alert path must never block on the network",zh:"报警路径绝不能阻塞在网络上"}},
  {t:{en:"NTP false fall",zh:"NTP 假跌倒"},
   sym:{en:"a clock correction spiked a false fall",zh:"系统校时瞬间误报一次跌倒"},
   cause:{en:"velocity = d_center_y / dt, and dt collapsed on the jump",zh:"速度 = Δcenter_y / Δt,跳变把 Δt 压到极小"},
   fix:{en:"clock-jump guard: keep the posture, discard that frame's velocity",zh:"时钟跳变兜底:保留姿态、丢弃该帧速度"},
-  ev:"src/cpp_runtime/fall_detector.cpp + fall_detector_test.cpp"},
+  ev:"src/cpp_runtime/fall_detector.cpp + fall_detector_test.cpp",
+  ls:{en:"any velocity from wall-clock time needs a monotonic guard",zh:"任何用墙钟算出来的速度,都得有单调时钟兜底"}},
  {t:{en:"LLM call blocking",zh:"LLM 调用阻塞"},
   sym:{en:"the whole voice thread froze while the LLM replied",zh:"LLM 回答时整个语音线程卡住"},
   cause:{en:"an early popen + fgets read the output synchronously",zh:"早期用 popen + fgets 同步读输出"},
   fix:{en:"stream clause-by-clause over curl, with a non-streaming fallback",zh:"改 curl 流式分句,带非流式回落"},
-  ev:"src/cpp_runtime/voice_service.cpp (curl streaming path)"},
+  ev:"src/cpp_runtime/voice_service.cpp (curl streaming path)",
+  ls:{en:"treat subprocess I/O as blocking until proven otherwise",zh:"子进程 I/O 默认当成会阻塞,直到证明它不会"}},
  {t:{en:"Voice self-talk loop",zh:"语音自言自语"},
   sym:{en:"it answered its own speech and looped",zh:"它把自己说的话当输入又应答,循环"},
   cause:{en:"AEC residual plus repeating its own preface",zh:"AEC 残留 + 复述自己的开场白"},
   fix:{en:"rolling LCS speech window, preface echo reject, fragment drop",zh:"滚动 LCS 语音窗、开场白拒识、碎片丢弃"},
-  ev:"src/cpp_runtime/voice_service.cpp is_assistant_story_preface_echo"},
+  ev:"src/cpp_runtime/voice_service.cpp is_assistant_story_preface_echo",
+  ls:{en:"with imperfect AEC, the model must also recognise its own words",zh:"AEC 不完美时,模型还得能认出自己说过的话"}},
  {t:{en:"Wake false trigger",zh:"唤醒空触发"},
   sym:{en:"noise woke it and transcribed nothing",zh:"噪声误唤醒、转写为空"},
   cause:{en:"low-energy frames and a hallucinated lone CJK char",zh:"低能量帧 + 凭空蹦出的单个 CJK 字"},
   fix:{en:"noise gate + Silero probability + CJK-count drop",zh:"噪声门 + Silero 概率 + CJK 计数丢弃"},
-  ev:"src/cpp_runtime/voice_service.cpp --self-test"},
+  ev:"src/cpp_runtime/voice_service.cpp --self-test",
+  ls:{en:"a wake word needs an energy/noise gate, not just a classifier",zh:"唤醒词需要能量/噪声门,不能只靠一个分类器"}},
  {t:{en:"Log / output growth",zh:"日志 / 输出膨胀"},
   sym:{en:"audio and logs slowly filled the disk",zh:"音频和日志慢慢把磁盘填满"},
   cause:{en:"unbounded writes",zh:"无上限写入"},
   fix:{en:"512 MB / 24 h TTL on voice output, pruned every 60 s",zh:"语音输出 512MB / 24h TTL,每 60 秒清理"},
-  ev:"src/cpp_runtime/voice_service.cpp prune_file_ring"}
+  ev:"src/cpp_runtime/voice_service.cpp prune_file_ring",
+  ls:{en:"any long-running writer needs a retention budget from day one",zh:"任何长期运行的写入,第一天就要有保留预算"}}
 ];
 
 const TRADEOFFS=[
@@ -1229,7 +1266,8 @@ function engNotes(){
       '<div class="bcl"><span>'+esc(tr(T.b_sym))+'</span>'+esc(tr(b.sym))+'</div>'+
       '<div class="bcl"><span>'+esc(tr(T.b_cause))+'</span>'+esc(tr(b.cause))+'</div>'+
       '<div class="bcl"><span>'+esc(tr(T.b_fix))+'</span>'+esc(tr(b.fix))+'</div>'+
-      '<div class="bcl bce"><span>'+esc(tr(T.b_ev))+'</span><code>'+esc(b.ev)+'</code></div></div>';
+      '<div class="bcl bce"><span>'+esc(tr(T.b_ev))+'</span><code>'+esc(b.ev)+'</code></div>'+
+      '<div class="bcl"><span>'+esc(tr(T.b_lesson))+'</span>'+esc(tr(b.ls))+'</div></div>';
   }).join("");
   var qa=TRADEOFFS.map(function(q){
     return '<div class="qa"><div class="qq">'+esc(tr(q.q))+'</div><div class="qaa">'+esc(tr(q.a))+'</div></div>';
@@ -1411,6 +1449,66 @@ function roadmapBlocks(){
   }).join("");
 }
 
+const PRODEXP=[
+ {path:"V4L2 mmap/DMA-BUF", st:{en:"production",zh:"生产"}, w:{en:"stable buffer ownership",zh:"buffer 归属稳定"}},
+ {path:"RGA fd->Mat", st:{en:"production / auto",zh:"生产 / auto"}, w:{en:"saves CPU when the layout supports it",zh:"布局支持时省 CPU"}},
+ {path:"rknn_inputs_set", st:{en:"production",zh:"生产"}, w:{en:"faster with the 3-context 640 model",zh:"3 上下文 640 模型下更快"}},
+ {path:"rknn_set_io_mem full zero-copy", st:{en:"implemented, not default",zh:"已实现,非默认"}, w:{en:"measured slower, unsafe shared binding in parallel",zh:"实测更慢,并行下共享绑定不安全"}},
+ {path:"night enhancement", st:{en:"evaluated optional",zh:"评估可选"}, w:{en:"not the run_pose_camera.sh default",zh:"不是 run_pose_camera.sh 默认"}}
+];
+
+const VALIDATION=[
+ {a:{en:"Vision FPS",zh:"视觉帧率"}, test:{en:"450-frame benchmark",zh:"450 帧基准"}, r:{en:"14.97 fps, 0 dropped",zh:"14.97 fps,0 丢帧"}, ev:"vision.log / jsonl", nx:{en:"24 h soak",zh:"24h 长稳"}},
+ {a:{en:"Fall recall",zh:"跌倒召回"}, test:{en:"60-clip field test",zh:"60 段实测"}, r:{en:"58 / 60 (97%), 1 FP",zh:"58/60(97%),1 误报"}, ev:"eval report", nx:{en:"> 500 clips, per-scenario",zh:">500 段,按场景拆"}},
+ {a:{en:"Voice latency",zh:"语音延迟"}, test:{en:"voice.log timings",zh:"voice.log 计时"}, r:{en:"LLM first clause 2-4 s",zh:"LLM 首句 2-4s"}, ev:"voice.log", nx:{en:"scripted 30-turn test",zh:"脚本 30 轮测试"}},
+ {a:{en:"AEC double-talk",zh:"AEC 双讲"}, test:{en:"DTD self-test",zh:"DTD 自检"}, r:{en:"pass",zh:"通过"}, ev:"audio_aec_duplex --dtd-self-test", nx:{en:"real barge-in dataset",zh:"真实打断数据集"}},
+ {a:{en:"OTA",zh:"OTA"}, test:{en:"agent self-test",zh:"agent 自检"}, r:{en:"pass",zh:"通过"}, ev:"ota_agent --self-test", nx:{en:"RAUC A/B board test",zh:"RAUC A/B 真机测试"}},
+ {a:{en:"Health",zh:"健康"}, test:{en:"agent self-test",zh:"agent 自检"}, r:{en:"pass",zh:"通过"}, ev:"health_agent --self-test", nx:{en:"fault injection",zh:"故障注入"}}
+];
+
+const PRIVACY=[
+ {k:{en:"Never leaves the board",zh:"绝不出板"}, c:"vis", items:{en:["raw video","raw audio","ASR wav","local dialogue"],zh:["原始视频","原始音频","ASR 录音 wav","本地对话"]}},
+ {k:{en:"May leave (configured)",zh:"可能出板(按配置)"}, c:"fall", items:{en:["ntfy alert text","optional snapshot","health summary if configured"],zh:["ntfy 报警文本","可选快照","按配置的健康摘要"]}},
+ {k:{en:"Protected by",zh:"保护手段"}, c:"voice", items:{en:["TTL cleanup","max output size","env-based secrets","OTA sha256"],zh:["TTL 清理","输出大小上限","env 管密钥","OTA sha256"]}},
+ {k:{en:"Future",zh:"未来"}, c:"ops", items:{en:["signed OTA","encrypted local evidence","token rotation","snapshot redaction","local-only mode"],zh:["签名 OTA","本地证据加密","令牌轮换","快照脱敏","纯本地模式"]}}
+];
+
+const SOURCEMAP=[
+ {q:{en:"How does the camera buffer work?",zh:"相机 buffer 怎么工作?"}, f:"src/cpp_edge/camera_v4l2.cpp"},
+ {q:{en:"Where is RGA / zero-copy?",zh:"RGA / 零拷贝在哪?"}, f:"src/cpp_edge/camera_preprocess_rga_zero_copy.cpp"},
+ {q:{en:"Where is RKNN inference?",zh:"RKNN 推理在哪?"}, f:"src/cpp_edge/main_yolo_pose_rknn_camera.cpp"},
+ {q:{en:"Where is the pose UDP sender?",zh:"姿态 UDP 发送在哪?"}, f:"src/cpp_edge/pose_udp_sender.cpp"},
+ {q:{en:"Where is the RTSP output server?",zh:"RTSP 输出服务在哪?"}, f:"src/cpp_edge/rtsp_output_server.cpp"},
+ {q:{en:"Where is the fall state machine?",zh:"跌倒状态机在哪?"}, f:"src/cpp_runtime/fall_detector.cpp"},
+ {q:{en:"Where is the voice scheduler?",zh:"语音调度在哪?"}, f:"src/cpp_runtime/voice_service.cpp"},
+ {q:{en:"Where is AEC?",zh:"AEC 在哪?"}, f:"src/audio/audio_aec_duplex.cpp"},
+ {q:{en:"Where is OTA rollback?",zh:"OTA 回滚在哪?"}, f:"src/cpp_runtime/ota_agent.cpp"},
+ {q:{en:"Where is the health JSON?",zh:"健康 JSON 在哪?"}, f:"src/cpp_runtime/health_agent.cpp"}
+];
+
+function prodExpTable(){
+  return '<div class="petbl">'+PRODEXP.map(function(p){
+    return '<div class="petrow"><code class="pepath">'+esc(p.path)+'</code><span class="pest">'+esc(tr(p.st))+'</span><span class="pewhy">'+esc(tr(p.w))+'</span></div>';
+  }).join("")+'</div>';
+}
+function validationTable(){
+  return '<div class="vtbl"><div class="vthead"><span>'+esc(tr(T.v_area))+'</span><span>'+esc(tr(T.v_test))+'</span><span>'+esc(tr(T.v_result))+'</span><span>'+esc(tr(T.v_ev))+'</span><span>'+esc(tr(T.v_next))+'</span></div>'+
+    VALIDATION.map(function(v){
+      return '<div class="vtrow"><span>'+esc(tr(v.a))+'</span><span>'+esc(tr(v.test))+'</span><span class="vok">'+esc(tr(v.r))+'</span><span><code>'+esc(v.ev)+'</code></span><span>'+esc(tr(v.nx))+'</span></div>';
+    }).join("")+'</div>';
+}
+function privacyBoundary(){
+  return '<div class="pvgrid">'+PRIVACY.map(function(p){
+    var its=(L()==="zh"?p.items.zh:p.items.en);
+    return '<div class="pvbox" style="--gc:var(--'+p.c+')"><div class="pvk">'+esc(tr(p.k))+'</div>'+its.map(function(it){return '<div class="pvitem">'+esc(it)+'</div>';}).join("")+'</div>';
+  }).join("")+'</div>';
+}
+function sourceMap(){
+  return '<div class="smap">'+SOURCEMAP.map(function(s){
+    return '<div class="smrow"><span class="smq">'+esc(tr(s.q))+'</span><code class="smf">'+esc(s.f)+'</code></div>';
+  }).join("")+'</div>';
+}
+
 function home(){
   const cards=DATA.map((m,i)=>(
     '<a class="mcard" href="#/'+m.id+'" style="--bd:var(--'+m.color+')">'+
@@ -1484,6 +1582,26 @@ function home(){
       '<div class="secttl"><h2>'+tr(T.roadmap_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.roadmap_sub)+"</p>"+
       roadmapBlocks()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.prodexp_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.prodexp_sub)+"</p>"+
+      prodExpTable()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.val_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.val_sub)+"</p>"+
+      validationTable()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.privacy_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.privacy_sub)+"</p>"+
+      privacyBoundary()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.srcmap_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.srcmap_sub)+"</p>"+
+      sourceMap()+
     "</section>";
 }
 
