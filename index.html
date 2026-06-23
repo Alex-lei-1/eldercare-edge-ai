@@ -64,6 +64,14 @@
   .skelfig img{display:block;width:100%;height:auto}
   .skelfig figcaption{padding:11px 14px;font-size:13px;color:var(--tx2);border-top:1px solid var(--line)}
   .abnote{margin-top:8px;font-size:13px;line-height:1.55;color:var(--tx2)}
+  .techstack{margin-top:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.55;color:var(--tx2);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .rmap{margin-top:10px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+  .rmaprow{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;padding:9px 14px;border-top:1px solid var(--line);font-size:13px}
+  .rmaprow:first-child{border-top:none}
+  .rmap .ru{color:var(--accent);font-weight:500;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .rmap .rarr{color:#b3a895}
+  .rmap .rb{color:var(--tx2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .rmap .rtag{margin-left:auto;font-size:12px;color:var(--warm);background:rgba(224,138,74,.12);padding:1px 9px;border-radius:8px}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:34px 0 4px}
   @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
@@ -435,6 +443,9 @@ const T = {
   brand_sub:{en:"Edge elder-care · RK3588",zh:"端侧养老 · RK3588"},
   eyebrow:{en:"On-device AI · RK3588",zh:"端侧 AI · RK3588"},
   tagline:{en:"Fall detection and a local voice assistant for elderly care, running on the device.",zh:"为居家养老打造的跌倒检测与本地语音助手,在设备本地运行。"},
+  stack:{en:"C++ edge runtime on RK3588: V4L2 capture, RKNN pose, C++ fall / alert / voice / health / OTA services, local Qwen LLM, full-duplex AEC voice.",zh:"RK3588 上的 C++ 边缘运行时:V4L2 采集、RKNN 姿态、C++ 跌倒 / 报警 / 语音 / 健康 / OTA 服务、本地 Qwen LLM、全双工 AEC 语音。"},
+  rmap_h:{en:"Production runtime map",zh:"生产运行时映射"},
+  rmap_sub:{en:"What systemd actually starts on the board, unit by binary.",zh:"板子上 systemd 实际启动的单元,以及各自对应的程序。"},
   lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All AI runs on the device, so the camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
         zh:"ARGUS 跑在一块香橙派 5 Plus(RK3588)上:用摄像头识别人体姿态、实时判断有没有摔倒,再由本地语音助手主动问一句、必要时通知家人。所有 AI 都在本地跑,画面和声音都不出板;唯一对外发送的,是摔倒后给家人的那条报警。点开下面任意一个模块,就能看到它的子模块、流程图、数据流,以及一段带注释的实现示意。"},
   s_fps:{en:"640 pose · 3-core NPU · 0 dropped frames",zh:"640 姿态 · 3 核 NPU · 0 丢帧"},
@@ -469,23 +480,28 @@ const T = {
 
 /* ---------- key metrics (every figure reflects the deployed system) ---------- */
 const METRIC_GROUPS = [
-  {title:{en:"Detection",zh:"检测能力"}, c:"voice", items:[
-    {v:{en:"58 / 60",zh:"58 / 60"}, l:{en:"falls caught (97% recall)",zh:"命中跌倒(召回 97%)"}},
-    {v:{en:"1 / 60",zh:"1 / 60"},   l:{en:"false alarm (1.7%)",zh:"误报(1.7%)"}},
-    {v:{en:"18 / 20",zh:"18 / 20"}, l:{en:"night recall · weak spot",zh:"夜光召回 · 薄弱点"}},
-    {v:{en:"~3 s",zh:"~3 s"},       l:{en:"floor to alert",zh:"从倒地到报警"}}
-  ]},
-  {title:{en:"Real-time",zh:"实时性能"}, c:"vis", items:[
-    {v:{en:"~15 fps",zh:"~15 fps"}, l:{en:"640 pose · 0 dropped",zh:"640 姿态 · 0 丢帧"}},
+  {title:{en:"Vision",zh:"视觉"}, c:"vis", items:[
+    {v:{en:"15 fps",zh:"15 fps"},   l:{en:"640×480 · 0 dropped (14.97 measured)",zh:"640×480 · 0 丢帧(实测 14.97)"}},
     {v:{en:"3×",zh:"3×"},           l:{en:"parallel RKNN contexts",zh:"并行 RKNN 上下文"}},
-    {v:{en:"6 TOPS",zh:"6 TOPS"},   l:{en:"3-core on-chip NPU",zh:"3 核片上 NPU"}},
-    {v:{en:"1.3 ms",zh:"1.3 ms"},   l:{en:"RGA preprocess / frame",zh:"每帧 RGA 预处理"}}
+    {v:{en:"RTSP",zh:"RTSP"},       l:{en:":8554/eldercare · AI overlay to family",zh:":8554/eldercare · 家人看 AI 叠加"}}
   ]},
-  {title:{en:"System & privacy",zh:"系统与隐私"}, c:"ops", items:[
-    {v:{en:"5 models",zh:"5 个模型"},  l:{en:"wake · VAD · ASR · LLM · TTS",zh:"唤醒·VAD·ASR·LLM·TTS"}},
-    {v:{en:"full-duplex",zh:"全双工"}, l:{en:"AEC barge-in",zh:"AEC 可打断"}},
-    {v:{en:"6",zh:"6"},               l:{en:"systemd services, self-heal",zh:"systemd 服务,自愈"}},
-    {v:{en:"on-device",zh:"全本地"},   l:{en:"all AI runs on the board",zh:"所有 AI 在板上跑"}}
+  {title:{en:"Safety",zh:"安全(跌倒→报警)"}, c:"fall", items:[
+    {v:{en:"58 / 60",zh:"58 / 60"}, l:{en:"falls caught, field test (97%)",zh:"实测召回(97%)"}},
+    {v:{en:"1 / 60",zh:"1 / 60"},   l:{en:"false alarm on daily actions",zh:"日常动作误报(1.7%)"}},
+    {v:{en:"~3 s",zh:"~3 s"},       l:{en:"floor to alert (fast falls)",zh:"倒地到报警(快速跌倒)"}},
+    {v:{en:"flow",zh:"链路"},       l:{en:"pose UDP → C++ state machine → MQTT → alert",zh:"姿态 UDP → C++ 状态机 → MQTT → 报警"}}
+  ]},
+  {title:{en:"Voice",zh:"语音"}, c:"voice", items:[
+    {v:{en:"90 s",zh:"90 s"},       l:{en:"active session window",zh:"语音会话时长"}},
+    {v:{en:"1 s",zh:"1 s"},         l:{en:"user-silence endpoint",zh:"用户静音断句"}},
+    {v:{en:"offline",zh:"离线"},    l:{en:"ASR / LLM / TTS on-device (Qwen2.5-1.5B)",zh:"ASR / LLM / TTS 全本地(Qwen2.5-1.5B)"}},
+    {v:{en:"full-duplex",zh:"全双工"}, l:{en:"Speex AEC barge-in",zh:"Speex AEC 可打断"}}
+  ]},
+  {title:{en:"Operations",zh:"运维"}, c:"ops", items:[
+    {v:{en:"7 + 2",zh:"7 + 2"},     l:{en:"runtime services + optional units",zh:"运行服务 + 可选单元"}},
+    {v:{en:"JSON",zh:"JSON"},       l:{en:"health: liveness / disk / temp",zh:"健康:存活 / 磁盘 / 温度"}},
+    {v:{en:"OTA",zh:"OTA"},         l:{en:"verify → atomic switch → rollback",zh:"校验 → 原子切换 → 回滚"}},
+    {v:{en:"on-device",zh:"全本地"}, l:{en:"video & audio never leave",zh:"画面与音频不出板"}}
   ]}
 ];
 
@@ -657,8 +673,8 @@ const DATA = [
         {t:"HW-JPEG ring", d:{en:"MPP JPEG -> /dev/shm evidence",zh:"MPP JPEG -> /dev/shm 取证"}}
       ],
       df:{in:["detections + frame"], proc:["pack JSON","MPP H.264 encode","MPP JPEG encode"], out:["UDP pose","RTSP stream","JPEG ring"]},
-      why:{en:"All three encoders are hardware (VPU/MPP), leaving the CPU for inference. RTSP uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so clients can reconnect and several phones can watch at once. An earlier shared-media design failed on the second connection.",
-           zh:"三个编码器都走硬件(VPU/MPP),把 CPU 让给推理。RTSP 给每个客户端单独建一套 GStreamer 的 media/appsrc,时间戳各管各的,所以能断线重连,也能多部手机同时看。早期共用一个 media 的做法,第二个客户端一连上就出问题。"} }
+      why:{en:"RTSP H.264 and the JPEG evidence ring use Rockchip MPP hardware paths, leaving the CPU for inference; the pose output is a lightweight JSON datagram over UDP, not an encoder. RTSP uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so clients can reconnect and several phones can watch at once. An earlier shared-media design failed on the second connection.",
+           zh:"RTSP H.264 和 JPEG 取证环走 Rockchip MPP 硬件路径,把 CPU 让给推理;姿态输出是 UDP 上的轻量 JSON 数据报,不是编码器。RTSP 给每个客户端单独建一套 GStreamer 的 media/appsrc,时间戳各管各的,所以能断线重连,也能多部手机同时看。早期共用一个 media 的做法,第二个客户端一连上就出问题。"} }
   ]
 },
 {
@@ -800,19 +816,19 @@ const DATA = [
   name:{en:"Operations",zh:"运维"}, name2:{en:"runtime and monitoring",zh:"运行与监控"},
   tag:{en:"Keeps the services running on the board without supervision.",zh:"没人盯着,也让板子上的服务一直稳稳跑着。"},
   file:"systemd/ · src/cpp_runtime/health_agent.cpp",
-  overview:{en:"Six systemd services start and restart on boot. A read-only health agent samples liveness, disk and temperature into one JSON file. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
-            zh:"六个 systemd 服务开机自启,挂了会自动拉起来。一个只读的健康代理,把服务存活、磁盘、温度这些状态采集到一个 JSON 文件里。还有一小段 shell 循环,把散热风扇压在安静的转速,免得它吵到麦克风。"},
+  overview:{en:"Seven runtime services (vision, fall, alert, voice, health, llm, and an on-demand ota-agent) start under systemd with restart-on-failure, plus two optional units: a RAUC mark-good hook and a debug-only standalone RTSP camera server. A read-only health agent samples liveness, disk and temperature into one JSON file. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
+            zh:"七个运行服务(视觉、跌倒、报警、语音、健康、llm,以及按需启用的 ota-agent)在 systemd 下开机自启、挂了自动拉起;另有两个可选单元:RAUC mark-good 钩子,以及仅调试用的独立 RTSP 摄像头服务。一个只读的健康代理把服务存活、磁盘、温度采集到一个 JSON 文件。还有一小段 shell 循环把散热风扇压在安静的转速,免得它吵到麦克风。"},
   subs:[
     { id:"services", code:"systemd",
       name:{en:"systemd services",zh:"systemd 服务"},
-      summary:{en:"systemd starts vision, fall, voice, alert, health and llm with Restart=always.",zh:"systemd 以 Restart=always 启动视觉、跌倒、语音、报警、健康和 llm。"},
+      summary:{en:"systemd starts vision, fall, alert, voice, health and llm with Restart=always; ota-agent is installed but disabled until an update is pushed.",zh:"systemd 以 Restart=always 启动视觉、跌倒、报警、语音、健康和 llm;ota-agent 已安装,但默认关闭,等到推送更新时才启用。"},
       flow:[
         {t:"boot", d:{en:"default.target",zh:"default.target"}},
-        {t:"systemd", d:{en:"6 units, ordered with After=",zh:"6 个单元,按 After= 排序"}},
+        {t:"systemd", d:{en:"7 units + 2 optional, ordered with After=",zh:"7 个单元 + 2 可选,按 After= 排序"}},
         {t:"vision / fall / voice / alert / health / llm", d:{en:"each its own process",zh:"各自独立进程"}},
         {t:"Restart=always", d:{en:"crash -> restart in 3 s",zh:"崩溃 -> 3 秒重启"}, edge:{en:"self-heal",zh:"自愈"}}
       ],
-      df:{in:["power on"], proc:["systemd ordering","ExecStart wrappers","Restart=always"], out:["6 live services","per-service logs"]},
+      df:{in:["power on"], proc:["systemd ordering","ExecStart wrappers","Restart=always"], out:["6 live + ota on demand","per-service logs"]},
       why:{en:"Each subsystem is its own unit, so a crash in voice does not take down vision, and any one can be redeployed alone. Logs are per service, which is how the camera-flicker, fan-noise and AEC issues were traced.",
            zh:"每个子系统都是独立的 unit,所以语音崩了不会拖垮视觉,哪个要重新部署都能单独来。日志也按服务分开记,摄像头闪烁、风扇噪声、AEC 这几个问题,当初就是这么一步步查出来的。"} },
     { id:"health", code:"health",
@@ -1008,13 +1024,13 @@ function benchChart(){
     '<text x="618" y="494" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">14.7 fps</text>'+
     '<text x="28" y="524" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"The full zero-copy path is 3x slower on 640, so we use RGA + parallel.",zh:"看似先进的全零拷贝在 640 上反而慢 3 倍,所以选 RGA + 并行。"}))+'</text>'+
     '<rect x="2" y="550" width="676" height="176" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
-    '<text x="28" y="586" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Night enhancement keeps the frame rate (measured)",zh:"开夜间增强,帧率不掉(实测)"}))+'</text>'+
+    '<text x="28" y="586" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Optional night enhancement does not cost frame rate (measured)",zh:"可选夜间增强不拖慢帧率(实测)"}))+'</text>'+
     '<line x1="640" y1="600" x2="640" y2="698" stroke="#d9cdb8" stroke-width="1.5" stroke-dasharray="3 3"/>'+
     '<text x="636" y="596" text-anchor="end" font-family="sans-serif" font-size="11" fill="#9b8e7e">'+esc(tr({en:"camera limit 15 fps",zh:"相机上限 15fps"}))+'</text>'+
-    '<text x="40" y="618" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"3 cores, enhancement off",zh:"3 核并行 · 关增强"}))+'</text>'+
+    '<text x="40" y="618" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"default path · enhancement off",zh:"默认链路 · 关增强"}))+'</text>'+
     '<rect x="40" y="624" width="588" height="22" rx="6" fill="#bcd0c4"/>'+
     '<text x="622" y="640" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#46685a">14.70 fps</text>'+
-    '<text x="40" y="664" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"3 cores + night enhancement (live)",zh:"3 核并行 + 夜间增强(生产)"}))+'</text>'+
+    '<text x="40" y="664" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"+ night enhancement (optional, on)",zh:"+ 夜间增强(可选开启)"}))+'</text>'+
     '<rect x="40" y="670" width="599" height="22" rx="6" fill="#3f8f6b"/>'+
     '<text x="633" y="686" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">14.97 fps</text>'+
     '<text x="28" y="718" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"Enhancement adds 5.2 ms CPU/frame and overlaps NPU inference; the bottleneck stays the 15 fps camera, so the rate holds with 0 dropped frames.",zh:"增强只占 CPU 5.2ms/帧,与 NPU 推理重叠;瓶颈仍是 15fps 相机,帧率不掉、0 丢帧。"}))+'</text>'+
@@ -1068,7 +1084,8 @@ function home(){
           '<div class="eyebrow">'+tr(T.eyebrow)+"</div>"+
           '<div class="wordmark">ARGUS</div>'+
           '<div class="tagline">'+tr(T.tagline)+"</div>"+
-          '<p class="lede" style="margin-bottom:0">'+tr(T.lede)+"</p>"+
+          '<p class="lede" style="margin-bottom:13px">'+tr(T.lede)+"</p>"+
+          '<div class="techstack">'+esc(tr(T.stack))+"</div>"+
         "</div>"+
         '<div class="heroart">'+HEROART+"</div>"+
       "</div>"+
@@ -1093,6 +1110,21 @@ function home(){
           '<span><i style="background:var(--ops)"></i>Operations</span>'+
         "</div>"+
       "</div>"+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.rmap_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.rmap_sub)+"</p>"+
+      '<div class="rmap">'+[
+        ["eldercare-vision.service","run_pose_camera.sh → main_yolo_pose_rknn_camera",null],
+        ["eldercare-fall.service","eldercare_fall_service",null],
+        ["eldercare-alert.service","eldercare_alert_service",null],
+        ["eldercare-voice.service","run_voice_aec.sh → eldercare_voice_service",null],
+        ["eldercare-health.service","eldercare_health_agent --watch",null],
+        ["eldercare-llm.service","llama-server (Qwen2.5-1.5B)",null],
+        ["eldercare-ota-agent.service","eldercare_ota_agent",{en:"disabled by default",zh:"默认关闭"}],
+        ["eldercare-rauc-mark-good.service","rauc mark-good hook",{en:"system · optional",zh:"系统级 · 可选"}],
+        ["eldercare-rtsp-camera.service","standalone camera server",{en:"debug only · not co-resident with vision",zh:"仅调试 · 不与视觉同占摄像头"}]
+      ].map(function(r){return '<div class="rmaprow"><code class="ru">'+esc(r[0])+'</code><span class="rarr">→</span><code class="rb">'+esc(r[1])+'</code>'+(r[2]?'<span class="rtag">'+esc(tr(r[2]))+'</span>':"")+"</div>";}).join("")+"</div>"+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.modules_h)+"</h2></div>"+
