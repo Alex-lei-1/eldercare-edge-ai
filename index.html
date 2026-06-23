@@ -33,6 +33,16 @@
   .navlinks::-webkit-scrollbar{display:none}
   .navlink{white-space:nowrap;font-size:12.5px;color:var(--tx2);padding:5px 8px;border-radius:7px;cursor:pointer}
   .navlink:hover{background:var(--card2);color:var(--tx)}
+  /* background / motivation */
+  .bgstats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0 6px}
+  .bgstat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .bgstat .ic{width:28px;height:28px;margin-bottom:8px;display:block}
+  .bgstat .v{font-size:25px;font-weight:800;color:var(--tx);letter-spacing:.3px;line-height:1.1}
+  .bgstat .l{font-size:12px;color:var(--tx2);line-height:1.45;margin-top:6px}
+  .popbar{margin:14px 0 4px}
+  .bgnote{color:var(--tx2);font-size:14px;line-height:1.7;margin:16px 0 6px}
+  .bgsrc{color:var(--tx3);font-size:11.5px;line-height:1.55;margin:0}
+  @media(max-width:760px){.bgstats{grid-template-columns:repeat(2,1fr)}}
 
   /* breadcrumb */
   .crumb{font-size:13px;color:var(--tx3);padding:18px 0 0}
@@ -522,9 +532,19 @@ loop every 1 s:
 const T = {
   brand_sub:{en:"Edge elder-care · RK3588",zh:"端侧养老 · RK3588"},
   eyebrow:{en:"On-device AI · RK3588",zh:"端侧 AI · RK3588"},
-  nav_overview:{en:"Overview",zh:"总览"}, nav_architecture:{en:"Architecture",zh:"架构"}, nav_runtime:{en:"Runtime",zh:"运行时"},
+  nav_background:{en:"Background",zh:"背景"}, nav_overview:{en:"Overview",zh:"总览"}, nav_architecture:{en:"Architecture",zh:"架构"}, nav_runtime:{en:"Runtime",zh:"运行时"},
   nav_vision:{en:"Vision",zh:"视觉"}, nav_fall:{en:"Fall",zh:"跌倒"}, nav_voice:{en:"Voice",zh:"语音"}, nav_alert:{en:"Alerting",zh:"报警"}, nav_ops:{en:"OTA & Ops",zh:"OTA·运维"},
   nav_validation:{en:"Validation",zh:"验证"}, nav_failure:{en:"Failure",zh:"故障"}, nav_roadmap:{en:"Roadmap",zh:"路线图"}, nav_sourcemap:{en:"Source",zh:"源码"},
+  bg_h:{en:"Background and motivation",zh:"项目背景与动机"},
+  bg_sub:{en:"Why build an on-device fall-detection and voice appliance for older people living alone.",zh:"为什么要为独居老人做一台端侧跌倒检测与语音设备。"},
+  bg_s1v:{en:"310M",zh:"3.1 亿"}, bg_s1l:{en:"Chinese adults aged 60+, 22.0% of the population (2024)",zh:"中国 60 岁以上人口，占总人口 22.0%（2024）"},
+  bg_s2v:{en:">100M",zh:"超 1 亿"}, bg_s2l:{en:"empty-nest elderly, living alone or with a spouse only",zh:"空巢老人，独居或仅与配偶同住"},
+  bg_s3v:{en:"684k / yr",zh:"68.4 万/年"}, bg_s3l:{en:"fatal falls worldwide; adults 60+ suffer the most (WHO)",zh:"全球跌倒致死人数，60 岁以上占比最高（WHO）"},
+  bg_s4v:{en:"¥7.21T",zh:"7.21 万亿"}, bg_s4l:{en:"China smart elderly-care market, 2025 est., ~12% CAGR",zh:"中国智慧养老市场，2025 年预测，年增约 12%"},
+  bg_bar_h:{en:"China population by age, 2024 (60+ highlighted; 65+ = 15.6%)",zh:"2024 年中国人口年龄构成（绿色为 60 岁以上；65+ 占 15.6%）"},
+  bg_seg1:{en:"0-15 yrs: 17.1%",zh:"0-15 岁：17.1%"}, bg_seg2:{en:"16-59 yrs: 60.9%",zh:"16-59 岁：60.9%"}, bg_seg3:{en:"60+ yrs: 22.0%",zh:"60 岁以上：22.0%"},
+  bg_narr:{en:"China is aging faster than at any point before. The population aged 60 and over passed 310 million in 2024, and most older people now live alone or only with a spouse. Falls are the second leading cause of unintentional-injury death worldwide, and older adults account for the largest share of fatal ones. For someone living alone the real danger is often not the fall itself but the long lie that follows, with no one nearby to call for help. This project puts fall detection and a voice assistant on the device, so a fall is caught and an alert is sent while video and audio stay local.",zh:"中国正进入老龄化最快的时期。2024 年 60 岁以上人口突破 3.1 亿，多数老人独居或仅与配偶同住。跌倒是全球意外伤害致死的第二大原因，其中老年人占比最高。对独居老人来说，真正的危险往往不是摔倒本身，而是摔倒后长时间躺地、身边无人求助。本项目把跌倒检测和语音助手直接放在设备端，摔倒能被及时发现并报警，视频和音频都留在本地。"},
+  bg_src:{en:"Sources: National Bureau of Statistics of China (Jan 2025 release, 2024 data); MCA and the National Working Commission on Ageing, 2024 national ageing report; WHO falls fact sheet; China smart-elderly-care market estimate from industry research (2025).",zh:"数据来源：国家统计局（2025 年 1 月发布的 2024 年数据）；民政部、全国老龄办《2024 年度国家老龄事业发展公报》；世界卫生组织跌倒实况报道；智慧养老市场规模为中商产业研究院等行业预测（2025）。"},
   tagline:{en:"Fall detection and a local voice assistant for elderly care, running on the device.",zh:"给居家老人用的跌倒检测和本地语音助手，全部在设备本地跑。"},
   stack:{en:"C++ edge runtime on RK3588: V4L2 capture, RKNN pose, C++ fall / alert / voice / health / OTA services, local Qwen LLM, full-duplex AEC voice.",zh:"RK3588 上的 C++ 边缘运行时：V4L2 采集、RKNN 姿态、C++ 跌倒 / 报警 / 语音 / 健康 / OTA 服务、本地 Qwen LLM、全双工 AEC 语音。"},
   rmap_h:{en:"Production runtime map",zh:"生产运行时映射"},
@@ -1049,7 +1069,7 @@ function navTo(id){
 }
 function renderNav(){
   var el=document.getElementById("navlinks"); if(!el) return;
-  var items=[["overview","a"],["architecture","a"],["runtime","a"],
+  var items=[["background","a"],["overview","a"],["architecture","a"],["runtime","a"],
     ["vision","vision"],["fall","judgment"],["voice","voice"],["alert","alert"],["ops","ops"],
     ["validation","a"],["failure","a"],["roadmap","a"],["sourcemap","a"]];
   el.innerHTML=items.map(function(it){
@@ -1057,6 +1077,24 @@ function renderNav(){
     if(it[1]==="a") return '<span class="navlink" onclick="navTo(\''+it[0]+'\')">'+lbl+'</span>';
     return '<span class="navlink" onclick="go(\''+it[1]+'\')">'+lbl+'</span>';
   }).join("");
+}
+function bgPanel(){
+  var icPeople='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 21v-1a6 6 0 0 1 12 0v1"/><path d="M16 3.6a3 3 0 0 1 0 6.8"/><path d="M21 21v-1a6 6 0 0 0-4-5.7"/></svg>';
+  var icHome='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>';
+  var icAlert='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 9v5"/><path d="M12 16.6v.2"/></svg>';
+  var icChart='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M2 20h20"/></svg>';
+  var cards=[[icPeople,T.bg_s1v,T.bg_s1l],[icHome,T.bg_s2v,T.bg_s2l],[icAlert,T.bg_s3v,T.bg_s3l],[icChart,T.bg_s4v,T.bg_s4l]];
+  var stats='<div class="bgstats">'+cards.map(function(c){return '<div class="bgstat">'+c[0]+'<div class="v">'+esc(tr(c[1]))+'</div><div class="l">'+esc(tr(c[2]))+'</div></div>';}).join("")+'</div>';
+  var bar='<div class="popbar"><div class="bttl">'+esc(tr(T.bg_bar_h))+'</div>'+
+    '<div style="display:flex;height:36px;border-radius:8px;overflow:hidden;border:1px solid var(--line);font-size:12px;font-weight:700">'+
+      '<div style="width:17.1%;background:var(--card2);color:var(--tx2);display:flex;align-items:center;justify-content:center">17.1%</div>'+
+      '<div style="width:60.9%;background:#e3ede6;color:var(--tx2);display:flex;align-items:center;justify-content:center">60.9%</div>'+
+      '<div style="width:22.0%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center">22.0%</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:18px;margin-top:9px;font-size:12px;color:var(--tx2);flex-wrap:wrap">'+
+      '<span>'+esc(tr(T.bg_seg1))+'</span><span>'+esc(tr(T.bg_seg2))+'</span><span style="color:var(--accent);font-weight:700">'+esc(tr(T.bg_seg3))+'</span>'+
+    '</div></div>';
+  return stats+bar;
 }
 
 /* split a raw line into [code, comment] without breaking on quotes */
@@ -1717,6 +1755,13 @@ function home(){
         '<div class="heroart">'+HEROART+"</div>"+
       "</div>"+
     "</header>"+
+    '<section id="background">'+
+      '<div class="secttl"><h2>'+tr(T.bg_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.bg_sub)+"</p>"+
+      bgPanel()+
+      '<p class="bgnote">'+tr(T.bg_narr)+"</p>"+
+      '<p class="bgsrc">'+tr(T.bg_src)+"</p>"+
+    "</section>"+
     '<section id="overview">'+
       '<div class="secttl"><h2>'+tr(T.nums_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.nums_sub)+"</p>"+
