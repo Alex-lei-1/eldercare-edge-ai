@@ -105,6 +105,36 @@
   .smap .smrow:first-child{border-top:none}
   .smq{color:var(--tx2)}
   .smf{color:var(--accent)}
+  .rtblwrap{margin-top:14px}
+  .rtblttl{font-size:14px;font-weight:500;color:var(--tx);margin-bottom:6px}
+  .rtbl{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);font-size:12.5px}
+  .rthead,.rtrow{display:grid;grid-template-columns:0.7fr 0.55fr 0.85fr 1.15fr 1.45fr 1.1fr;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+  .rthead{border-top:none;font-weight:500;color:var(--tx);background:var(--card2)}
+  .rtrow{color:var(--tx2)}
+  .rtrow code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--accent)}
+  .archsub{font-size:14px;font-weight:500;color:var(--tx);margin:18px 0 8px}
+  .archlayers{display:flex;flex-direction:column;gap:8px}
+  .archrow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:10px;padding:8px 12px}
+  .archlbl{font-size:12px;font-weight:500;color:var(--tx);min-width:62px}
+  .archnodes{display:flex;flex-wrap:wrap;gap:6px}
+  .archnode{font-size:11.5px;color:var(--tx2);background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .ipctbl{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);font-size:12.5px}
+  .ipcrow{display:grid;grid-template-columns:0.8fr auto 1fr 1.9fr;gap:8px;align-items:baseline;padding:8px 12px;border-top:1px solid var(--line)}
+  .ipctbl .ipcrow:first-child{border-top:none}
+  .ipcfrom{color:var(--accent);font-weight:500}
+  .ipcarr{color:#b3a895}
+  .ipcto{color:var(--tx)}
+  .ipcch{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--tx2)}
+  .fstbl,.hptbl{margin-top:6px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);font-size:12.5px}
+  .fshead,.fsrow{display:grid;grid-template-columns:1.4fr 0.8fr 0.7fr 1.9fr;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+  .hphead,.hprow{display:grid;grid-template-columns:1fr 1.2fr 1.2fr;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+  .fshead,.hphead{border-top:none;font-weight:500;color:var(--tx);background:var(--card2)}
+  .fsrow,.hprow{color:var(--tx2)}
+  .fsrow code,.hprow code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--accent)}
+  .seqflow{display:flex;flex-direction:column;align-items:flex-start;margin-top:6px}
+  .seqstep{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:7px 14px;font-size:13px;color:var(--tx)}
+  .seqarr{color:#b3a895;font-size:14px;margin:2px 0 2px 16px}
+  .statusjson{margin-top:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.55;color:var(--tx2);overflow-x:auto;white-space:pre}
   .pvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:6px}
   .pvbox{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--gc);border-radius:12px;padding:12px 14px}
   .pvk{font-size:13px;font-weight:500;color:var(--tx);margin-bottom:8px}
@@ -510,6 +540,16 @@ const T = {
   privacy_sub:{en:"What never leaves the board, what may, and how it is protected.",zh:"什么绝不出板、什么可能出板，以及怎么保护。"},
   srcmap_h:{en:"Source map",zh:"源码索引"},
   srcmap_sub:{en:"Straight from a question to the file that answers it.",zh:"从一个问题直接跳到回答它的源文件。"},
+  rtable_h:{en:"Runtime services (systemd)",zh:"运行时服务（systemd）"},
+  rt_svc:{en:"service",zh:"服务"}, rt_cpu:{en:"CPU",zh:"CPU"}, rt_restart:{en:"restart",zh:"重启"}, rt_log:{en:"log",zh:"日志"}, rt_impact:{en:"failure impact",zh:"失败影响"}, rt_rec:{en:"recovery",zh:"恢复"},
+  arch_layers_h:{en:"System layers",zh:"系统分层"},
+  ipc_h:{en:"Inter-process channels",zh:"进程间通信"},
+  fall_table_h:{en:"Fall detection by scenario",zh:"跌倒检测分场景"},
+  fall_table_sub:{en:"Real numbers where we have them; the per-action split is the next test.",zh:"有真值的就填真值，逐动作拆分是下一步。"},
+  fs_sc:{en:"scenario",zh:"场景"}, fs_recall:{en:"recall",zh:"召回"}, fs_fp:{en:"false alarm",zh:"误报"}, fs_note:{en:"notes",zh:"备注"},
+  alert_seq_h:{en:"Alert event sequence",zh:"报警事件时序"},
+  health_obs_h:{en:"Health & observability",zh:"健康与可观测"},
+  hp_probe:{en:"probe",zh:"探针"}, hp_why:{en:"why it matters",zh:"为何重要"}, hp_by:{en:"used by",zh:"谁在用"},
   lede:{en:"ARGUS runs on a single Orange Pi 5 Plus (RK3588). It detects falls from camera pose in real time, and a local voice assistant can check on the person and notify family. All AI runs on the device, so the camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family. Each module below opens into its sub-modules, with a flow chart, the data flow, and an annotated implementation sketch.",
         zh:"ARGUS 跑在一块香橙派 5 Plus（RK3588）上：用摄像头识别人体姿态、实时判断有没有摔倒，再由本地语音助手主动问一句、必要时通知家人。所有 AI 都在本地跑，画面和声音都不出板；唯一对外发送的，是摔倒后给家人的那条报警。点开下面任意一个模块，就能看到它的子模块、流程图、数据流，以及一段带注释的实现示意。"},
   s_fps:{en:"640 pose · 3-core NPU · 0 dropped frames",zh:"640 姿态 · 3 核 NPU · 0 丢帧"},
@@ -1531,6 +1571,104 @@ function lowlightDecision(){
   return s;
 }
 
+const RUNTIME_TABLE=[
+ {s:"vision", cpu:"4-7", log:"vision.log", imp:{en:"no pose / RTSP",zh:"无姿态 / RTSP"}},
+ {s:"fall", cpu:"0-3", log:"fall_service.log", imp:{en:"no fall event",zh:"无跌倒事件"}},
+ {s:"alert", cpu:"0-3", log:"alert_service.log", imp:{en:"no family push",zh:"不推送家人"}},
+ {s:"voice", cpu:"4-7", log:"voice.log", imp:{en:"no check-in (alert still fires)",zh:"无问询（报警仍触发）"}},
+ {s:"health", cpu:{en:"unpinned",zh:"不绑核"}, log:"health.log", imp:{en:"no status.json",zh:"无 status.json"}},
+ {s:"llm", cpu:"4-7", log:"llm.log", imp:{en:"voice slower / fallback",zh:"语音变慢 / 降级"}},
+ {s:"ota-agent", cpu:"4-7", log:{en:"job log",zh:"任务日志"}, imp:{en:"no OTA update",zh:"无 OTA 更新"}, od:true}
+];
+
+function runtimeTable(){
+  var H=function(k){return '<span>'+esc(tr(k))+'</span>';};
+  return '<div class="rtblwrap"><div class="rtblttl">'+esc(tr(T.rtable_h))+'</div>'+
+    '<div class="rtbl"><div class="rthead">'+H(T.rt_svc)+H(T.rt_cpu)+H(T.rt_restart)+H(T.rt_log)+H(T.rt_impact)+H(T.rt_rec)+'</div>'+
+    RUNTIME_TABLE.map(function(r){
+      var restart = r.od ? (L()==="zh"?"按需 oneshot":"on-demand") : "always";
+      var rec = r.od ? (L()==="zh"?"按需触发":"triggered") : (L()==="zh"?"systemd 拉起":"systemd restart");
+      return '<div class="rtrow"><code>'+esc(r.s)+'</code><span>'+esc(tr(r.cpu))+'</span><span>'+esc(restart)+'</span><code>'+esc(tr(r.log))+'</code><span>'+esc(tr(r.imp))+'</span><span>'+esc(rec)+'</span></div>';
+    }).join("")+'</div></div>';
+}
+
+function archLayers(){
+  var zh = L()==="zh";
+  var data = zh?["姿态 UDP","MQTT","健康 JSON","RTSP","JPEG 取证","语音 wav(TTL)","OTA 包"]:["pose UDP","MQTT","health JSON","RTSP","JPEG evidence","voice wav (TTL)","OTA package"];
+  var rt = ["vision","fall","alert","voice","health","llm","ota-agent"];
+  var hw = zh?["OV13855 摄像头","RK3588（ISP·RGA·NPU·VPU）","ES8388 音频","风扇","存储"]:["OV13855 camera","RK3588 (ISP·RGA·NPU·VPU)","ES8388 audio","fan","storage"];
+  function rowf(lbl,items,c){
+    return '<div class="archrow" style="--ac:var(--'+c+')"><span class="archlbl">'+esc(lbl)+'</span><div class="archnodes">'+items.map(function(x){return '<span class="archnode">'+esc(x)+'</span>';}).join("")+'</div></div>';
+  }
+  return '<div class="archlayers">'+rowf(zh?"数据":"Data",data,"vis")+rowf(zh?"运行时":"Runtime",rt,"voice")+rowf(zh?"硬件":"Hardware",hw,"ops")+'</div>';
+}
+function archIpc(){
+  var rows=[
+    ["Vision","Fall","UDP :5800 · JSON pose"],
+    ["Fall","Alert / Voice","MQTT eldercare/fall/event"],
+    ["Voice","Alert","MQTT eldercare/alert/request"],
+    ["Vision","Family","RTSP :8554/eldercare"],
+    ["Health","Ops / OTA","runtime/health/status.json"],
+    ["Voice","AEC helper","stdin cmd + stdout PCM pipe"]
+  ];
+  return '<div class="ipctbl">'+rows.map(function(r){return '<div class="ipcrow"><span class="ipcfrom">'+esc(r[0])+'</span><span class="ipcarr">→</span><span class="ipcto">'+esc(r[1])+'</span><code class="ipcch">'+esc(r[2])+'</code></div>';}).join("")+'</div>';
+}
+
+const FALL_SCENARIOS=[
+ {sc:{en:"Overall · 60-clip field test",zh:"总体 · 60 段实测"}, r:"58/60", fp:"1/60", note:{en:"recall 97%, FP 1.7%",zh:"召回 97%，误报 1.7%"}},
+ {sc:{en:"Normal light",zh:"常光"}, r:"100%", fp:"0", note:{en:"every fall caught, no false alarm",zh:"全部命中，无误报"}},
+ {sc:{en:"Low light / night",zh:"弱光 / 夜间"}, r:"18/20 (90%)", fp:{en:"the 1 FP is here",zh:"那 1 次误报在此"}, note:{en:"both misses are slow slides",zh:"漏的 2 个都是缓慢下滑"}},
+ {sc:{en:"Per-action (fast/slow/bed/sofa/bend/sit/walk)",zh:"按动作（快跌/慢滑/床/沙发/弯腰/坐/走）"}, r:{en:"pending",zh:"待测"}, fp:{en:"pending",zh:"待测"}, note:{en:"per-scenario eval is the next test (see Roadmap)",zh:"逐场景评测是下一步（见路线图）"}}
+];
+
+const ALERT_SEQ=[
+ {en:"FALL_CONFIRMED in fall_detector",zh:"fall_detector 确认 FALL_CONFIRMED"},
+ {en:"publish MQTT eldercare/fall/event",zh:"发布 MQTT eldercare/fall/event"},
+ {en:"append the JSONL alert log",zh:"写入 JSONL 报警日志"},
+ {en:"speak a short, non-blocking prompt",zh:"播一句简短、非阻塞的提示"},
+ {en:"classify the reply: ok / sos / unclear",zh:"分类回答：ok / sos / unclear"},
+ {en:"ntfy push to family, priority by level",zh:"ntfy 推送家人，按级别定优先级"},
+ {en:"attach a snapshot if available (best-effort)",zh:"有快照就附带（尽力而为）"}
+];
+
+const HEALTH_PROBES=[
+ {p:"systemd is-active", why:{en:"true service liveness",zh:"服务真实存活"}, by:{en:"dashboard / OTA mark-good",zh:"仪表盘 / OTA mark-good"}},
+ {p:"TCP :8081", why:{en:"LLM availability",zh:"LLM 可用性"}, by:{en:"voice",zh:"语音"}},
+ {p:"disk free (statvfs)", why:{en:"prevent log/output fill",zh:"防日志/输出占满磁盘"}, by:{en:"health",zh:"健康"}},
+ {p:"thermal / cpufreq", why:{en:"throttling risk",zh:"降频风险"}, by:{en:"performance",zh:"性能"}},
+ {p:"per-process RSS / CPU", why:{en:"leak / load detection",zh:"内存泄漏 / 负载"}, by:{en:"soak test",zh:"长稳测试"}}
+];
+
+const STATUS_JSON='{\n'+
+'  "ok": true,\n'+
+'  "units": { "eldercare-vision": "active", "eldercare-fall": "active",\n'+
+'             "eldercare-alert": "active", "eldercare-voice": "active",\n'+
+'             "eldercare-health": "active", "eldercare-llm": "active" },\n'+
+'  "tcp": { "127.0.0.1:8081": true },\n'+
+'  "disk": { "data_root_free_gb": 38.2 },\n'+
+'  "thermal": { "soc_c": 50.8, "npu_c": 49.9 },\n'+
+'  "cpufreq": [ { "cpu": "cpu7", "governor": "performance", "cur_khz": 2256000 } ],\n'+
+'  "processes": { "vision": { "rss_mb": 190, "cpu_percent": 92.9 } },\n'+
+'  "logs": { "vision_log_mb": 4.2, "outputs_mb": 36 }\n'+
+'}';
+
+function fallScenarioTable(){
+  return '<div class="fstbl"><div class="fshead"><span>'+esc(tr(T.fs_sc))+'</span><span>'+esc(tr(T.fs_recall))+'</span><span>'+esc(tr(T.fs_fp))+'</span><span>'+esc(tr(T.fs_note))+'</span></div>'+
+    FALL_SCENARIOS.map(function(r){
+      return '<div class="fsrow"><span>'+esc(tr(r.sc))+'</span><span class="vok">'+esc(tr(r.r))+'</span><span>'+esc(tr(r.fp))+'</span><span>'+esc(tr(r.note))+'</span></div>';
+    }).join("")+'</div>';
+}
+function alertSeq(){
+  return '<div class="seqflow">'+ALERT_SEQ.map(function(s,i){
+    return '<div class="seqstep">'+esc(tr(s))+'</div>'+(i<ALERT_SEQ.length-1?'<div class="seqarr">↓</div>':"");
+  }).join("")+'</div>';
+}
+function healthObs(){
+  var tbl='<div class="fstbl hptbl"><div class="fshead hphead"><span>'+esc(tr(T.hp_probe))+'</span><span>'+esc(tr(T.hp_why))+'</span><span>'+esc(tr(T.hp_by))+'</span></div>'+
+    HEALTH_PROBES.map(function(r){return '<div class="fsrow hprow"><code>'+esc(r.p)+'</code><span>'+esc(tr(r.why))+'</span><span>'+esc(tr(r.by))+'</span></div>';}).join("")+'</div>';
+  return tbl+'<pre class="statusjson">'+esc(STATUS_JSON)+'</pre>';
+}
+
 function home(){
   const cards=DATA.map((m,i)=>(
     '<a class="mcard" href="#/'+m.id+'" style="--bd:var(--'+m.color+')">'+
@@ -1576,6 +1714,8 @@ function home(){
           '<span><i style="background:var(--ops)"></i>Operations</span>'+
         "</div>"+
       "</div>"+
+      '<div class="archsub">'+esc(tr(T.arch_layers_h))+"</div>"+archLayers()+
+      '<div class="archsub">'+esc(tr(T.ipc_h))+"</div>"+archIpc()+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.rmap_h)+"</h2></div>"+
@@ -1591,6 +1731,7 @@ function home(){
         ["eldercare-rauc-mark-good.service","rauc mark-good hook",{en:"system · optional",zh:"系统级 · 可选"}],
         ["eldercare-rtsp-camera.service","standalone camera server",{en:"debug only · not co-resident with vision",zh:"仅调试 · 不与视觉同占摄像头"}]
       ].map(function(r){return '<div class="rmaprow"><code class="ru">'+esc(r[0])+'</code><span class="rarr">→</span><code class="rb">'+esc(r[1])+'</code>'+(r[2]?'<span class="rtag">'+esc(tr(r[2]))+'</span>':"")+"</div>";}).join("")+"</div>"+
+      runtimeTable()+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.modules_h)+"</h2></div>"+
@@ -1620,6 +1761,19 @@ function home(){
       '<div class="secttl"><h2>'+tr(T.privacy_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.privacy_sub)+"</p>"+
       privacyBoundary()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.fall_table_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.fall_table_sub)+"</p>"+
+      fallScenarioTable()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.alert_seq_h)+"</h2></div>"+
+      alertSeq()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.health_obs_h)+"</h2></div>"+
+      healthObs()+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.srcmap_h)+"</h2></div>"+
