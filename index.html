@@ -43,6 +43,11 @@
   .bgnote{color:var(--tx2);font-size:14px;line-height:1.7;margin:16px 0 6px}
   .bgsrc{color:var(--tx3);font-size:11.5px;line-height:1.55;margin:0}
   @media(max-width:760px){.bgstats{grid-template-columns:repeat(2,1fr)}}
+  .grhl{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 4px}
+  .grhlitem{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+  .grhlitem .grv{font-size:19px;font-weight:800;color:var(--accent);line-height:1.15}
+  .grhlitem .grl{font-size:11.5px;color:var(--tx2);line-height:1.45;margin-top:5px}
+  @media(max-width:760px){.grhl{grid-template-columns:1fr}}
 
   /* breadcrumb */
   .crumb{font-size:13px;color:var(--tx3);padding:18px 0 0}
@@ -537,14 +542,16 @@ const T = {
   nav_validation:{en:"Validation",zh:"验证"}, nav_failure:{en:"Failure",zh:"故障"}, nav_roadmap:{en:"Roadmap",zh:"路线图"}, nav_sourcemap:{en:"Source",zh:"源码"},
   bg_h:{en:"Background and motivation",zh:"项目背景与动机"},
   bg_sub:{en:"Why build an on-device fall-detection and voice appliance for older people living alone.",zh:"为什么要为独居老人做一台端侧跌倒检测与语音设备。"},
-  bg_s1v:{en:"310M",zh:"3.1 亿"}, bg_s1l:{en:"Chinese adults aged 60+, 22.0% of the population (2024)",zh:"中国 60 岁以上人口，占总人口 22.0%（2024）"},
+  bg_s1v:{en:"323M",zh:"3.23 亿"}, bg_s1l:{en:"Chinese adults aged 60+, 23.0% of the population (end-2025)",zh:"中国 60 岁以上人口，占总人口 23.0%（2025 年末）"},
   bg_s2v:{en:">100M",zh:"超 1 亿"}, bg_s2l:{en:"empty-nest elderly, living alone or with a spouse only",zh:"空巢老人，独居或仅与配偶同住"},
   bg_s3v:{en:"684k / yr",zh:"68.4 万/年"}, bg_s3l:{en:"fatal falls worldwide; adults 60+ suffer the most (WHO)",zh:"全球跌倒致死人数，60 岁以上占比最高（WHO）"},
-  bg_s4v:{en:"¥7.21T",zh:"7.21 万亿"}, bg_s4l:{en:"China smart elderly-care market, 2025 est., ~12% CAGR",zh:"中国智慧养老市场，2025 年预测，年增约 12%"},
-  bg_bar_h:{en:"China population by age, 2024 (60+ highlighted; 65+ = 15.6%)",zh:"2024 年中国人口年龄构成（绿色为 60 岁以上；65+ 占 15.6%）"},
-  bg_seg1:{en:"0-15 yrs: 17.1%",zh:"0-15 岁：17.1%"}, bg_seg2:{en:"16-59 yrs: 60.9%",zh:"16-59 岁：60.9%"}, bg_seg3:{en:"60+ yrs: 22.0%",zh:"60 岁以上：22.0%"},
-  bg_narr:{en:"China is aging faster than at any point before. The population aged 60 and over passed 310 million in 2024, and most older people now live alone or only with a spouse. Falls are the second leading cause of unintentional-injury death worldwide, and older adults account for the largest share of fatal ones. For someone living alone the real danger is often not the fall itself but the long lie that follows, with no one nearby to call for help. This project puts fall detection and a voice assistant on the device, so a fall is caught and an alert is sent while video and audio stay local.",zh:"中国正进入老龄化最快的时期。2024 年 60 岁以上人口突破 3.1 亿，多数老人独居或仅与配偶同住。跌倒是全球意外伤害致死的第二大原因，其中老年人占比最高。对独居老人来说，真正的危险往往不是摔倒本身，而是摔倒后长时间躺地、身边无人求助。本项目把跌倒检测和语音助手直接放在设备端，摔倒能被及时发现并报警，视频和音频都留在本地。"},
-  bg_src:{en:"Sources: National Bureau of Statistics of China (Jan 2025 release, 2024 data); MCA and the National Working Commission on Ageing, 2024 national ageing report; WHO falls fact sheet; China smart-elderly-care market estimate from industry research (2025).",zh:"数据来源：国家统计局（2025 年 1 月发布的 2024 年数据）；民政部、全国老龄办《2024 年度国家老龄事业发展公报》；世界卫生组织跌倒实况报道；智慧养老市场规模为中商产业研究院等行业预测（2025）。"},
+  bg_s4v:{en:"40M",zh:"4000 万"}, bg_s4l:{en:"disabled or semi-disabled elderly in China, the core monitoring need",zh:"中国失能、半失能老人，最核心的看护需求"},
+  bg_bar_h:{en:"China's 60+ population: 2023-2025 measured, plus the official 2035 projection",zh:"中国 60 岁以上人口：2023-2025 实测，叠加官方 2035 年预测"},
+  gr_h1v:{en:"¥7T → ¥30T",zh:"7 万亿 → 30 万亿"}, gr_h1l:{en:"China's silver economy, now to 2035 projection (~6% to ~10% of GDP)",zh:"中国银发经济，当前至 2035 年预测（占 GDP 约 6% 升至约 10%）"},
+  gr_h2v:{en:"~7-8% / yr",zh:"年增约 7-8%"}, gr_h2l:{en:"global fall-detection system market, CAGR through 2030-2032",zh:"全球跌倒检测系统市场，到 2030-2032 年复合增速"},
+  gr_h3v:{en:"2024",zh:"2024"}, gr_h3l:{en:"\"year one\" of the silver economy: State Council opinion, 26 measures",zh:"银发经济元年：国务院《发展银发经济意见》，26 条举措"},
+  bg_narr:{en:"China is aging faster than at any point before. By the end of 2025 the population aged 60 and over reached 323 million, 23.0% of the country, up from 21.1% in 2023; official projections put it above 400 million and more than 30% by 2035. Most older people now live alone or only with a spouse. Falls are the second leading cause of unintentional-injury death worldwide, and older adults account for the largest share of fatal ones. For someone living alone the real danger is often not the fall itself but the long lie that follows, with no one nearby to call for help. The need is growing and so is the market: China's silver economy is projected to expand from about ¥7 trillion today to ¥30 trillion by 2035, and a 2024 State Council opinion made developing it national policy. This project puts fall detection and a voice assistant on the device, so a fall is caught and an alert is sent while video and audio stay local.",zh:"中国正进入老龄化最快的时期。截至 2025 年末，60 岁以上人口达到 3.23 亿，占全国 23.0%，高于 2023 年的 21.1%；官方预测到 2035 年将超过 4 亿、占比超过 30%。多数老人独居或仅与配偶同住。跌倒是全球意外伤害致死的第二大原因，其中老年人占比最高。对独居老人来说，真正的危险往往不是摔倒本身，而是摔倒后长时间躺地、身边无人求助。需求在增长，市场也在扩张：中国银发经济预计从目前约 7 万亿元增长到 2035 年约 30 万亿元，国务院 2024 年的意见已将其上升为国家政策。本项目把跌倒检测和语音助手直接放在设备端，摔倒能被及时发现并报警，视频和音频都留在本地。"},
+  bg_src:{en:"Sources: National Bureau of Statistics of China (Jan 2026 for 2025, Jan 2025 for 2024); MCA and the National Working Commission on Ageing (elderly count, disability, empty-nest share); 2035 projection per WHO and State Council statements; WHO falls fact sheet; silver-economy figures per CEIBS and press; fall-detection market growth per Grand View Research, Future Market Insights and others.",zh:"数据来源：国家统计局（2026 年 1 月发布的 2025 年数据，2025 年 1 月发布的 2024 年数据）；民政部、全国老龄办（老年人口、失能半失能、空巢比例）；2035 年人口预测见世界卫生组织及国务院相关表述；世界卫生组织跌倒实况报道；银发经济规模为中欧国际工商学院及媒体引述预测；全球跌倒检测市场增速为 Grand View Research、Future Market Insights 等机构预测。"},
   tagline:{en:"Fall detection and a local voice assistant for elderly care, running on the device.",zh:"给居家老人用的跌倒检测和本地语音助手，全部在设备本地跑。"},
   stack:{en:"C++ edge runtime on RK3588: V4L2 capture, RKNN pose, C++ fall / alert / voice / health / OTA services, local Qwen LLM, full-duplex AEC voice.",zh:"RK3588 上的 C++ 边缘运行时：V4L2 采集、RKNN 姿态、C++ 跌倒 / 报警 / 语音 / 健康 / OTA 服务、本地 Qwen LLM、全双工 AEC 语音。"},
   rmap_h:{en:"Production runtime map",zh:"生产运行时映射"},
@@ -1082,19 +1089,27 @@ function bgPanel(){
   var icPeople='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 21v-1a6 6 0 0 1 12 0v1"/><path d="M16 3.6a3 3 0 0 1 0 6.8"/><path d="M21 21v-1a6 6 0 0 0-4-5.7"/></svg>';
   var icHome='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>';
   var icAlert='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 9v5"/><path d="M12 16.6v.2"/></svg>';
-  var icChart='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M2 20h20"/></svg>';
-  var cards=[[icPeople,T.bg_s1v,T.bg_s1l],[icHome,T.bg_s2v,T.bg_s2l],[icAlert,T.bg_s3v,T.bg_s3l],[icChart,T.bg_s4v,T.bg_s4l]];
+  var icHeart='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--warm)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20S3.5 14.6 3.5 8.9A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8.5 1.9C20.5 14.6 12 20 12 20z"/></svg>';
+  var cards=[[icPeople,T.bg_s1v,T.bg_s1l],[icHome,T.bg_s2v,T.bg_s2l],[icAlert,T.bg_s3v,T.bg_s3l],[icHeart,T.bg_s4v,T.bg_s4l]];
   var stats='<div class="bgstats">'+cards.map(function(c){return '<div class="bgstat">'+c[0]+'<div class="v">'+esc(tr(c[1]))+'</div><div class="l">'+esc(tr(c[2]))+'</div></div>';}).join("")+'</div>';
-  var bar='<div class="popbar"><div class="bttl">'+esc(tr(T.bg_bar_h))+'</div>'+
-    '<div style="display:flex;height:36px;border-radius:8px;overflow:hidden;border:1px solid var(--line);font-size:12px;font-weight:700">'+
-      '<div style="width:17.1%;background:var(--card2);color:var(--tx2);display:flex;align-items:center;justify-content:center">17.1%</div>'+
-      '<div style="width:60.9%;background:#e3ede6;color:var(--tx2);display:flex;align-items:center;justify-content:center">60.9%</div>'+
-      '<div style="width:22.0%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center">22.0%</div>'+
-    '</div>'+
-    '<div style="display:flex;gap:18px;margin-top:9px;font-size:12px;color:var(--tx2);flex-wrap:wrap">'+
-      '<span>'+esc(tr(T.bg_seg1))+'</span><span>'+esc(tr(T.bg_seg2))+'</span><span style="color:var(--accent);font-weight:700">'+esc(tr(T.bg_seg3))+'</span>'+
-    '</div></div>';
-  return stats+bar;
+  var traj=[["2023",2.97,"2.97 亿","297M","21.1%",0],["2024",3.10,"3.10 亿","310M","22.0%",0],["2025",3.23,"3.23 亿","323M","23.0%",0],["2035",4.1,">4 亿",">400M",">30%",1]];
+  var mx=4.5;
+  var tb=traj.map(function(d){
+    var h=(d[1]/mx*100).toFixed(1);
+    var pj=d[5];
+    var fill=pj?"background:repeating-linear-gradient(45deg,var(--warm),var(--warm) 5px,#eaa869 5px,#eaa869 10px)":"background:var(--accent)";
+    var val=L()==="zh"?d[2]:d[3];
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'+
+      '<div style="font-size:13px;font-weight:800;color:'+(pj?"var(--warm)":"var(--tx)")+'">'+esc(val)+'</div>'+
+      '<div style="width:100%;max-width:56px;height:118px;display:flex;align-items:flex-end"><div style="width:100%;height:'+h+'%;border-radius:6px 6px 0 0;'+fill+'"></div></div>'+
+      '<div style="font-size:11.5px;color:var(--tx2);font-weight:600">'+esc(d[0])+(pj?(L()==="zh"?" 预测":" est."):"")+'</div>'+
+      '<div style="font-size:11px;color:var(--tx3)">'+esc(d[4])+'</div>'+
+    '</div>';
+  }).join("");
+  var bar='<div class="popbar"><div class="bttl">'+esc(tr(T.bg_bar_h))+'</div><div style="display:flex;gap:12px;align-items:flex-end;padding:8px 0 4px">'+tb+'</div></div>';
+  var hls=[[T.gr_h1v,T.gr_h1l],[T.gr_h2v,T.gr_h2l],[T.gr_h3v,T.gr_h3l]];
+  var hl='<div class="grhl">'+hls.map(function(g){return '<div class="grhlitem"><div class="grv">'+esc(tr(g[0]))+'</div><div class="grl">'+esc(tr(g[1]))+'</div></div>';}).join("")+'</div>';
+  return stats+bar+hl;
 }
 
 /* split a raw line into [code, comment] without breaking on quotes */
