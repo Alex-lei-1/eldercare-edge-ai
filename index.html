@@ -804,7 +804,7 @@ const DATA = [
         {t:"gate open / closed", d:{en:"real speech passes, TTS echo blocked",zh:"真人通过,TTS 回声拦截"}}
       ],
       df:{in:["mic frame","playback reference"], proc:["speex AEC","residual energy","cross-band correlation"], out:["clean near-end OR muted"]},
-      why:{en:"The loudspeaker echo on this board is weakly correlated, so an energy-only gate is fooled by nonlinear residual and a correlation-only gate is fooled by the weak echo. The gate requires both a residual-energy excess and multi-band decorrelation, which suppresses the assistant's own TTS while still allowing a real interruption.",
+      why:{en:"The loudspeaker echo on this board is weakly correlated, so an energy-only gate is fooled by nonlinear residual and a correlation-only gate is fooled by the weak echo. The gate requires both a residual-energy excess and multi-band decorrelation, which suppresses the assistant's own TTS while still allowing a real interruption. Engineering details keep it robust: PipeWire's own module-echo-cancel misaligns reference and capture, so this is a standalone speexdsp MDF canceller on one shared clock; the reference-ring mutex uses PTHREAD_PRIO_INHERIT so the realtime audio thread never priority-inverts; PCM is written to stdout non-blocking, so a slow reader drops frames instead of stalling capture; and a --dtd-self-test mode validates the double-talk detector offline.",
            zh:"这块板子的喇叭回声相关性很弱:只看能量,会被非线性残差骗;只看相关性,又会被弱回声骗。所以这道门要求“残差能量超标”和“多频带不相关”两个条件同时成立,既压得住助手自己的 TTS,又放得进真人插话。"} },
     { id:"chain", code:"chain",
       name:{en:"Wake / ASR / LLM / TTS",zh:"唤醒 / ASR / LLM / TTS"},
@@ -817,7 +817,7 @@ const DATA = [
         {t:"Matcha TTS -> playback", d:{en:"Piper fallback; also feeds AEC reference",zh:"Piper 兜底;并喂回 AEC 参考"}, edge:{en:"loop",zh:"回路"}}
       ],
       df:{in:["mic audio"], proc:["VAD","ASR","local LLM","TTS"], out:["spoken reply","reference for AEC"]},
-      why:{en:"No audio leaves the board. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped, and added a rolling 15-second window of the assistant's own speech so its late echo is rejected instead of repeated.",
+      why:{en:"No audio leaves the board. The local LLM is a real Qwen2.5-1.5B served by llama.cpp on :8081, not a canned fallback, and TTS prefers Matcha (resident at startup) with Piper as a lazy fallback. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped. Endpoints are tuned for elders: it wakes after 520 ms of trailing silence and ends a user turn after 1000 ms; an active session stays open 90 s before dropping back to wake mode, and recorded audio is capped at 512 MB with a 24 h TTL.",
            zh:"音频一点都不出板子。C++ 版本补回了早期版本弄丢的多轮对话(唤醒一次之后就能接着聊),还加了一个滚动 15 秒的“自己刚说过的话”窗口,这样迟到的回声会被认出来丢掉,而不是被它当真又复述一遍。"} },
     { id:"fallans", code:"fallans",
       name:{en:"Post-fall check-in",zh:"跌倒后问询"},
@@ -831,7 +831,31 @@ const DATA = [
       ],
       df:{in:["fall event","mic reply"], proc:["short prompt + interruption","ASR","marker classify","re-ask once"], out:["ok / sos to alert path","spoken response"]},
       why:{en:"The prompt is about 2 s and word-neutral on purpose. The live AEC does not fully cancel the speaker, and a long prompt buried the reply under echo so ASR returned nothing. The classifier does not subtract the prompt (that once removed the person's own '我还好' and produced a false SOS); it matches only markers the prompt cannot contain. Silence defaults to SOS.",
-           zh:"提示特意压到 2 秒左右,而且用词中性。实时 AEC 没法把喇叭完全消掉,提示一长,回答就被回声盖住,ASR 直接返回空。分类时不去“减掉提示原文”(以前这么做,把老人自己说的“我还好”也一起删了,结果误报成 SOS),只匹配那些提示里绝不可能出现的词。没听到回应,就默认按 SOS 处理。"} }
+           zh:"提示特意压到 2 秒左右,而且用词中性。实时 AEC 没法把喇叭完全消掉,提示一长,回答就被回声盖住,ASR 直接返回空。分类时不去“减掉提示原文”(以前这么做,把老人自己说的“我还好”也一起删了,结果误报成 SOS),只匹配那些提示里绝不可能出现的词。没听到回应,就默认按 SOS 处理。"} },
+    { id:"selftalk", code:"selftalk",
+      name:{en:"Self-talk loop fix",zh:"自言自语回路修复"},
+      summary:{en:"Stops the assistant from transcribing its own speech back as a new request.",zh:"防止助手把自己说过的话又转写成一条新请求。"},
+      flow:[
+        {t:"rolling speech window", d:{en:"last ~15 s of what it said",zh:"它最近约 15 秒说过的话"}},
+        {t:"LCS overlap match", d:{en:"new capture vs recent speech",zh:"新采集 vs 最近说过的"}},
+        {t:"preface echo reject", d:{en:"drop fixed story / joke prefaces",zh:"丢掉固定的讲故事/笑话开场"}},
+        {t:"short fragment drop", d:{en:"Silero<0.5 and <=2 CJK -> noise",zh:"Silero<0.5 且 CJK<=2 -> 噪声"}}
+      ],
+      df:{in:["ASR transcript","recent assistant speech"], proc:["LCS overlap","preface match","fragment gate"], out:["real user text OR dropped"]},
+      why:{en:"Even with AEC the assistant could hear its own tail and answer it, looping. Three guards stop that: a rolling window of its recent speech is compared by longest-common-subsequence and high-overlap captures are dropped; the fixed prefaces it used to speak before a story or joke are matched and rejected; and barely-speech fragments (low Silero probability with one or two CJK characters, often a hallucinated lone marker) are treated as noise. These are real bugs found on the board, not theoretical.",
+           zh:"即便有 AEC,助手也可能听到自己话音的尾巴再去回答,形成回路。三道闸挡住它:用最长公共子序列把新采集和它最近说过的话比对,重合度高的丢掉;它讲故事或笑话前那几句固定开场会被识别并拒掉;以及几乎不成话的碎片(Silero 概率低、只有一两个 CJK 字)按噪声处理。这些都是板子上真实踩到的 bug,不是纸上谈兵。"} },
+    { id:"latency", code:"latency",
+      name:{en:"Measured latency",zh:"实测延迟"},
+      summary:{en:"End-to-end voice latency, taken from the board's own timing logs.",zh:"端到端语音延迟,取自板子自己的 timing 日志。"},
+      flow:[
+        {t:"wake KWS ~0.2 s", d:{en:"sherpa zipformer",zh:"sherpa zipformer"}},
+        {t:"user ASR ~0.3-0.8 s", d:{en:"SenseVoice, one utterance",zh:"SenseVoice,一句话"}},
+        {t:"LLM first clause ~2-4 s", d:{en:"Qwen2.5-1.5B (llama.cpp)",zh:"Qwen2.5-1.5B(llama.cpp)"}, edge:{en:"the long pole",zh:"主要瓶颈"}},
+        {t:"TTS ~0.6-1.6 s/clause", d:{en:"Matcha, RTF ~0.1-0.4",zh:"Matcha,RTF ~0.1-0.4"}}
+      ],
+      df:{in:["mic utterance"], proc:["KWS","SenseVoice ASR","LLM first clause","streaming TTS"], out:["first audio out"]},
+      why:{en:"From the voice.log timing lines: wake KWS about 0.2 s, wake-word ASR about 0.3 s, a user utterance through SenseVoice about 0.3-0.8 s (longer for long sentences), then the local Qwen2.5-1.5B first clause about 2-4 s, which is the dominant term, and TTS synthesis about 0.6-1.6 s per clause (faster than real time, Matcha resident at startup). Because the LLM streams clause by clause and TTS runs ahead of playback, the person hears the first words while later clauses are still being generated, so perceived latency is closer to the first-clause time than the full-reply time.",
+           zh:"取自 voice.log 的 timing 行:唤醒 KWS 约 0.2 秒、唤醒词 ASR 约 0.3 秒、用户一句话过 SenseVoice 约 0.3-0.8 秒(长句更久),再到本地 Qwen2.5-1.5B 的首个分句约 2-4 秒(这是主导项),TTS 合成每个分句约 0.6-1.6 秒(快于实时,Matcha 启动即常驻)。因为 LLM 一句一句往外吐、TTS 抢在播放前面合成,人听到头几个字时后面的分句还在生成,所以体感延迟更接近首个分句的时间,而不是整段回答的时间。"} }
   ]
 },
 {
@@ -856,7 +880,7 @@ const DATA = [
            zh:"每个子系统都是独立的 unit,所以语音崩了不会拖垮视觉,哪个要重新部署都能单独来。日志也按服务分开记,摄像头闪烁、风扇噪声、AEC 这几个问题,当初就是这么一步步查出来的。"} },
     { id:"health", code:"health",
       name:{en:"Health monitoring",zh:"健康监控"},
-      summary:{en:"A read-only agent samples units, TCP, disk, thermal and cpufreq into a status file.",zh:"只读代理把单元、TCP、磁盘、温度和 cpufreq 采样进状态文件。"},
+      summary:{en:"A read-only agent samples units, TCP, disk, thermal, cpufreq, per-process RSS/CPU and log sizes into one status file.",zh:"只读代理把单元、TCP、磁盘、温度、cpufreq、每进程 RSS/CPU 和日志体积采样进一个状态文件。"},
       flow:[
         {t:"timer tick", d:{en:"periodic sample",zh:"周期采样"}},
         {t:"systemctl is-active", d:{en:"true service state",zh:"真实服务状态"}},
@@ -864,8 +888,21 @@ const DATA = [
         {t:"status.json", d:{en:"one file for humans and watchdogs",zh:"一个文件供人和看门狗"}}
       ],
       df:{in:["system state"], proc:["unit checks","TCP probes","disk + thermal sample"], out:["status.json","OTA mark-good signal"]},
-      why:{en:"It is read-only and never acts, so it can serve as the source of truth for OTA mark-good and dashboards. It uses systemd's active/inactive state rather than matching process names, which is more reliable across restarts.",
-           zh:"它只读、从不动手改东西,所以可以放心当成 OTA mark-good 和仪表盘的唯一可信来源。它看的是 systemd 自己的 active/inactive 状态,而不是去匹配进程名,跨重启更靠得住。"} },
+      why:{en:"It is read-only and never acts, so it can be the source of truth for OTA mark-good and dashboards. The status.json carries per-unit active state (via systemctl is-active, not process-name matching), TCP endpoint checks, disk free via statvfs, SoC thermal and cpufreq, per-process RSS and CPU, and the size of the log and output directories. Using systemd's own active/inactive state is more reliable across restarts than matching process names.",
+           zh:"它只读、从不动手改东西,所以可以放心当成 OTA mark-good 和仪表盘的唯一可信来源。status.json 里带着:每个单元的存活状态(用 systemctl is-active,不是匹配进程名)、TCP 端点探测、statvfs 报的磁盘余量、SoC 温度和 cpufreq、每个进程的 RSS 和 CPU,以及日志和输出目录的体积。用 systemd 自己的 active/inactive 状态,比匹配进程名跨重启更靠得住。"} },
+    { id:"ota", code:"ota",
+      name:{en:"OTA & rollback",zh:"OTA 与回滚"},
+      summary:{en:"Atomic application updates with verify-then-switch and automatic rollback; the system slot is delegated to RAUC.",zh:"应用层原子更新:先校验后切换、失败自动回滚;系统分区交给 RAUC。"},
+      flow:[
+        {t:"download + sha256", d:{en:"whole package verified before use",zh:"使用前先校验整包"}},
+        {t:"verify current files", d:{en:"hash old files before any patch",zh:"打补丁前先校验旧文件哈希"}},
+        {t:"xdelta3 patch / full", d:{en:"patch if it applies, else full",zh:"能打补丁就打,否则整包"}},
+        {t:"stage -> atomic symlink", d:{en:"rename: readers see old or new",zh:"rename:读者只看到旧或新"}, edge:{en:"atomic",zh:"原子"}},
+        {t:"restart -> health gate", d:{en:"unhealthy -> roll back",zh:"不健康 -> 回滚"}}
+      ],
+      df:{in:["package URL + sha256"], proc:["verify","patch or full unpack","atomic activate","restart + health gate"], out:["new release OR rolled back"]},
+      why:{en:"Application updates land in releases/ and are activated by renaming a symlink, so a reader always sees either the whole old release or the whole new one, never a half-written tree. Before any xdelta3 patch, every old file is hash-checked, because one modified byte makes a binary patch undefined. After the switch the services restart and the health agent is the gate: if it does not come back healthy, the agent rolls the symlink back. The system partition is handled differently and stated honestly: the agent delegates it to RAUC, which owns the A/B boot slots, and a rauc mark-good hook confirms a good boot. Full A/B board validation is tracked separately, not claimed here.",
+           zh:"应用更新落在 releases/,靠 rename 一个 symlink 激活,所以读者要么看到整套旧版本、要么整套新版本,绝不会撞上写了一半的目录树。任何 xdelta3 补丁之前,每个旧文件都先校验哈希,因为旧文件改了一个字节,二进制补丁的结果就是未定义的。切换之后服务重启,健康代理就是那道闸:如果没回到健康状态,agent 会把 symlink 回滚。系统分区是另一套、也照实说:agent 把它交给 RAUC,由 RAUC 管 A/B 启动槽,一个 rauc mark-good 钩子确认这次启动是好的。完整的 A/B 整板验证单独跟踪,这里不夸口已完成。"} },
     { id:"fan", code:"fan",
       name:{en:"Fan noise control",zh:"风扇噪声控制"},
       summary:{en:"Hold the PWM fan low, with thermal hysteresis, so its noise does not mask speech.",zh:"把 PWM 风扇压低、配上温度滞回,别让风噪盖过说话声。"},
@@ -876,7 +913,7 @@ const DATA = [
         {t:"mic floor ~10x lower", d:{en:"a shouted reply now reaches ASR",zh:"呼喊回答得以被 ASR 听到"}}
       ],
       df:{in:["SoC temperature"], proc:["1 s loop","hysteresis 66/72 C","write pwm1"], out:["fan pwm = 50","usable mic"]},
-      why:{en:"At the stock pwm=100 the fan's broadband noise sits in the speech band and raised the microphone noise floor by about 10x, so a fall reply transcribed as empty and the check-in escalated to SOS. cpufreq/devfreq throttling stays active, so holding the fan low does not remove overheat protection; the worst case is throttling, not damage.",
+      why:{en:"At the stock pwm=100 the fan's broadband noise sits in the speech band and raised the microphone noise floor by about 10x, so a fall reply transcribed as empty and the check-in escalated to SOS. cpufreq/devfreq throttling stays active, so holding the fan low does not remove overheat protection; the worst case is throttling, not damage. The fix is not the fan alone: it pairs with the voice endpoint and VAD thresholds, so the fan profile lowers the noise floor while the voice service adapts its start/stop RMS to what remains.",
            zh:"出厂默认 pwm=100,风扇的宽带噪声正好落在人声频段,把麦克风底噪抬高了大概 10 倍,结果老人回答“我没事”被转写成空,问询也就误升级成了 SOS。cpufreq/devfreq 的降频保护一直都在,所以把风扇压低并不会去掉过热保护;最坏也就是降频,不会把板子烧坏。"} }
   ]
 }
