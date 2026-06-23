@@ -696,8 +696,8 @@ const DATA = [
         {t:"lying_score", d:{en:"max(angle_score, flat_score)",zh:"max(angle_score, flat_score)"}}
       ],
       df:{in:["17 keypoints","bbox","timestamp"], proc:["angle","flatness","velocity","normalize by frame"], out:["per-frame Features"]},
-      why:{en:"Every value is divided by frame size, so changing the camera from 384 to 640 does not require retuning thresholds. Velocity is guarded against NTP clock jumps: when the wall clock corrects, the frame's posture is kept but its velocity is discarded.",
-           zh:"所有量都按画面尺寸做了归一化,所以相机从 384 换成 640,阈值一个都不用改。速度还专门防了 NTP 校时跳变:系统时钟被校正的那一帧,姿态照常保留,只把算出来的速度丢掉。"} },
+      why:{en:"Every value is divided by frame size, so changing the camera from 384 to 640 does not require retuning thresholds. center_y is the vertical body center: the closer to the bottom of the frame, the closer the person is to the floor, which separates a real fall from sitting or bending. Low-confidence keypoints are down-weighted rather than trusted blindly. Velocity is guarded against NTP clock jumps: when the wall clock corrects, the frame's posture is kept but its velocity is discarded.",
+           zh:"所有量都按画面尺寸做了归一化,所以相机从 384 换成 640,阈值一个都不用改。center_y 是人体竖直中心:越靠近画面底部,人离地面越近,这能把真摔倒和坐下、弯腰区分开。关键点置信度低时会被降权,而不是盲目采信。速度还专门防了 NTP 校时跳变:系统时钟被校正的那一帧,姿态照常保留,只把算出来的速度丢掉。"} },
     { id:"states", code:"states", customFlow:"states",
       name:{en:"State machine",zh:"状态机"},
       summary:{en:"NORMAL, WARNING, LYING, FALL_CONFIRMED, with timed recovery back to NORMAL.",zh:"四个状态 NORMAL、WARNING、LYING、FALL_CONFIRMED,并按计时退回 NORMAL。"},
@@ -715,8 +715,19 @@ const DATA = [
         {t:"fall_score in [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
       ],
       df:{in:["window of Features"], proc:["aggregate 5 signals","weighted blend","penalize low conf"], out:["fall_score","debug telemetry"]},
-      why:{en:"In a 60-clip field test on 2026-06-21 it caught 58 of 60 falls (97% recall) with 1 false alarm (1.7%). Both misses and the false alarm happened in low light: in normal light it caught every fall with no false alarm, while night recall was 18 of 20 (90%), the part still being improved with the 640 model and ISP night tuning. The trade-off is deliberate: a missed fall costs far more than a false alarm, so it is tuned recall-first. Time from the fall to the alert averages about 3 s on fast falls, measured from the floor moment, not the clip start.",
-           zh:"2026-06-21 的一次 60 段实测:60 个跌倒命中 58(召回 97%),误报 1 次(1.7%)。漏掉的 2 个和那次误报都发生在夜光下:常光下每个跌倒都抓到、没有误报,夜光召回为 20 个里 18 个(90%),也是还在用 640 模型和 ISP 夜间调校改进的部分。这个取舍是刻意的:漏报的代价远大于误报,所以按召回优先来调。从倒地到报警,快速跌倒平均约 3 秒,从倒地那一刻算,不是从录像开头。"} }
+      why:{en:"In a 60-clip field test on 2026-06-21 it caught 58 of 60 falls (97% recall) with 1 false alarm (1.7%). The clips mix fast falls, slow slides, and everyday distractors like bending, sitting and walking. Both misses and the false alarm happened in low light, and the two misses were slow slides, where the descent is gentle and the pose is hard to hold. In normal light it caught every fall with no false alarm; night recall was 18 of 20 (90%). Low light is the explicit known limitation, still being improved with the 640 model and ISP night tuning. The trade-off is deliberate: a missed fall costs far more than a false alarm, so it is tuned recall-first. Time from the fall to the alert averages about 3 s on fast falls, measured from the floor moment, not the clip start.",
+           zh:"2026-06-21 的一次 60 段实测:60 个跌倒命中 58(召回 97%),误报 1 次(1.7%)。这 60 段混了快速跌倒、缓慢下滑,以及弯腰、坐下、行走这类日常干扰动作。漏掉的 2 个和那次误报都发生在夜光下,而且漏的两个都是缓慢下滑:下坠轻、姿态难稳住。常光下每个跌倒都抓到、没有误报;夜光召回为 20 个里 18 个(90%)。夜光是明确的已知局限,仍在用 640 模型和 ISP 夜间调校改进。这个取舍是刻意的:漏报的代价远大于误报,所以按召回优先来调。从倒地到报警,快速跌倒平均约 3 秒,从倒地那一刻算,不是从录像开头。"} },
+    { id:"reliability", code:"reliability",
+      name:{en:"Reliability fixes",zh:"可靠性修复"},
+      summary:{en:"Field-driven guards so a clock jump, a dead network, or a voice prompt never swallows a real fall.",zh:"几个实战兜底:时钟跳变、断网、或正在播报,都不该吞掉一次真实跌倒。"},
+      flow:[
+        {t:"NTP dt guard", d:{en:"clock corrects -> keep posture, drop velocity",zh:"时钟校正 -> 留姿态,弃速度"}},
+        {t:"alert before speech", d:{en:"publish FALL_CONFIRMED before the TTS prompt",zh:"先发 FALL_CONFIRMED,再播 TTS"}, edge:{en:"order",zh:"顺序"}},
+        {t:"fall preempts VAD", d:{en:"a pending fall interrupts a voice capture",zh:"待确认跌倒打断语音录制"}}
+      ],
+      df:{in:["clock jump","network down","mid-capture fall"], proc:["dt guard","decouple alert from TTS","preempt VAD"], out:["no false drop","alert still sent","fall not delayed"]},
+      why:{en:"These are not features, they are bugs found in the field and fixed. An NTP correction used to spike downward velocity into a false fall; now the frame's posture is kept and only its velocity is discarded. The MQTT alert is published before the voice prompt, so a dead network or a slow TTS never blocks the caregiver notification. And a fall confirmed mid-conversation preempts the voice capture, so the system never finishes a chat before reacting to a fall.",
+           zh:"这些不是功能,是现场踩出来、再修掉的 bug。NTP 校时曾经把下落速度冲出一个假摔倒;现在那一帧姿态保留,只丢掉速度。MQTT 报警在语音播报之前就发出去,所以断网或 TTS 卡顿都不会挡住给看护人的通知。对话进行中确认的跌倒会抢占语音录制,系统绝不会先把天聊完再去管摔倒。"} }
   ]
 },
 {
@@ -745,8 +756,8 @@ const DATA = [
         {t:"alert_service", d:{en:"subscribes and reacts",zh:"订阅并响应"}}
       ],
       df:{in:["FallResult transition"], proc:["dedupe by prev_state","mosquitto_pub","record snapshot"], out:["MQTT event","MQTT retained state"]},
-      why:{en:"The board has the mosquitto_pub CLI but not the libmosquitto headers, so publishing runs through the CLI. Because the broker is the interface, the vision, fall, alert and voice services can each restart independently.",
-           zh:"板子上只有 mosquitto_pub 命令行,没有 libmosquitto 的头文件,所以干脆用命令行来发消息。因为大家都只认 broker 这个接口,视觉、跌倒、报警、语音几个服务可以各自单独重启,互不影响。"} },
+      why:{en:"Four topics carry the system: eldercare/fall/event ({event, ts, score, reason}, fired once per transition, not retained), eldercare/fall/state ({state, fall_score, ts}, retained), eldercare/vision/health ({alive, fps, ts}, retained), and eldercare/alert/request ({level} = ok / sos / confirmed, from the voice check-in). The board has the mosquitto_pub CLI but not the libmosquitto headers, so publishing runs through the CLI. Because the broker is the interface, the vision, fall, alert and voice services can each restart independently.",
+           zh:"四个主题撑起整个系统:eldercare/fall/event({event, ts, score, reason},每次状态跳变发一次,不保留)、eldercare/fall/state({state, fall_score, ts},保留)、eldercare/vision/health({alive, fps, ts},保留)、eldercare/alert/request({level} = ok / sos / confirmed,来自语音问询)。板子上只有 mosquitto_pub 命令行,没有 libmosquitto 头文件,所以用命令行发消息。因为大家都只认 broker 这个接口,视觉、跌倒、报警、语音几个服务可以各自单独重启,互不影响。"} },
     { id:"push", code:"push",
       name:{en:"Family notification (ntfy)",zh:"家人通知(ntfy)"},
       summary:{en:"An ntfy push plus a best-effort snapshot attachment, with an audit log.",zh:"一条 ntfy 推送,外加一张尽力而为的快照附件,全程有日志可查。"},
@@ -758,8 +769,20 @@ const DATA = [
         {t:"JSONL audit log", d:{en:"every attempt recorded",zh:"记录每次尝试"}}
       ],
       df:{in:["alert level","fall ts"], proc:["snapshot lookup","ntfy push","attach image","append JSONL"], out:["family notification","audit record"]},
-      why:{en:"The snapshot is best-effort: a missing or failed upload does not turn a sent alert into a failed one. An SOS raises the ntfy priority so it can reach a silenced phone. The audit log records every suppressed or failed push.",
-           zh:"快照是尽力而为:就算没取到或上传失败,也不会让一条已经发出去的报警算作失败。遇到 SOS 会把 ntfy 的优先级调高,好让静音的手机也能响。日志里会记下每一次被拦下或失败的推送,方便事后排查。"} }
+      why:{en:"The snapshot is best-effort: a missing or failed upload does not turn a sent alert into a failed one. Priority scales with severity: a check-in ok is default priority, a confirmed fall is high, and an SOS is urgent so it can wake a silenced phone. Cooldowns are per level, so repeated voice retries of the same level are damped without dropping a genuine escalation. The audit log records every suppressed or failed push.",
+           zh:"快照是尽力而为:就算没取到或上传失败,也不会让一条已经发出去的报警算作失败。优先级随严重程度递增:问询 ok 用普通优先级(default),confirmed 确认跌倒用 high,SOS 用 urgent,好让静音的手机也能响。冷却按级别分别计,所以同一级别的语音重试会被抑制,但真正的升级不会被丢掉。日志里会记下每一次被拦下或失败的推送,方便事后排查。"} },
+    { id:"offline", code:"offline",
+      name:{en:"Network-down strategy",zh:"断网策略"},
+      summary:{en:"Local first: detection, logging and the voice check-in never depend on the cloud; the family push is best-effort.",zh:"本地优先:检测、记录、语音问询都不依赖云端;给家人的推送是尽力而为。"},
+      flow:[
+        {t:"fall confirmed", d:{en:"local MQTT + JSONL, always",zh:"本地 MQTT + JSONL,总会发生"}},
+        {t:"voice check-in", d:{en:"runs offline on the board",zh:"在板子本地离线进行"}},
+        {t:"ntfy push", d:{en:"curl --max-time 20 --retry 2",zh:"curl --max-time 20 --retry 2"}, edge:{en:"best-effort",zh:"尽力而为"}},
+        {t:"health watch", d:{en:"stale -> system-offline alert",zh:"心跳超时 -> 系统掉线告警"}}
+      ],
+      df:{in:["fall / sos","network state"], proc:["local publish + log","bounded curl retry","health stale check"], out:["local record always","remote push if reachable"]},
+      why:{en:"For an eldercare device the order of priority matters more than the push itself. The fall decision, the MQTT event and the JSONL log are entirely local and happen whether or not the network is up; the voice check-in is on-device too. Only the family notification leaves the board, and it is best-effort: curl is bounded to 20 s with 2 retries so a dead network cannot block the pipeline, and every failed push is logged. If the vision health feed goes stale, the alert service raises a system-offline notice instead of staying silent.",
+           zh:"对一台养老设备,优先级的顺序比推送本身更重要。跌倒判定、MQTT 事件、JSONL 日志全在本地,不管有没有网都会发生;语音问询也在板子上离线完成。只有给家人的通知会出板,而且是尽力而为:curl 限时 20 秒、重试 2 次,断网也卡不住流水线,每次失败都记日志。如果视觉心跳变陈旧,报警服务会主动发一条系统掉线提醒,而不是闷着不响。"} }
   ]
 },
 {
