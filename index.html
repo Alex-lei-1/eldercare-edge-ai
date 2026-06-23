@@ -611,8 +611,8 @@ const DATA = [
         {t:"QBUF x8 -> STREAMON", d:{en:"hand buffers over, start streaming",zh:"buffer 全交给驱动,开始采集"}}
       ],
       df:{in:["/dev/video12"], proc:["S_FMT NV12","REQBUFS = 8","QUERYBUF + mmap + EXPBUF","QBUF + STREAMON"], out:["mmap CPU views","DMA-BUF fds","streaming"]},
-      why:{en:"The point of V4L2 here is not just getting an image, it is getting the underlying buffer plus a DMA-BUF fd. The pool is 8 deep because 3 parallel RKNN contexts may hold several DQBUF'd frames at once; too few buffers and the driver has nowhere to write the next frame and stalls. The driver allocates them, not malloc or OpenCV. (The flicker when someone approached was fixed one layer up, in the ISP IQ tuning.)",
-           zh:"这里用 V4L2 的意义不只是拿一张图,而是拿到底层 buffer 加一个 DMA-BUF fd。池子做到 8 个,是因为 3 个并行 RKNN 上下文可能同时 hold 住好几帧;buffer 太少,驱动就没地方写下一帧,会卡住。buffer 是驱动分配的,不是 malloc 也不是 OpenCV。(有人靠近时画面闪那个问题,是在上游的 ISP IQ 调校里修掉的。)"} },
+      why:{en:"The point of V4L2 here is not just getting an image, it is getting the underlying buffer plus a DMA-BUF fd. The device is opened single-plane first: in NV12 the Y and UV sit in one buffer, so a single DMA-BUF fd is the whole frame, which is what makes a true fd-to-fd path possible; if the device only offers VIDEO_CAPTURE_MPLANE the code falls back to multi-plane (Y and UV as separate planes). The pool is 8 deep because 3 parallel RKNN contexts may hold several DQBUF'd frames at once; too few buffers and the driver has nowhere to write the next frame and stalls. The driver allocates them, not malloc or OpenCV. (The flicker when someone approached was fixed one layer up, in the ISP IQ tuning.)",
+           zh:"这里用 V4L2 的意义不只是拿一张图,而是拿到底层 buffer 加一个 DMA-BUF fd。设备优先以 single-plane 打开:NV12 下 Y 和 UV 在同一块 buffer 里,所以一个 DMA-BUF fd 就是一整帧,这正是能走真正 fd-to-fd 路径的前提;如果设备只给 VIDEO_CAPTURE_MPLANE,代码就回退到多平面(Y、UV 分成两个面)。池子做到 8 个,是因为 3 个并行 RKNN 上下文可能同时 hold 住好几帧;buffer 太少,驱动就没地方写下一帧,会卡住。buffer 是驱动分配的,不是 malloc 也不是 OpenCV。(有人靠近时画面闪那个问题,是在上游的 ISP IQ 调校里修掉的。)"} },
     { id:"lifecycle", code:"lifecycle",
       name:{en:"Frame & buffer lifecycle",zh:"每帧与 buffer 生命周期"},
       summary:{en:"Each frame: DQBUF, read it as a view, process, then QBUF. The window between DQBUF and QBUF is the only safe time to touch it.",zh:"每帧:DQBUF 取出、以视图读、处理,再 QBUF 归还。DQBUF 到 QBUF 之间是唯一能安全使用它的窗口。"},
@@ -636,7 +636,7 @@ const DATA = [
         {t:"rknn_run", d:{en:"inference on the NPU core",zh:"在 NPU 核上推理"}}
       ],
       df:{in:["NV12 DMA-BUF fd"], proc:["RGA NV12->RGB","resize + letterbox","rknn_inputs_set"], out:["detections"]},
-      why:{en:"Where it is genuinely zero-copy: capture to RGA. The frame is an mmap view and RGA reads the camera buffer by DMA-BUF fd, so there is no CPU colorspace convert. Where it is NOT: the inference input. The deployed path calls rknn_inputs_set every frame (about 11 ms measured). The full zero-copy path (rga_resize_fd_to_fd then rknn_set_io_mem, binding the RGA output straight to the NPU) is not used: on the 640 model it measured ~210 ms per inference, and it is disabled across the 3 parallel workers because a shared io-mem binding is unsafe with several frames in flight. So the design trades a truly zero-copy input for 640 accuracy plus 3-way parallelism.",
+      why:{en:"The preprocess backend is auto, which picks one of three layers: an OpenCV CPU convert (fallback), RGA on a CPU-visible Mat, or the preferred RGA reading the camera buffer by DMA-BUF fd. Where it is genuinely zero-copy: capture to RGA. The frame is an mmap view and RGA reads the camera buffer by DMA-BUF fd, so there is no CPU colorspace convert. Where it is NOT: the inference input. The deployed path calls rknn_inputs_set every frame (about 11 ms measured). The full zero-copy path (rga_resize_fd_to_fd then rknn_set_io_mem, binding the RGA output straight to the NPU) is implemented but not the production default: on the 640 model it measured ~210 ms per inference, and it is disabled across the 3 parallel workers because a shared io-mem binding is unsafe with several frames in flight. So the design trades a truly zero-copy input for 640 accuracy plus 3-way parallelism.",
            zh:"真正零拷贝的是前半段:采集到 RGA。帧是 mmap 视图,RGA 通过 DMA-BUF fd 直接读相机 buffer,这一步没有 CPU 颜色转换。不零拷贝的是推理输入:部署每帧都调用 rknn_inputs_set(实测约 11 ms)。完整的零拷贝路径(rga_resize_fd_to_fd 之后 rknn_set_io_mem,把 RGA 输出直接绑给 NPU)没有采用:它在 640 模型上单次推理实测约 210 ms,而且在 3 路并行 worker 下被禁用(多帧在飞时共享一块 io-mem 绑定不安全)。所以这里是用“真零拷贝输入”换来了 640 精度和三路并行。"} },
     { id:"parallel", code:"parallel",
       name:{en:"Parallel NPU inference",zh:"NPU 并行推理"},
@@ -648,8 +648,8 @@ const DATA = [
         {t:"results map by frame_id", d:{en:"reassembled in capture order",zh:"按采集顺序重排"}}
       ],
       df:{in:["NV12 frame job"], proc:["RGA NV12 -> RGB","YOLOv8n-pose 640","3 NPU cores"], out:["detections (ordered)"]},
-      why:{en:"On 35 archived weak-light / action snapshots the 384 model recovered only 28, while the 640 model recovered all 35, so the deployment uses 640. Three parallel RKNN contexts keep it at about 15 fps (14.97 measured, 0 dropped frames). The full rknn_set_io_mem zero-copy path was actually slower here, about 210 ms per inference (~4.6 fps), so the pipeline keeps RGA pre-processing with rknn_inputs_set.",
-           zh:"在 35 段弱光/动作存档里,384 模型只找回 28 段,640 模型 35 段全找回,所以部署用的是 640。三个并行 RKNN 上下文把它稳在约 15 fps(实测 14.97,0 丢帧)。看着更快的 rknn_set_io_mem 全零拷贝路径,在这块板上反而更慢,单次推理约 210 ms(约 4.6 fps),所以流水线仍用 RGA 预处理配合 rknn_inputs_set。"} },
+      why:{en:"On 35 archived weak-light / action snapshots the 384 model recovered only 27, while the 640 model recovered all 35, so the deployment uses 640. Three parallel RKNN contexts keep it at about 15 fps (14.97 measured, 0 dropped frames). With --parallel-hold-v4l2-dmabuf each worker keeps its V4L2 DMA-BUF until pose, tracking and the RTSP/JPEG outputs are done with that frame, and results are reassembled by frame_id into capture order before they leave, which is what removed the earlier RTSP flicker. The full rknn_set_io_mem zero-copy path was actually slower here, about 210 ms per inference (~4.6 fps), so the pipeline keeps RGA pre-processing with rknn_inputs_set.",
+           zh:"在 35 段弱光/动作存档里,384 模型只找回 27 段,640 模型 35 段全找回,所以部署用的是 640。三个并行 RKNN 上下文把它稳在约 15 fps(实测 14.97,0 丢帧)。开了 --parallel-hold-v4l2-dmabuf 后,每个 worker 会一直 hold 住自己的 V4L2 DMA-BUF,直到这一帧的姿态、跟踪和 RTSP/JPEG 输出都做完,再按 frame_id 重排回采集顺序才送出去,这正是之前 RTSP 闪烁被消掉的原因。看着更快的 rknn_set_io_mem 全零拷贝路径,在这块板上反而更慢,单次推理约 210 ms(约 4.6 fps),所以流水线仍用 RGA 预处理配合 rknn_inputs_set。"} },
     { id:"postprocess", code:"postprocess",
       name:{en:"Pose decode & tracking",zh:"姿态解码与跟踪"},
       summary:{en:"Decode the pose grid, undo letterbox, run NMS, assign a track id.",zh:"解码姿态网格、还原 letterbox、做 NMS、分配跟踪 id。"},
@@ -661,8 +661,8 @@ const DATA = [
         {t:"tracker", d:{en:"track id · overlay r / h / m",zh:"跟踪 id · 叠加 r / h / m"}, edge:{en:"per id",zh:"按 id"}}
       ],
       df:{in:["raw output tensor"], proc:["grid decode","letterbox unmap","NMS","tracking"], out:["persons[{bbox, 17 kpts, id}]"]},
-      why:{en:"Postprocess has no RKNN or camera dependency, so it runs in a unit test on a laptop. The on-screen overlay (r = box height/width, h = track history length, m = missing frames) is the same signal the fall service uses; a fall shows up as r dropping below 1.",
-           zh:"后处理不依赖 RKNN,也不依赖相机,所以能直接在笔记本上跑单元测试。画面上叠加的 r(框高/宽)、h(跟踪历史长度)、m(丢失帧数),就是跌倒服务用来判断的那几个信号;人一旦躺下,r 就会跌破 1。"} },
+      why:{en:"Postprocess has no RKNN or camera dependency, so it runs in a unit test on a laptop. Tracking is a lightweight IoU tracker (greedy box-overlap association at IoU 0.30), not ByteTrack or DeepSORT: enough to hold one person's id through a fall, but several people overlapping, or a caregiver in frame at the same time, is a known limitation and the next step. The on-screen overlay (r = box height/width, h = track history length, m = missing frames) is the same signal the fall service uses; a fall shows up as r dropping below 1.",
+           zh:"后处理不依赖 RKNN,也不依赖相机,所以能直接在笔记本上跑单元测试。跟踪用的是轻量 IoU tracker(按框重叠度做贪心匹配,IoU 阈值 0.30),不是 ByteTrack 或 DeepSORT:足够在一次跌倒里 hold 住单个人的 id,但多人重叠、或护工与老人同框,是已知的局限,也是下一步要做的。画面上叠加的 r(框高/宽)、h(跟踪历史长度)、m(丢失帧数),就是跌倒服务用来判断的那几个信号;人一旦躺下,r 就会跌破 1。"} },
     { id:"outputs", code:"outputs",
       name:{en:"Outputs: UDP / RTSP / JPEG",zh:"输出:UDP / RTSP / JPEG"},
       summary:{en:"Keypoints over UDP, an H.264 stream over RTSP, and a JPEG ring for evidence.",zh:"关键点走 UDP,H.264 走 RTSP,JPEG 环用于取证。"},
@@ -673,8 +673,8 @@ const DATA = [
         {t:"HW-JPEG ring", d:{en:"MPP JPEG -> /dev/shm evidence",zh:"MPP JPEG -> /dev/shm 取证"}}
       ],
       df:{in:["detections + frame"], proc:["pack JSON","MPP H.264 encode","MPP JPEG encode"], out:["UDP pose","RTSP stream","JPEG ring"]},
-      why:{en:"RTSP H.264 and the JPEG evidence ring use Rockchip MPP hardware paths, leaving the CPU for inference; the pose output is a lightweight JSON datagram over UDP, not an encoder. RTSP uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so clients can reconnect and several phones can watch at once. An earlier shared-media design failed on the second connection.",
-           zh:"RTSP H.264 和 JPEG 取证环走 Rockchip MPP 硬件路径,把 CPU 让给推理;姿态输出是 UDP 上的轻量 JSON 数据报,不是编码器。RTSP 给每个客户端单独建一套 GStreamer 的 media/appsrc,时间戳各管各的,所以能断线重连,也能多部手机同时看。早期共用一个 media 的做法,第二个客户端一连上就出问题。"} }
+      why:{en:"RTSP H.264 and the JPEG evidence ring use Rockchip MPP hardware paths, leaving the CPU for inference; the pose output is a lightweight JSON datagram over UDP, not an encoder. RTSP uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so clients can reconnect and several phones can watch at once. An earlier shared-media design failed on the second connection. The AI overlay is pushed by the vision process itself, so no second process opens /dev/video12; the standalone eldercare-rtsp-camera unit is debug-only and must not run at the same time.",
+           zh:"RTSP H.264 和 JPEG 取证环走 Rockchip MPP 硬件路径,把 CPU 让给推理;姿态输出是 UDP 上的轻量 JSON 数据报,不是编码器。RTSP 给每个客户端单独建一套 GStreamer 的 media/appsrc,时间戳各管各的,所以能断线重连,也能多部手机同时看。早期共用一个 media 的做法,第二个客户端一连上就出问题。AI 叠加流由视觉进程自己推出去,所以不会有第二个进程去开 /dev/video12;那个独立的 eldercare-rtsp-camera 单元仅用于调试,不能和视觉服务同时跑。"} }
   ]
 },
 {
@@ -1009,8 +1009,8 @@ function benchChart(){
     '<rect x="2" y="190" width="676" height="150" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="226" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Recall in low light / lying (offline snapshots)",zh:"弱光 / 躺地检出率(离线快照)"}))+'</text>'+
     '<text x="40" y="252" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"384 quantized",zh:"384 量化模型"}))+'</text>'+
-    '<rect x="40" y="258" width="484" height="24" rx="6" fill="#e0985a"/>'+
-    '<text x="534" y="276" font-family="sans-serif" font-size="14" font-weight="500" fill="#b06a2e">80.6%</text>'+
+    '<rect x="40" y="258" width="463" height="24" rx="6" fill="#e0985a"/>'+
+    '<text x="513" y="276" font-family="sans-serif" font-size="14" font-weight="500" fill="#b06a2e">77.1%</text>'+
     '<text x="40" y="304" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"640 (deployed)",zh:"640 模型(部署)"}))+'</text>'+
     '<rect x="40" y="310" width="600" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="630" y="328" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">100%</text>'+
