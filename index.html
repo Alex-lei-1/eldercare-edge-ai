@@ -1325,15 +1325,12 @@ function benchChart(){
     '<title>'+esc(tr({en:"ARGUS benchmark comparison",zh:"ARGUS 实测对比"}))+'</title>'+
     '<rect x="2" y="4" width="676" height="170" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="40" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Per-frame breakdown (640, deployed zero-copy)",zh:"每帧耗时分解（640，部署零拷贝）"}))+'</text>'+
-    '<rect x="40" y="58" width="7" height="28" fill="#8fc9a6"/>'+
-    '<rect x="47" y="58" width="578" height="28" fill="#d98a45"/>'+
-    '<rect x="625" y="58" width="15" height="28" fill="#b3a0c2"/>'+
-    '<text x="336" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#ffffff">'+esc(tr({en:"rknn_run ≈ 79 ms",zh:"rknn_run ≈ 79 ms"}))+'</text>'+
-    '<rect x="40" y="104" width="11" height="11" rx="2" fill="#8fc9a6"/><text x="57" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"RGA fd-to-fd 0.4ms",zh:"RGA fd-to-fd 0.4ms"}))+'</text>'+
-    '<rect x="200" y="104" width="11" height="11" rx="2" fill="#3f8f6b"/><text x="217" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"set_io_mem 0ms",zh:"set_io_mem 0ms"}))+'</text>'+
-    '<rect x="360" y="104" width="11" height="11" rx="2" fill="#d98a45"/><text x="377" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"rknn_run 79ms",zh:"rknn_run 79ms"}))+'</text>'+
-    '<rect x="510" y="104" width="11" height="11" rx="2" fill="#b3a0c2"/><text x="527" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"outputs+rtsp ~2ms",zh:"输出+rtsp ~2ms"}))+'</text>'+
-    svgCap(24,122,632,48,{en:"V4L2 DMA-BUF -> RGA fd-to-fd -> rknn_set_io_mem: input copy = 0. About 81 ms/frame on one context (~12 fps); three parallel NPU-core contexts reach 14.97 fps, 0 dropped — the 15 fps camera ceiling.",zh:"V4L2 DMA-BUF -> RGA fd-to-fd -> rknn_set_io_mem：输入拷贝=0。单上下文约 81ms/帧（~12fps）；3 个并行 NPU 核上下文到 14.97fps、0 丢帧，即 15fps 相机上限。"})+
+    '<rect x="40" y="58" width="583" height="28" fill="#d98a45"/>'+
+    '<rect x="623" y="58" width="17" height="28" fill="#8fbf9f"/>'+
+    '<text x="331" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#ffffff">'+esc(tr({en:"rknn_run ≈ 79 ms (97% of the frame)",zh:"rknn_run ≈ 79 ms（占整帧 97%）"}))+'</text>'+
+    '<rect x="40" y="104" width="11" height="11" rx="2" fill="#d98a45"/><text x="57" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"rknn_run 79 ms",zh:"rknn_run 79 ms"}))+'</text>'+
+    '<rect x="230" y="104" width="11" height="11" rx="2" fill="#8fbf9f"/><text x="247" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"pipeline overhead ~2.4 ms",zh:"流水线开销 ~2.4 ms"}))+'</text>'+
+    svgCap(24,122,632,48,{en:"Overhead is only ~2.4 ms/frame (RGA fd-to-fd 0.4 + set_io_mem 0 + outputs/rtsp 2); the rest is raw rknn_run. One context ~12 fps; three parallel NPU-core contexts reach 14.97 fps, 0 dropped — the 15 fps camera ceiling.",zh:"流水线开销仅约 2.4ms/帧（RGA fd-to-fd 0.4 + set_io_mem 0 + 输出/rtsp 2），其余全是 rknn_run。单上下文约 12fps；3 个并行 NPU 核上下文到 14.97fps、0 丢帧，即 15fps 相机上限。"})+
     '<rect x="2" y="190" width="676" height="150" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="226" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Recall in low light / lying (offline snapshots)",zh:"弱光 / 躺地检出率（离线快照）"}))+'</text>'+
     '<text x="40" y="252" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"384 quantized",zh:"384 量化模型"}))+'</text>'+
@@ -1345,8 +1342,8 @@ function benchChart(){
     '<rect x="2" y="356" width="676" height="178" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="392" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Zero-copy savings (deployed, measured)",zh:"零拷贝收益（部署实测）"}))+'</text>'+
     '<text x="40" y="418" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"input handoff: rknn_inputs_set copy",zh:"输入交接：rknn_inputs_set 拷贝"}))+'</text>'+
-    '<rect x="40" y="424" width="250" height="24" rx="6" fill="#c2a48a"/>'+
-    '<text x="300" y="442" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#8a6a4a">~12 ms</text>'+
+    '<rect x="40" y="424" width="250" height="24" rx="6" fill="#e0985a"/>'+
+    '<text x="300" y="442" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#b06a2e">~12 ms</text>'+
     '<text x="40" y="470" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"input handoff: rknn_set_io_mem (deployed)",zh:"输入交接：rknn_set_io_mem（部署）"}))+'</text>'+
     '<rect x="40" y="476" width="10" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="60" y="494" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#46685a">0 ms</text>'+
