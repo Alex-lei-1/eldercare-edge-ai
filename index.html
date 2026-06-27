@@ -107,6 +107,10 @@
   .evttl{background:var(--card2);border-bottom:1px solid var(--line);padding:7px 12px;font-size:12px;font-weight:600;color:var(--tx2);font-family:ui-monospace,monospace}
   .evpre{margin:0;padding:10px 12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;color:var(--tx2);white-space:pre-wrap;word-break:break-all}
   @media(max-width:760px){.evgrid{grid-template-columns:1fr}}
+  .netfigs{display:grid;grid-template-columns:1fr;gap:16px;margin-top:6px}
+  .netfig{margin:0}
+  .netfig img{width:100%;border:1px solid var(--line);border-radius:10px;display:block}
+  .netfig figcaption{font-size:12px;color:var(--tx2);margin-top:7px;line-height:1.5}
 
   /* breadcrumb */
   .crumb{font-size:13px;color:var(--tx3);padding:18px 0 0}
@@ -1888,6 +1892,13 @@ function debugEvidence(){
   ];
   return '<div class="evgrid">'+blocks.map(function(b){return '<div class="evcard"><div class="evttl">'+esc(b[0])+'</div><pre class="evpre">'+esc(b[1])+'</pre></div>';}).join("")+'</div>';
 }
+function netCaptureFigs(){
+  var figs=[
+    ["assets/wireshark_like_capture.png",{en:"Wireshark-style summary of a 54.8 s capture (13,450 packets, 0 kernel drops): RTSP on TCP :8554, pose on UDP :5800, telemetry :9091, WebRTC API :8889 and ICE/RTP :8189.",zh:"54.8 秒抓包的 Wireshark 式摘要（13,450 包，0 内核丢包）：RTSP 走 TCP :8554、姿态走 UDP :5800、遥测 :9091、WebRTC API :8889、ICE/RTP :8189。"}],
+    ["assets/protocol_timeline.png",{en:"Packets/second over time. Pose UDP holds a steady ~15/s; RTSP runs continuously; WebRTC ICE/RTP jumps from zero when a browser viewer connects (~t = 40 s).",zh:"每秒包数随时间。姿态 UDP 稳定约 15/s；RTSP 持续；浏览器观看端接入后（约 t=40s）WebRTC ICE/RTP 从 0 跳起。"}]
+  ];
+  return '<div class="netfigs">'+figs.map(function(f){return '<figure class="netfig"><a href="'+f[0]+'" target="_blank" rel="noopener"><img src="'+f[0]+'" alt="'+esc(tr(f[1]))+'" loading="lazy"></a><figcaption>'+esc(tr(f[1]))+'</figcaption></figure>';}).join("")+'</div>';
+}
 
 const FALL_SCENARIOS=[
  {sc:{en:"Overall · 60-clip field test",zh:"总体 · 60 段实测"}, r:"58/60", fp:"1/60", note:{en:"recall 97%, FP 1.7%",zh:"召回 97%，误报 1.7%"}},
@@ -2081,6 +2092,8 @@ function home(){
       latencyWaterfall()+
       '<div class="archsub">'+esc(tr({en:"Live signals off the board",zh:"板子上的实时信号"}))+"</div>"+
       debugEvidence()+
+      '<div class="archsub">'+esc(tr({en:"Packet capture (real tcpdump / pcap)",zh:"抓包（真实 tcpdump / pcap）"}))+"</div>"+
+      netCaptureFigs()+
     "</section>"+
     '<section id="sourcemap">'+
       '<div class="secttl"><h2>'+tr(T.srcmap_h)+"</h2></div>"+
