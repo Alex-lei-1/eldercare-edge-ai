@@ -1655,7 +1655,7 @@ const PRODEXP=[
  {path:"RGA fd->fd resize", st:{en:"production / zero-copy",zh:"生产 / 零拷贝"}, w:{en:"NV12->RGB on hardware, no CPU copy",zh:"硬件 NV12->RGB，无 CPU 拷贝"}},
  {path:"rknn_inputs_set", st:{en:"fallback path",zh:"回退路径"}, w:{en:"used when zero-copy cannot engage (multi-plane / async)",zh:"零拷贝无法启用时用（多平面/异步）"}},
  {path:"rknn_set_io_mem (zero-copy input)", st:{en:"deployed default",zh:"已部署，默认"}, w:{en:"engages on single-plane NV12 DMA-BUF; else falls back to rknn_inputs_set",zh:"单平面 NV12 DMA-BUF 时启用；否则回退 rknn_inputs_set"}},
- {path:"ISP low-light tuning (aperture / exposure)", st:{en:"deployed, day + night",zh:"已部署，日 + 夜"}, w:{en:"longer exposure in the dark: ~10 fps at night, 15 fps in daylight; software night-enhance removed",zh:"暗处拉长曝光：夜间约 10fps，日间 15fps；软件夜间增强已移除"}}
+ {path:"ISP low-light tuning (aperture / exposure)", st:{en:"deployed, day + night",zh:"已部署，日 + 夜"}, w:{en:"longer exposure in the dark: ~10 fps at night, 15 fps in daylight",zh:"暗处拉长曝光：夜间约 10fps，日间 15fps"}}
 ];
 
 const VALIDATION=[
