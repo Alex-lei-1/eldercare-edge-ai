@@ -375,7 +375,7 @@
 # systemd unit: allow all 8 cores, zero-copy preprocess, MediaMTX output
 [Service]
 CPUAffinity=0 1 2 3 4 5 6 7
-Environment=VISION_PREPROCESS_BACKEND=zero-copy VISION_NO_NIGHT_ENHANCE=1
+Environment=VISION_PREPROCESS_BACKEND=zero-copy
 Environment=VISION_CAPTURE_CPUS=0-3 VISION_INFER_CPUS=6-7
 Environment=RTSP_OUTPUT_ENABLE=1 RTSP_OUTPUT_MODE=mediamtx RTSP_OUTPUT_DMABUF=1
 ExecStart=.../run_pose_camera.sh
@@ -437,7 +437,7 @@ rga_resize_fd_to_fd(src_fd = v4l2_dmabuf,    // camera NV12 buffer, read by fd (
 rknn_set_io_mem(ctx, rga_rgb_fd)             // bind RGA output straight to the NPU: input copy = 0
 rknn_run(ctx)                                // rknn_inputs_set_ms = 0 in the live log (~79 ms run)
 
-// Fallback (multi-plane / async / night-enhance): RGA -> rknn_inputs_set, then CPU OpenCV.
+// Fallback (multi-plane / async): RGA -> rknn_inputs_set, then CPU OpenCV.
 // One io-mem binding PER parallel context keeps zero-copy input AND 3-way parallelism.
 </script>
 
@@ -635,7 +635,7 @@ const T = {
   page_k:{en:"page",zh:"页面"},
   ev_page_h:{en:"Engineering & evidence",zh:"工程与证据"},
   ev_page_sub:{en:"Real bugs and fixes, the alert sequence, live signals straight off the board, packet captures, and a source map.",zh:"真实的 bug 与修复、报警时序、板子上的实时信号、抓包，以及源码索引。"},
-  cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1 (about 10 fps in this snapshot; the trend panel shows it moving between 10 and 15), so the ceiling is the camera, not compute. The 14.97 fps headline is the steady-state 450-frame benchmark.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐（本张快照约 10fps，趋势图显示在 10 到 15 之间波动），所以瓶颈是相机而非算力。14.97fps 是 450 帧稳态基准。"},
+  cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1. This snapshot is the night / low-light state: the ISP opens the aperture and lengthens exposure, so the camera runs about 10 fps; in daylight it runs 15 fps. The 14.97 fps headline is the daylight steady-state 450-frame benchmark.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐。这张是夜间/弱光状态：ISP 开大光圈、拉长曝光，相机约 10fps；日间为 15fps。14.97fps 是日间稳态 450 帧基准。"},
   cap_webrtc:{en:"WebRTC /viewer. The H.264 stream is clean; the browser Canvas draws the bounding box (track id and confidence) and the COCO-17 skeleton from the /overlay pose JSON. Here one tracked person, ID 61 at 0.88.",zh:"WebRTC /viewer。H.264 是干净流；浏览器 Canvas 从 /overlay 的姿态 JSON 画出检测框（track id 与置信度）和 COCO-17 骨架。图中为一个被跟踪的人，ID 61、0.88。"},
   cap_hw:{en:"The device on the bench: an Orange Pi 5 Plus (RK3588) with heatsink and a quiet fan, the OV13855 MIPI camera module, and an ES8388 speaker. Everything in this project runs here; nothing is offloaded to a server.",zh:"台面上的设备：一块香橙派 5 Plus（RK3588）带散热片和静音风扇、OV13855 MIPI 摄像头模组，以及 ES8388 喇叭。本项目的一切都在这上面跑，没有任何东西放到服务器。"},
   rm_item:{en:"item",zh:"项目"},
@@ -710,10 +710,8 @@ const T = {
   nums_h:{en:"Key metrics",zh:"关键指标"},
   nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测，对应真正在跑的系统，而不是规格书上的标称值。"},
   bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
-  lld_h:{en:"Why 640 + 3 cores + enhancement, not 384",zh:"为什么是 640 + 3 核 + 增强，而不是 384"},
-  skel_cap:{en:"Same enhanced low-light frame, two models. Left: the lighter, faster 384 model finds nobody (people=0, even after enhancement). Right: the 640 model detects the fallen person at 0.76 with a 17-point pose skeleton. So rather than drop to a faster-but-weaker 384, the deployment keeps 640 and recovers the frame rate with 3 parallel NPU cores (~15 fps, 0 dropped); night enhancement here is an evaluated optional aid, not the run_pose_camera.sh default. (The ~80 ms on the 640 frame is one core in isolation; production runs 3 cores in parallel, so a slow single frame still yields ~15 fps.)",zh:"同一张增强后的弱光帧，两个模型。左：更轻、更快的 384 模型检测不到人（people=0，即便增强后也是）；右：640 模型检出躺倒的人（0.76）并画出 17 点骨架。所以没有退到更快但更弱的 384，而是保留 640、用 3 个并行 NPU 核把帧率追回来（约 15fps、0 丢帧）；这里的夜间增强是评估用的可选增益，不是 run_pose_camera.sh 的默认。（上图 640 的约 80ms 是单核独占的单帧；部署时 3 核并行，所以单帧慢、整机仍约 15fps。）"},
-  ab_title:{en:"Shrink exposure for fps, recover recall with enhancement (35 clips, measured)",zh:"为提帧率缩曝光，用夜间增强把召回补回来（35 段实测）"},
-  ab_note:{en:"To lift night fps from 8 to 15 we must shorten exposure; a shorter exposure is a darker frame and fewer detections. Dimming the 35 eval snapshots to 1/2 and 1/3 exposure: the 640 model falls from 100% to 88.6% and night enhancement brings it back to 94.3%. The lighter 384 model falls more (77% to 69%); enhancement lifts its 1/3-exposure case from 68.6% to 82.9%. Enhancement only fires on dark frames (luma<70), so the full-exposure bars are identical. This whole low-light path is an evaluated optional flag, not the production default in run_pose_camera.sh.",zh:"为把夜间帧率从 8 提到 15，必须缩短曝光；曝光越短画面越暗、检出越少。把 35 段评测快照压到 1/2、1/3 曝光后：640 从 100% 掉到 88.6%，夜间增强把它拉回 94.3%；更轻量的 384 掉得更多（77% 到 69%），增强把它 1/3 曝光这档从 68.6% 救回 82.9%。增强只在画面暗（luma<70）时触发，所以全曝光那档两根柱一样高。这条弱光路径整体是评估用的可选开关，不是 run_pose_camera.sh 里的生产默认。"},
+  lld_h:{en:"Why 640 + 3 cores, not 384",zh:"为什么是 640 + 3 核，而不是 384"},
+  skel_cap:{en:"Same low-light frame, two models. Left: the lighter, faster 384 model finds nobody (people=0). Right: the 640 model detects the fallen person at 0.76 with a 17-point pose skeleton. So rather than drop to a faster-but-weaker 384, the deployment keeps 640. To see in the dark the ISP opens the aperture and lengthens exposure, which drops the night frame rate to about 10 fps (daylight stays 15 fps); three parallel NPU cores keep compute off the critical path. (The ~80 ms on the 640 frame is one core in isolation; production runs 3 cores in parallel.)",zh:"同一张弱光帧，两个模型。左：更轻、更快的 384 模型检测不到人（people=0）；右：640 模型检出躺倒的人（0.76）并画出 17 点骨架。所以没有退到更快但更弱的 384，而是保留 640。为了在暗处看清，ISP 会开大光圈、拉长曝光，夜间帧率因此降到约 10fps（日间仍 15fps）；3 个并行 NPU 核让算力不在关键路径上。（上图 640 的约 80ms 是单核独占的单帧；部署时 3 核并行。）"},
   source:{en:"Source",zh:"源码"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
@@ -839,8 +837,8 @@ const DATA = [
   name:{en:"Vision pipeline",zh:"视觉流水线"}, name2:{en:"camera to pose",zh:"从相机到姿态"},
   tag:{en:"Camera frames to pose keypoints on the NPU, about 15 fps.",zh:"相机画面进 NPU，输出人体姿态关键点，约 15 fps。"},
   file:"src/cpp_edge/main_yolo_pose_rknn_camera.cpp",
-  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 mmap/DMA-BUF capture path delivers NV12 frames. The deployed preprocess path is zero-copy: RGA reads the V4L2 camera DMA-BUF and writes each worker's RKNN input buffer (NV12->RGB, resize, letterbox), and the NPU reads that output directly via rknn_set_io_mem (rknn_inputs_set_ms = 0); MPLANE / async / night-enhance frames fall back to rknn_inputs_set. Three parallel RKNN contexts run YOLOv8n-pose; for each person it produces a bounding box, 17 COCO keypoints and a track id, then fans the result out three ways.",
-            zh:"MIPI 相机先接 RK3588 的硬件 ISP；8 缓冲的 V4L2 mmap/DMA-BUF 采集路径交付 NV12 画面。部署的预处理是零拷贝：RGA 读 V4L2 相机 DMA-BUF，写入每个 worker 的 RKNN 输入 buffer（NV12->RGB、缩放、letterbox），NPU 通过 rknn_set_io_mem 直接读这块输出（rknn_inputs_set_ms = 0）；MPLANE / 异步 / 夜间增强时回退 rknn_inputs_set。三个并行 RKNN 上下文跑 YOLOv8n-pose；每检测到一个人，就给出边界框、17 个 COCO 关键点和一个跟踪 id，再分三路送出去。"},
+  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 mmap/DMA-BUF capture path delivers NV12 frames. The deployed preprocess path is zero-copy: RGA reads the V4L2 camera DMA-BUF and writes each worker's RKNN input buffer (NV12->RGB, resize, letterbox), and the NPU reads that output directly via rknn_set_io_mem (rknn_inputs_set_ms = 0); MPLANE / async frames fall back to rknn_inputs_set. Three parallel RKNN contexts run YOLOv8n-pose; for each person it produces a bounding box, 17 COCO keypoints and a track id, then fans the result out three ways.",
+            zh:"MIPI 相机先接 RK3588 的硬件 ISP；8 缓冲的 V4L2 mmap/DMA-BUF 采集路径交付 NV12 画面。部署的预处理是零拷贝：RGA 读 V4L2 相机 DMA-BUF，写入每个 worker 的 RKNN 输入 buffer（NV12->RGB、缩放、letterbox），NPU 通过 rknn_set_io_mem 直接读这块输出（rknn_inputs_set_ms = 0）；MPLANE / 异步时回退 rknn_inputs_set。三个并行 RKNN 上下文跑 YOLOv8n-pose；每检测到一个人，就给出边界框、17 个 COCO 关键点和一个跟踪 id，再分三路送出去。"},
   subs:[
     { id:"boot", code:"boot",
       name:{en:"Boot & entry",zh:"启动与入口"},
@@ -891,8 +889,8 @@ const DATA = [
         {t:"rknn_run", d:{en:"inference on the NPU core, ~79 ms",zh:"在 NPU 核上推理，约 79 ms"}}
       ],
       df:{in:["NV12 DMA-BUF fd"], proc:["RGA fd-to-fd NV12->RGB","resize + letterbox","rknn_set_io_mem"], out:["detections"]},
-      why:{en:"The preprocess backend is set to zero-copy. The camera frame is a V4L2 DMA-BUF; RGA reads it by fd, converts NV12->RGB and resizes/letterboxes fd-to-fd, and the NPU is bound to that RGA output with rknn_set_io_mem, so the inference input is never CPU-copied: rknn_inputs_set_ms = 0 in the live log, ~15 fps, 0 dropped. The path engages only for synchronous single-plane NV12 DMA-BUF; multi-plane (MPLANE), async capture, or night-enhance frames fall back safely to RGA + rknn_inputs_set, with a CPU OpenCV convert as the last resort. An earlier single-context attempt at set_io_mem measured slower and was unsafe to share across workers; the deployed fix is one io-mem binding per parallel context, which keeps both the zero-copy input and 3-way parallelism. The remaining work is multi-plane zero-copy so the fallback disappears.",
-           zh:"预处理后端设为 zero-copy。相机帧是 V4L2 DMA-BUF；RGA 用 fd 读它，fd 到 fd 做 NV12->RGB 和缩放/letterbox，再用 rknn_set_io_mem 把 NPU 绑到这块 RGA 输出，所以推理输入完全不经 CPU 拷贝：实时日志里 rknn_inputs_set_ms = 0，约 15fps、0 丢帧。这条路只在同步单平面 NV12 DMA-BUF 时启用；多平面（MPLANE）、异步采集或开夜间增强的帧会安全回退到 RGA + rknn_inputs_set，最后兜底是 CPU OpenCV 转换。早期单上下文的 set_io_mem 实测更慢、且在多 worker 间共享不安全；现在的做法是每个并行上下文各绑一块 io-mem，这样既保留零拷贝输入又保住三路并行。剩下的工作是多平面零拷贝，把这层回退也去掉。"} },
+      why:{en:"The preprocess backend is set to zero-copy. The camera frame is a V4L2 DMA-BUF; RGA reads it by fd, converts NV12->RGB and resizes/letterboxes fd-to-fd, and the NPU is bound to that RGA output with rknn_set_io_mem, so the inference input is never CPU-copied: rknn_inputs_set_ms = 0 in the live log, ~15 fps, 0 dropped. The path engages only for synchronous single-plane NV12 DMA-BUF; multi-plane (MPLANE) or async-capture frames fall back safely to RGA + rknn_inputs_set, with a CPU OpenCV convert as the last resort. An earlier single-context attempt at set_io_mem measured slower and was unsafe to share across workers; the deployed fix is one io-mem binding per parallel context, which keeps both the zero-copy input and 3-way parallelism. The remaining work is multi-plane zero-copy so the fallback disappears.",
+           zh:"预处理后端设为 zero-copy。相机帧是 V4L2 DMA-BUF；RGA 用 fd 读它，fd 到 fd 做 NV12->RGB 和缩放/letterbox，再用 rknn_set_io_mem 把 NPU 绑到这块 RGA 输出，所以推理输入完全不经 CPU 拷贝：实时日志里 rknn_inputs_set_ms = 0，约 15fps、0 丢帧。这条路只在同步单平面 NV12 DMA-BUF 时启用；多平面（MPLANE）或异步采集的帧会安全回退到 RGA + rknn_inputs_set，最后兜底是 CPU OpenCV 转换。早期单上下文的 set_io_mem 实测更慢、且在多 worker 间共享不安全；现在的做法是每个并行上下文各绑一块 io-mem，这样既保留零拷贝输入又保住三路并行。剩下的工作是多平面零拷贝，把这层回退也去掉。"} },
     { id:"parallel", code:"parallel",
       name:{en:"Parallel NPU inference",zh:"NPU 并行推理"},
       summary:{en:"One RKNN context per NPU core; a worker pool holds the 640 model at about 15 fps.",zh:"每个 NPU 核一个 RKNN 上下文，用线程池把 640 模型稳在约 15 fps。"},
@@ -1354,7 +1352,7 @@ function archDiagram(){
 
 /* ---------- views ---------- */
 function benchChart(){
-  return '<svg role="img" viewBox="0 0 680 730" width="100%" xmlns="http://www.w3.org/2000/svg">'+
+  return '<svg role="img" viewBox="0 0 680 544" width="100%" xmlns="http://www.w3.org/2000/svg">'+
     '<title>'+esc(tr({en:"ARGUS benchmark comparison",zh:"ARGUS 实测对比"}))+'</title>'+
     '<rect x="2" y="4" width="676" height="170" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="40" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Per-frame breakdown (640, deployed zero-copy)",zh:"每帧耗时分解（640，部署零拷贝）"}))+'</text>'+
@@ -1381,46 +1379,6 @@ function benchChart(){
     '<rect x="40" y="476" width="10" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="60" y="494" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#46685a">0 ms</text>'+
     svgCap(24,502,632,46,{en:"Input handoff drops from ~12 ms to 0 on the NPU input only (rknn_set_io_mem). The RTSP output still keeps one RGA fd-to-fd copy into a CMA DMA-BUF (a hardware DMA copy, not a CPU pixel copy): RSS ~162 MB vs ~179 MB for memcpy.",zh:"输入交接在 NPU 输入这一段从约 12ms 降到 0（rknn_set_io_mem）。RTSP 输出仍保留一次 RGA fd-to-fd 拷贝到 CMA DMA-BUF（硬件 DMA 拷贝，不是 CPU 逐像素拷贝）：RSS 约 162MB，对比 memcpy 约 179MB。"},12)+
-    '<rect x="2" y="550" width="676" height="176" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
-    '<text x="28" y="586" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Optional night enhancement does not cost frame rate (measured)",zh:"可选夜间增强不拖慢帧率（实测）"}))+'</text>'+
-    '<line x1="640" y1="600" x2="640" y2="698" stroke="#d9cdb8" stroke-width="1.5" stroke-dasharray="3 3"/>'+
-    '<text x="636" y="596" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#9b8e7e">'+esc(tr({en:"camera limit 15 fps",zh:"相机上限 15fps"}))+'</text>'+
-    '<text x="40" y="618" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"default path · enhancement off",zh:"默认链路 · 关增强"}))+'</text>'+
-    '<rect x="40" y="624" width="588" height="22" rx="6" fill="#bcd0c4"/>'+
-    '<text x="622" y="640" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#46685a">14.70 fps</text>'+
-    '<text x="40" y="664" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"+ night enhancement (optional, on)",zh:"+ 夜间增强（可选开启）"}))+'</text>'+
-    '<rect x="40" y="670" width="599" height="22" rx="6" fill="#3f8f6b"/>'+
-    '<text x="633" y="686" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#ffffff">14.97 fps</text>'+
-    svgCap(24,700,632,30,{en:"Enhancement adds 5.2 ms CPU/frame and overlaps NPU inference; the bottleneck stays the 15 fps camera, so the rate holds with 0 dropped frames.",zh:"增强只占 CPU 5.2ms/帧，与 NPU 推理重叠；瓶颈仍是 15fps 相机，帧率不掉、0 丢帧。"},12)+
-    '</svg>';
-}
-
-function abChart(){
-  var groups=[{l:{en:"full exposure",zh:"全曝光"}},{l:{en:"1/2 exposure",zh:"1/2 曝光"}},{l:{en:"1/3 exposure",zh:"1/3 曝光"}}];
-  var data={"640":[[100,100],[94.3,94.3],[88.6,94.3]],"384":[[77.1,77.1],[74.3,85.7],[68.6,82.9]]};
-  var cx=[170,360,550];
-  function panel(model,top,title){
-    var base=top+168, scale=1.32;
-    var s='<text x="28" y="'+(top+16)+'" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#33302b">'+esc(title)+'</text>';
-    s+='<line x1="40" y1="'+base+'" x2="650" y2="'+base+'" stroke="#e9e0d3"/>';
-    data[model].forEach(function(pair,gi){
-      var c=cx[gi];
-      [["#c2a48a",pair[0],-42],["#3f8f6b",pair[1],6]].forEach(function(b){
-        var v=b[1], h=v*scale, x=c+b[2], y=base-h;
-        s+='<rect x="'+x+'" y="'+y.toFixed(1)+'" width="36" height="'+h.toFixed(1)+'" rx="4" fill="'+b[0]+'"/>';
-        s+='<text x="'+(x+18)+'" y="'+(y-5).toFixed(1)+'" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11.5" font-weight="500" fill="#6f655b">'+Math.round(v)+'%</text>';
-      });
-      s+='<text x="'+c+'" y="'+(base+18)+'" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr(groups[gi].l))+'</text>';
-    });
-    return s;
-  }
-  return '<svg role="img" viewBox="0 0 680 500" width="100%" xmlns="http://www.w3.org/2000/svg">'+
-    '<title>'+esc(tr({en:"Exposure vs detection rate, with and without enhancement",zh:"曝光与检出率，加不加增强对比"}))+'</title>'+
-    '<rect x="2" y="4" width="676" height="492" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
-    '<rect x="408" y="14" width="12" height="12" rx="2" fill="#c2a48a"/><text x="426" y="24" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"no enhancement",zh:"未增强"}))+'</text>'+
-    '<rect x="548" y="14" width="12" height="12" rx="2" fill="#3f8f6b"/><text x="566" y="24" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"+ night enhancement",zh:"+ 夜间增强"}))+'</text>'+
-    panel("640",30,tr({en:"640 model · detection rate",zh:"640 模型 · 检出率"}))+
-    panel("384",262,tr({en:"384 model · detection rate",zh:"384 模型 · 检出率"}))+
     '</svg>';
 }
 
@@ -1477,7 +1435,7 @@ const BUGS=[
 
 const TRADEOFFS=[
  {q:{en:"What is the deployed zero-copy input path?",zh:"部署的零拷贝输入链路是什么？"},
-  a:{en:"Production runs V4L2 DMA-BUF -> RGA fd-to-fd resize/colorspace -> RKNN rknn_set_io_mem, so the NPU reads the RGA output buffer directly: rknn_inputs_set_ms = 0 in the live log, ~15 fps, 0 dropped. It engages only for synchronous single-plane NV12 DMA-BUF; multi-plane, async, or night-enhance frames fall back safely to RGA + rknn_inputs_set.",zh:"生产链路是 V4L2 DMA-BUF -> RGA fd-to-fd 缩放/色彩转换 -> RKNN rknn_set_io_mem，NPU 直接读 RGA 输出缓冲：实时日志里 rknn_inputs_set_ms = 0，约 15 fps、0 丢帧。它只在同步单平面 NV12 DMA-BUF 时启用；多平面、异步或开夜间增强的帧会安全回退到 RGA + rknn_inputs_set。"}},
+  a:{en:"Production runs V4L2 DMA-BUF -> RGA fd-to-fd resize/colorspace -> RKNN rknn_set_io_mem, so the NPU reads the RGA output buffer directly: rknn_inputs_set_ms = 0 in the live log, ~15 fps, 0 dropped. It engages only for synchronous single-plane NV12 DMA-BUF; multi-plane or async frames fall back safely to RGA + rknn_inputs_set.",zh:"生产链路是 V4L2 DMA-BUF -> RGA fd-to-fd 缩放/色彩转换 -> RKNN rknn_set_io_mem，NPU 直接读 RGA 输出缓冲：实时日志里 rknn_inputs_set_ms = 0，约 15 fps、0 丢帧。它只在同步单平面 NV12 DMA-BUF 时启用；多平面或异步的帧会安全回退到 RGA + rknn_inputs_set。"}},
  {q:{en:"Why not one big process?",zh:"为什么不用一个大进程？"},
   a:{en:"Each subsystem is its own systemd unit, so a crash is isolated, any one redeploys alone, and logs are per service. The vision process is the only one that bundles RTSP, because it must own the camera.",zh:"每个子系统是独立 systemd unit：崩溃隔离、单独重部署、按服务分日志。只有视觉进程内含 RTSP，因为它必须独占摄像头。"}},
  {q:{en:"Why UDP for pose?",zh:"姿态为什么用 UDP?"},
@@ -1697,7 +1655,7 @@ const PRODEXP=[
  {path:"RGA fd->fd resize", st:{en:"production / zero-copy",zh:"生产 / 零拷贝"}, w:{en:"NV12->RGB on hardware, no CPU copy",zh:"硬件 NV12->RGB，无 CPU 拷贝"}},
  {path:"rknn_inputs_set", st:{en:"fallback path",zh:"回退路径"}, w:{en:"used when zero-copy cannot engage (multi-plane / async)",zh:"零拷贝无法启用时用（多平面/异步）"}},
  {path:"rknn_set_io_mem (zero-copy input)", st:{en:"deployed default",zh:"已部署，默认"}, w:{en:"engages on single-plane NV12 DMA-BUF; else falls back to rknn_inputs_set",zh:"单平面 NV12 DMA-BUF 时启用；否则回退 rknn_inputs_set"}},
- {path:"night enhancement", st:{en:"evaluated optional",zh:"评估可选"}, w:{en:"not the run_pose_camera.sh default",zh:"不是 run_pose_camera.sh 默认"}}
+ {path:"ISP low-light tuning (aperture / exposure)", st:{en:"deployed, day + night",zh:"已部署，日 + 夜"}, w:{en:"longer exposure in the dark: ~10 fps at night, 15 fps in daylight; software night-enhance removed",zh:"暗处拉长曝光：夜间约 10fps，日间 15fps；软件夜间增强已移除"}}
 ];
 
 const VALIDATION=[
@@ -1754,9 +1712,9 @@ function sourceMap(){
 
 function lowlightDecision(){
   var rows=[
-    {cond:{en:"Long exposure ~125 ms (bright frame)",zh:"长曝光 ~125ms（画面亮）"}, res:{en:"8 fps, drops frames",zh:"8 fps，掉帧"}, ok:false},
-    {cond:{en:"Short exposure + 384 model (save compute)",zh:"缩曝光 + 384 模型（省算力）"}, res:{en:"15 fps but people=0, misses the person",zh:"15 fps 但 people=0，检不到人"}, ok:false},
-    {cond:{en:"Short exposure + 640 + 3-core parallel + night enhancement",zh:"缩曝光 + 640 + 3 核并行 + 夜间增强"}, res:{en:"15 fps, 0 dropped, detected 0.76 + skeleton",zh:"15 fps、0 丢帧，检出 0.76 + 骨架"}, ok:true}
+    {cond:{en:"Lighter 384 model (save compute)",zh:"更轻的 384 模型（省算力）"}, res:{en:"misses the person in low light (people=0)",zh:"弱光下检不到人（people=0）"}, ok:false},
+    {cond:{en:"640 model, short exposure to hold 15 fps",zh:"640 模型，缩曝光保 15fps"}, res:{en:"frame too dark at night, detection drops",zh:"夜间画面过暗，检出下降"}, ok:false},
+    {cond:{en:"640 model + ISP opens aperture / longer exposure",zh:"640 模型 + ISP 开大光圈 / 拉长曝光"}, res:{en:"detects 0.76 + skeleton; ~10 fps at night, 15 fps in daylight",zh:"检出 0.76 + 骨架；夜间约 10fps，日间 15fps"}, ok:true}
   ];
   var s='<svg role="img" viewBox="0 0 680 224" width="100%" xmlns="http://www.w3.org/2000/svg">';
   s+='<title>'+esc(tr({en:"Night low-light decision chain",zh:"夜间弱光决策链"}))+'</title>';
@@ -2063,7 +2021,6 @@ function pageOverview(){
       '<figure class="skelfig"><img src="assets/hardware_bench.jpg" loading="lazy" alt="'+esc(tr(T.cap_hw))+'"><figcaption>'+esc(tr(T.cap_hw))+"</figcaption></figure>"+
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
-      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.ab_title))+"</div>"+abChart()+'<div class="abnote">'+esc(tr(T.ab_note))+"</div></div>"+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.lld_h))+"</div>"+lowlightDecision()+"</div>"+
       '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=384v640" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
     "</section>";
