@@ -625,11 +625,16 @@ const T = {
   hm1l:{en:"640 pose · 0 dropped frames",zh:"640 姿态 · 0 丢帧"},
   hm2l:{en:"falls caught, 60-clip field test",zh:"跌倒命中，60 段实测"},
   hm3i:{en:"s",zh:"秒"}, hm3l:{en:"floor to alarm, fast falls",zh:"倒地到报警，快速跌倒"},
-  hm4i:{en:"local",zh:"本地"}, hm4l:{en:"voice + AI fully offline, nothing to cloud",zh:"语音 + AI 全离线，不上云"},
+  hm4i:{en:"cloud AI",zh:"云端 AI"}, hm4l:{en:"all inference on-device; only the family alert leaves the board",zh:"推理全在端侧；只有给家人的报警会出板"},
   hm5i:{en:"encode",zh:"次编码"}, hm5l:{en:"one encode, fan-out to RTSP / WebRTC / HLS",zh:"单次编码，扇出 RTSP / WebRTC / HLS"},
   cta_arch:{en:"See the architecture",zh:"查看架构"}, cta_ev:{en:"Live evidence",zh:"实测证据"},
   lede_short:{en:"All AI runs on the device. The camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family.",zh:"所有 AI 都在设备本地跑，画面和声音都不出板；唯一对外发送的，是摔倒后给家人的那条报警。"},
   nav_deepdive:{en:"Deep Dive",zh:"深入"},
+  explore_h:{en:"Explore the project",zh:"浏览项目"},
+  explore_sub:{en:"Each area is its own page: the motivation, the system design, how it runs, observability, how it is validated, the roadmap, and the engineering evidence.",zh:"每个部分都是独立页面：动机、系统设计、怎么运行、可观测性、怎么验证、路线图，以及工程证据。"},
+  page_k:{en:"page",zh:"页面"},
+  ev_page_h:{en:"Engineering & evidence",zh:"工程与证据"},
+  ev_page_sub:{en:"Real bugs and fixes, the alert sequence, live signals straight off the board, packet captures, and a source map.",zh:"真实的 bug 与修复、报警时序、板子上的实时信号、抓包，以及源码索引。"},
   cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1 (about 10 fps in this snapshot; the trend panel shows it moving between 10 and 15), so the ceiling is the camera, not compute. The 14.97 fps headline is the steady-state 450-frame benchmark.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐（本张快照约 10fps，趋势图显示在 10 到 15 之间波动），所以瓶颈是相机而非算力。14.97fps 是 450 帧稳态基准。"},
   cap_webrtc:{en:"WebRTC /viewer. The H.264 stream is clean; the browser Canvas draws the bounding box (track id and confidence) and the COCO-17 skeleton from the /overlay pose JSON. Here one tracked person, ID 61 at 0.88.",zh:"WebRTC /viewer。H.264 是干净流；浏览器 Canvas 从 /overlay 的姿态 JSON 画出检测框（track id 与置信度）和 COCO-17 骨架。图中为一个被跟踪的人，ID 61、0.88。"},
   cap_hw:{en:"The device on the bench: an Orange Pi 5 Plus (RK3588) with heatsink and a quiet fan, the OV13855 MIPI camera module, and an ES8388 speaker. Everything in this project runs here; nothing is offloaded to a server.",zh:"台面上的设备：一块香橙派 5 Plus（RK3588）带散热片和静音风扇、OV13855 MIPI 摄像头模组，以及 ES8388 喇叭。本项目的一切都在这上面跑，没有任何东西放到服务器。"},
@@ -1186,12 +1191,10 @@ function navTo(id){
 }
 function renderNav(){
   var el=document.getElementById("navlinks"); if(!el) return;
-  var items=[["overview","a"],["architecture","a"],["runtime","a"],
-    ["validation","a"],["deepdive","a"],["roadmap","a"]];
+  var items=[["overview","nav_overview"],["architecture","nav_architecture"],["runtime","nav_runtime"],
+    ["observability","nav_observability"],["validation","nav_validation"],["roadmap","nav_roadmap"],["evidence","nav_debug"]];
   el.innerHTML=items.map(function(it){
-    var lbl=esc(tr(T["nav_"+it[0]]));
-    if(it[1]==="a") return '<span class="navlink" onclick="navTo(\''+it[0]+'\')">'+lbl+'</span>';
-    return '<span class="navlink" onclick="go(\''+it[1]+'\')">'+lbl+'</span>';
+    return '<span class="navlink" onclick="go(\''+it[0]+'\')">'+esc(tr(T[it[1]]))+'</span>';
   }).join("");
 }
 function bgPanel(){
@@ -1990,6 +1993,19 @@ function home(){
       '<div class="go">'+tr(T.tap)+" →</div>"+
     "</a>"
   )).join("");
+  const PAGEINDEX=[
+    {id:"background",t:T.bg_h,d:T.bg_sub,c:"hw"},
+    {id:"overview",t:T.nums_h,d:T.nums_sub,c:"vis"},
+    {id:"architecture",t:T.arch_h,d:T.arch_sub,c:"vis"},
+    {id:"runtime",t:T.rmap_h,d:T.rmap_sub,c:"ops"},
+    {id:"observability",t:T.obs_h,d:T.obs_sub,c:"voice"},
+    {id:"validation",t:T.val_h,d:T.val_sub,c:"fall"},
+    {id:"roadmap",t:T.roadmap_h,d:T.roadmap_sub,c:"ops"},
+    {id:"evidence",t:T.ev_page_h,d:T.ev_page_sub,c:"alert"}
+  ];
+  const idx=PAGEINDEX.map(function(p){
+    return '<a class="scard" href="#/'+p.id+'" style="--bd:var(--'+p.c+')"><div class="k">'+tr(T.page_k)+'</div><h4>'+esc(tr(p.t))+'</h4><p>'+esc(tr(p.d))+'</p></a>';
+  }).join("");
   return ''+
     '<header class="hero">'+
       '<div class="herowrap">'+
@@ -2005,8 +2021,8 @@ function home(){
             '<div class="hm"><b>1<i>'+esc(tr(T.hm5i))+'</i></b><span>'+esc(tr(T.hm5l))+"</span></div>"+
           "</div>"+
           '<div class="herocta">'+
-            '<a class="btn primary" onclick="navTo(\'architecture\')">'+esc(tr(T.cta_arch))+" →</a>"+
-            '<a class="btn" onclick="navTo(\'debug\')">'+esc(tr(T.cta_ev))+"</a>"+
+            '<a class="btn primary" onclick="go(\'architecture\')">'+esc(tr(T.cta_arch))+" →</a>"+
+            '<a class="btn" onclick="go(\'evidence\')">'+esc(tr(T.cta_ev))+"</a>"+
           "</div>"+
           '<p class="lede" style="margin:16px 0 13px">'+tr(T.lede_short)+"</p>"+
           '<div class="techstack">'+esc(tr(T.stack))+"</div>"+
@@ -2014,26 +2030,48 @@ function home(){
         '<div class="heroart">'+HEROART+"</div>"+
       "</div>"+
     "</header>"+
-    '<section id="background">'+
-      '<div class="secttl"><h2>'+tr(T.bg_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.bg_sub)+"</p>"+
+    '<section id="deepdive">'+
+      '<div class="secttl"><h2>'+tr(T.modules_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.modules_sub)+"</p>"+
+      '<div class="grid g2">'+cards+"</div>"+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.explore_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.explore_sub)+"</p>"+
+      '<div class="grid g3">'+idx+"</div>"+
+    "</section>";
+}
+
+function pageHead(titleKey, subKey, color){
+  return '<div class="crumb"><a href="#/">'+tr(T.home)+'</a><span>›</span>'+esc(tr(titleKey))+"</div>"+
+    '<div class="mhead" style="--bd:var(--'+(color||"accent")+')"><h1>'+esc(tr(titleKey))+"</h1>"+
+    (subKey?'<p class="tag">'+esc(tr(subKey))+"</p>":"")+"</div>";
+}
+
+function pageBackground(){
+  return pageHead(T.bg_h,T.bg_sub,"hw")+
+    '<section style="padding-top:8px">'+
       bgPanel()+
       '<p class="bgnote">'+tr(T.bg_narr)+"</p>"+
       '<p class="bgsrc">'+tr(T.bg_src)+"</p>"+
-    "</section>"+
-    '<section id="overview">'+
-      '<div class="secttl"><h2>'+tr(T.nums_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.nums_sub)+"</p>"+
+    "</section>";
+}
+
+function pageOverview(){
+  return pageHead(T.nums_h,T.nums_sub,"vis")+
+    '<section style="padding-top:8px">'+
       '<figure class="skelfig"><img src="assets/hardware_bench.jpg" loading="lazy" alt="'+esc(tr(T.cap_hw))+'"><figcaption>'+esc(tr(T.cap_hw))+"</figcaption></figure>"+
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.ab_title))+"</div>"+abChart()+'<div class="abnote">'+esc(tr(T.ab_note))+"</div></div>"+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.lld_h))+"</div>"+lowlightDecision()+"</div>"+
       '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=384v640" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
-    "</section>"+
-    '<section id="architecture">'+
-      '<div class="secttl"><h2>'+tr(T.arch_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.arch_sub)+"</p>"+
+    "</section>";
+}
+
+function pageArchitecture(){
+  return pageHead(T.arch_h,T.arch_sub,"vis")+
+    '<section style="padding-top:8px">'+
       '<div class="diagram">'+archDiagram()+
         '<div class="legend">'+
           '<span><i style="background:var(--vis)"></i>Vision</span>'+
@@ -2050,10 +2088,12 @@ function home(){
       latencyBudget()+
       '<div class="archsub">'+esc(tr({en:"V4L2 buffer lifecycle (why RTSP keeps one copy)",zh:"V4L2 buffer 生命周期（为什么 RTSP 保留一次拷贝）"}))+"</div>"+
       dmabufLifecycle()+
-    "</section>"+
-    '<section id="runtime">'+
-      '<div class="secttl"><h2>'+tr(T.rmap_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.rmap_sub)+"</p>"+
+    "</section>";
+}
+
+function pageRuntime(){
+  return pageHead(T.rmap_h,T.rmap_sub,"ops")+
+    '<section style="padding-top:8px">'+
       '<div class="rmap">'+[
         ["eldercare-vision.service","run_pose_camera.sh → main_yolo_pose_rknn_camera",null],
         ["eldercare-fall.service","eldercare_fall_service",null],
@@ -2070,47 +2110,31 @@ function home(){
       systemdTopology()+
       '<div class="archsub">'+esc(tr({en:"OTA flow (app layer; RAUC A/B for the system slot)",zh:"OTA 流程（应用层；系统槽位走 RAUC A/B）"}))+"</div>"+
       otaFlow()+
-    "</section>"+
-    '<section id="observability">'+
-      '<div class="secttl"><h2>'+tr(T.obs_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.obs_sub)+"</p>"+
+    "</section>";
+}
+
+function pageObservability(){
+  return pageHead(T.obs_h,T.obs_sub,"voice")+
+    '<section style="padding-top:8px">'+
       obsPanel()+
       '<div class="netfigs" style="margin-top:16px">'+
         '<figure class="netfig"><img src="assets/dashboard_telemetry.png" loading="lazy" alt="'+esc(tr(T.cap_dash))+'"><figcaption>'+esc(tr(T.cap_dash))+"</figcaption></figure>"+
         '<figure class="netfig"><img src="assets/webrtc_overlay.png" loading="lazy" alt="'+esc(tr(T.cap_webrtc))+'"><figcaption>'+esc(tr(T.cap_webrtc))+"</figcaption></figure>"+
       "</div>"+
     "</section>"+
-    '<section id="deepdive">'+
-      '<div class="secttl"><h2>'+tr(T.modules_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.modules_sub)+"</p>"+
-      '<div class="grid g2">'+cards+"</div>"+
-    "</section>"+
-    '<section id="failure">'+
-      '<div class="secttl"><h2>'+tr(T.eng_h)+"</h2></div>"+
-      engNotes()+
-    "</section>"+
-    '<section id="roadmap">'+
-      '<div class="secttl"><h2>'+tr(T.roadmap_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.roadmap_sub)+"</p>"+
-      '<div class="archsub">'+esc(tr({en:"Implemented (shipped)",zh:"已交付（已上线）"}))+"</div>"+
-      implementedBlock()+
-      '<div class="archsub">'+esc(tr({en:"Next",zh:"接下来"}))+"</div>"+
-      roadmapBlocks()+
-    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.health_obs_h)+"</h2></div>"+
+      healthObs()+
+    "</section>";
+}
+
+function pageValidation(){
+  return pageHead(T.val_h,T.val_sub,"fall")+
+    '<section style="padding-top:8px">'+validationTable()+"</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.prodexp_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.prodexp_sub)+"</p>"+
       prodExpTable()+
-    "</section>"+
-    '<section id="validation">'+
-      '<div class="secttl"><h2>'+tr(T.val_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.val_sub)+"</p>"+
-      validationTable()+
-    "</section>"+
-    "<section>"+
-      '<div class="secttl"><h2>'+tr(T.privacy_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.privacy_sub)+"</p>"+
-      privacyBoundary()+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.fall_table_h)+"</h2></div>"+
@@ -2118,14 +2142,33 @@ function home(){
       fallScenarioTable()+
     "</section>"+
     "<section>"+
+      '<div class="secttl"><h2>'+tr(T.privacy_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.privacy_sub)+"</p>"+
+      privacyBoundary()+
+    "</section>";
+}
+
+function pageRoadmap(){
+  return pageHead(T.roadmap_h,T.roadmap_sub,"ops")+
+    '<section style="padding-top:8px">'+
+      '<div class="archsub">'+esc(tr({en:"Implemented (shipped)",zh:"已交付（已上线）"}))+"</div>"+
+      implementedBlock()+
+      '<div class="archsub">'+esc(tr({en:"Next",zh:"接下来"}))+"</div>"+
+      roadmapBlocks()+
+    "</section>";
+}
+
+function pageEvidence(){
+  return pageHead(T.ev_page_h,T.ev_page_sub,"alert")+
+    '<section style="padding-top:8px">'+
+      '<div class="secttl"><h2>'+tr(T.eng_h)+"</h2></div>"+
+      engNotes()+
+    "</section>"+
+    "<section>"+
       '<div class="secttl"><h2>'+tr(T.alert_seq_h)+"</h2></div>"+
       alertSeq()+
     "</section>"+
     "<section>"+
-      '<div class="secttl"><h2>'+tr(T.health_obs_h)+"</h2></div>"+
-      healthObs()+
-    "</section>"+
-    '<section id="debug">'+
       '<div class="secttl"><h2>'+tr(T.debug_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.debug_sub)+"</p>"+
       '<div class="archsub">'+esc(tr({en:"Voice latency waterfall",zh:"语音延迟瀑布"}))+"</div>"+
@@ -2135,12 +2178,14 @@ function home(){
       '<div class="archsub">'+esc(tr({en:"Packet capture (real tcpdump / pcap)",zh:"抓包（真实 tcpdump / pcap）"}))+"</div>"+
       netCaptureFigs()+
     "</section>"+
-    '<section id="sourcemap">'+
+    "<section>"+
       '<div class="secttl"><h2>'+tr(T.srcmap_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.srcmap_sub)+"</p>"+
       sourceMap()+
     "</section>";
 }
+
+const PAGES={ background:pageBackground, overview:pageOverview, architecture:pageArchitecture, runtime:pageRuntime, observability:pageObservability, validation:pageValidation, roadmap:pageRoadmap, evidence:pageEvidence };
 
 function moduleView(m){
   const cards=m.subs.map(s=>(
@@ -2201,6 +2246,7 @@ function render(){
   const parts=location.hash.replace(/^#\/?/,"").split("/").filter(Boolean);
   const app=document.getElementById("app");
   if(parts.length===0){ app.innerHTML=home(); window.scrollTo(0,0); return; }
+  if(PAGES[parts[0]]){ app.innerHTML=PAGES[parts[0]](); window.scrollTo(0,0); return; }
   const m=DATA.find(x=>x.id===parts[0]);
   if(!m){ app.innerHTML=home(); return; }
   if(parts.length===1){ app.innerHTML=moduleView(m); window.scrollTo(0,0); return; }
