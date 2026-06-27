@@ -1784,6 +1784,30 @@ function mediamtxDiagram(){
   var audio='<div class="mxrow">'+box(tr({en:"pulsesrc",zh:"pulsesrc"}),"es8388")+arr+box("opusenc",tr({en:"Opus audio",zh:"Opus 音频"}))+'<span class="mxar">&#8599;</span><span class="mxnote">'+esc(tr({en:"2nd track on the same rtspclientsink",zh:"同一 rtspclientsink 的第二条轨"}))+'</span></div>';
   return '<div class="mxwrap">'+video+audio+'</div>';
 }
+function dmabufLifecycle(){
+  var t=function(o){return esc(tr(o));};
+  return '<svg role="img" viewBox="0 0 680 232" width="100%" xmlns="http://www.w3.org/2000/svg">'+
+    '<defs><marker id="la" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e08a4a"/></marker></defs>'+
+    '<line x1="60" y1="26" x2="60" y2="176" stroke="#cbbda9" stroke-width="1.5" stroke-dasharray="4 3"/>'+
+    '<line x1="470" y1="26" x2="470" y2="176" stroke="#cbbda9" stroke-width="1.5" stroke-dasharray="4 3"/>'+
+    '<text x="60" y="20" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#33302b">DQBUF</text>'+
+    '<text x="470" y="20" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#33302b">QBUF</text>'+
+    '<rect x="60" y="30" width="410" height="26" rx="6" fill="#eaf1f5" stroke="#4f86a8"/>'+
+    '<text x="265" y="47" text-anchor="middle" font-family="sans-serif" font-size="12.5" fill="#33302b">'+t({en:"V4L2 buffer k held — safe to read",zh:"V4L2 buffer k 持有中 — 可安全读取"})+'</text>'+
+    '<rect x="70" y="70" width="280" height="38" rx="8" fill="#fffdf9" stroke="#3f8f6b"/>'+
+    '<text x="210" y="86" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#33302b">RGA fd-to-fd -&gt; set_io_mem -&gt; rknn_run</text>'+
+    '<text x="210" y="100" text-anchor="middle" font-family="sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"reads the buffer in place — 0 copy",zh:"原地读取 — 0 拷贝"})+'</text>'+
+    '<rect x="70" y="118" width="280" height="38" rx="8" fill="#fffdf9" stroke="#e08a4a"/>'+
+    '<text x="210" y="134" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#33302b">RGA fd-to-fd copy -&gt; CMA DMA-BUF</text>'+
+    '<text x="210" y="148" text-anchor="middle" font-family="sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"a separate buffer the encoder owns",zh:"编码器自己拥有的另一块 buffer"})+'</text>'+
+    '<line x1="350" y1="137" x2="482" y2="137" stroke="#e08a4a" stroke-width="1.7" marker-end="url(#la)"/>'+
+    '<rect x="490" y="118" width="176" height="38" rx="8" fill="#fffdf9" stroke="#e08a4a"/>'+
+    '<text x="578" y="134" text-anchor="middle" font-family="sans-serif" font-size="11.5" fill="#33302b">mpph264enc</text>'+
+    '<text x="578" y="148" text-anchor="middle" font-family="sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"async, outlives the buffer",zh:"异步，比 buffer 活得久"})+'</text>'+
+    '<text x="14" y="198" font-family="sans-serif" font-size="12" fill="#6f655b">'+t({en:"The NPU reads the camera buffer in place (zero-copy). The encoder is async and must not hold the V4L2 fd —",zh:"NPU 原地读相机 buffer（零拷贝）。编码器是异步的，不能持有 V4L2 fd ——"})+'</text>'+
+    '<text x="14" y="216" font-family="sans-serif" font-size="12" fill="#6f655b">'+t({en:"QBUF would free it mid-encode and tear the frame, so one RGA fd-to-fd copy moves pixels to a CMA buffer, then QBUF returns at once.",zh:"QBUF 会在编码中途释放它、导致撕裂，所以用一次 RGA fd-to-fd 拷贝把像素搬到 CMA buffer，然后立刻 QBUF 归还。"})+'</text>'+
+    '</svg>';
+}
 function obsPanel(){
   var eps=[
     ["/dashboard",{en:"live charts: fps, NPU, CMA, CPU/RSS, fall state, RTSP clients",zh:"实时图表：fps、NPU、CMA、CPU/RSS、跌倒状态、RTSP 客户端"}],
@@ -1925,6 +1949,8 @@ function home(){
       '<div class="archsub">'+esc(tr(T.lb_h))+"</div>"+
       '<p class="sub" style="margin:-2px 0 10px">'+tr(T.lb_sub)+"</p>"+
       latencyBudget()+
+      '<div class="archsub">'+esc(tr({en:"V4L2 buffer lifecycle (why RTSP keeps one copy)",zh:"V4L2 buffer 生命周期（为什么 RTSP 保留一次拷贝）"}))+"</div>"+
+      dmabufLifecycle()+
     "</section>"+
     '<section id="runtime">'+
       '<div class="secttl"><h2>'+tr(T.rmap_h)+"</h2></div>"+
