@@ -453,10 +453,11 @@ iou(a, b):                                 // standard intersection-over-union
 send_udp(pose_json, NON_BLOCKING)    // fire-and-forget; a dropped frame is fine,
                                      // the fall state machine integrates over seconds
 
-// Output 2: RTSP, served by THIS process (no second owner of /dev/video12)
-appsrc(NV12) -> queue(leaky=downstream) -> mpph264enc -> h264parse -> rtph264pay
-rtsp.push_nv12(frame)                // copies into a GStreamer buffer, then returns,
-                                     // so QBUF after it returns is safe
+// Output 2: RTSP/WebRTC. Vision encodes ONE H.264 + Opus stream and publishes it
+// to MediaMTX, which fans out to RTSP/WebRTC/HLS clients. The stream is clean
+// video; bbox + keypoints are drawn browser-side by the health viewer.
+appsrc(NV12 DMA-BUF) -> mpph264enc -> h264parse -> rtspclientsink -> MediaMTX
+pulsesrc(es8388)     -> opusenc                  -> rtspclientsink   // 2nd track
 </script>
 
 <script type="text/plain" data-src id="src-features" data-lang="cpp" data-file="src/cpp_runtime/fall_detector.cpp">
@@ -803,15 +804,15 @@ const DATA = [
   name:{en:"Vision pipeline",zh:"视觉流水线"}, name2:{en:"camera to pose",zh:"从相机到姿态"},
   tag:{en:"Camera frames to pose keypoints on the NPU, about 15 fps.",zh:"相机画面进 NPU，输出人体姿态关键点，约 15 fps。"},
   file:"src/cpp_edge/main_yolo_pose_rknn_camera.cpp",
-  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 mmap/DMA-BUF capture path delivers NV12 frames; the deployed auto preprocess path uses RGA where the buffer layout supports it and falls back safely when it does not, and the RKNN input is still sent through rknn_inputs_set for the 3-context production path. Three parallel RKNN contexts run YOLOv8n-pose; for each person it produces a bounding box, 17 COCO keypoints and a track id, then fans the result out three ways.",
-            zh:"MIPI 相机先接 RK3588 的硬件 ISP;8 缓冲的 V4L2 mmap/DMA-BUF 采集路径交付 NV12 画面。部署用的是 auto 预处理：buffer 布局支持时走 RGA，不支持就安全回退；为 3 上下文的生产路径，RKNN 输入仍走 rknn_inputs_set。三个并行 RKNN 上下文跑 YOLOv8n-pose；每检测到一个人，就给出边界框、17 个 COCO 关键点和一个跟踪 id，再分三路送出去。"},
+  overview:{en:"A MIPI camera feeds the RK3588 hardware ISP. An 8-buffer V4L2 mmap/DMA-BUF capture path delivers NV12 frames. The deployed preprocess path is zero-copy: RGA reads the V4L2 camera DMA-BUF and writes each worker's RKNN input buffer (NV12->RGB, resize, letterbox), and the NPU reads that output directly via rknn_set_io_mem (rknn_inputs_set_ms = 0); MPLANE / async / night-enhance frames fall back to rknn_inputs_set. Three parallel RKNN contexts run YOLOv8n-pose; for each person it produces a bounding box, 17 COCO keypoints and a track id, then fans the result out three ways.",
+            zh:"MIPI 相机先接 RK3588 的硬件 ISP；8 缓冲的 V4L2 mmap/DMA-BUF 采集路径交付 NV12 画面。部署的预处理是零拷贝：RGA 读 V4L2 相机 DMA-BUF，写入每个 worker 的 RKNN 输入 buffer（NV12->RGB、缩放、letterbox），NPU 通过 rknn_set_io_mem 直接读这块输出（rknn_inputs_set_ms = 0）；MPLANE / 异步 / 夜间增强时回退 rknn_inputs_set。三个并行 RKNN 上下文跑 YOLOv8n-pose；每检测到一个人，就给出边界框、17 个 COCO 关键点和一个跟踪 id，再分三路送出去。"},
   subs:[
     { id:"boot", code:"boot",
       name:{en:"Boot & entry",zh:"启动与入口"},
-      summary:{en:"systemd pins the process to the A76 cores and launches one program that owns the camera and the whole AI path.",zh:"systemd 把进程绑到 A76 大核，启动一个独占摄像头、跑完整条 AI 链路的程序。"},
+      summary:{en:"systemd allows the process all 8 cores and launches one program that owns the camera and the whole AI path; the binary pins its own capture (0-3) and inference (6-7) threads.",zh:"systemd 放开 8 个核，启动一个独占摄像头、跑完整条 AI 链路的程序；二进制自己把采集（0-3）和推理（6-7）线程绑核。"},
       flow:[
-        {t:"systemd", d:{en:"eldercare-vision.service · CPU 4-7 · RTSP on",zh:"eldercare-vision.service · CPU 4-7 · 开 RTSP"}},
-        {t:"run_pose_camera.sh", d:{en:"taskset -c 4-7 + all flags",zh:"taskset -c 4-7 + 全部参数"}},
+        {t:"systemd", d:{en:"eldercare-vision.service · CPU 0-7 · RTSP on",zh:"eldercare-vision.service · CPU 0-7 · 开 RTSP"}},
+        {t:"run_pose_camera.sh", d:{en:"no outer taskset · cap 0-3 / inf 6-7",zh:"无外层 taskset · 采集 0-3 / 推理 6-7"}},
         {t:"main(): parse args", d:{en:"CameraAppConfig",zh:"CameraAppConfig"}},
         {t:"init outputs", d:{en:"PoseUdpSender + RtspOutputServer",zh:"PoseUdpSender + RtspOutputServer"}},
         {t:"rknn_init + core mask", d:{en:"load YOLOv8-pose, bind NPU core 0",zh:"加载 YOLOv8-pose，绑 NPU core 0"}, edge:{en:"once",zh:"仅一次"}}
@@ -867,8 +868,8 @@ const DATA = [
         {t:"results map by frame_id", d:{en:"reassembled in capture order",zh:"按采集顺序重排"}}
       ],
       df:{in:["NV12 frame job"], proc:["RGA NV12 -> RGB","YOLOv8n-pose 640","3 NPU cores"], out:["detections (ordered)"]},
-      why:{en:"On 35 archived weak-light / action snapshots the 384 model recovered only 27, while the 640 model recovered all 35, so the deployment uses 640. Three parallel RKNN contexts keep it at about 15 fps (14.97 measured, 0 dropped frames). With --parallel-hold-v4l2-dmabuf each worker keeps its V4L2 DMA-BUF until pose, tracking and the RTSP/JPEG outputs are done with that frame, and results are reassembled by frame_id into capture order before they leave, which is what removed the earlier RTSP flicker. The full rknn_set_io_mem zero-copy path was actually slower here, about 210 ms per inference (~4.6 fps), so the pipeline keeps RGA pre-processing with rknn_inputs_set.",
-           zh:"在 35 段弱光/动作存档里，384 模型只找回 27 段，640 模型 35 段全找回，所以部署用的是 640。三个并行 RKNN 上下文把它稳在约 15 fps（实测 14.97,0 丢帧）。开了 --parallel-hold-v4l2-dmabuf 后，每个 worker 会一直 hold 住自己的 V4L2 DMA-BUF，直到这一帧的姿态、跟踪和 RTSP/JPEG 输出都做完，再按 frame_id 重排回采集顺序才送出去，这正是之前 RTSP 闪烁被消掉的原因。看着更快的 rknn_set_io_mem 全零拷贝路径，在这块板上反而更慢，单次推理约 210 ms（约 4.6 fps），所以流水线仍用 RGA 预处理配合 rknn_inputs_set。"} },
+      why:{en:"On 35 archived weak-light / action snapshots the 384 model recovered only 27, while the 640 model recovered all 35, so the deployment uses 640. Three parallel RKNN contexts keep it at about 15 fps (14.97 measured, 0 dropped frames). With --parallel-hold-v4l2-dmabuf each worker keeps its V4L2 DMA-BUF until pose, tracking and the RTSP/JPEG outputs are done with that frame, and results are reassembled by frame_id into capture order before they leave, which is what removed the earlier RTSP flicker. A first single-context attempt at rknn_set_io_mem measured slower (~210 ms) and was unsafe to share across workers; the deployed fix binds one io-mem per parallel context, so the zero-copy input (rknn_inputs_set_ms = 0) and 3-way parallelism both hold.",
+           zh:"在 35 段弱光/动作存档里，384 模型只找回 27 段，640 模型 35 段全找回，所以部署用的是 640。三个并行 RKNN 上下文把它稳在约 15 fps（实测 14.97,0 丢帧）。开了 --parallel-hold-v4l2-dmabuf 后，每个 worker 会一直 hold 住自己的 V4L2 DMA-BUF，直到这一帧的姿态、跟踪和 RTSP/JPEG 输出都做完，再按 frame_id 重排回采集顺序才送出去，这正是之前 RTSP 闪烁被消掉的原因。早期单上下文的 rknn_set_io_mem 实测更慢（约 210 ms）、且在多 worker 间共享不安全；现在每个并行上下文各绑一块 io-mem，所以零拷贝输入（rknn_inputs_set_ms = 0）和三路并行都保住。"} },
     { id:"postprocess", code:"postprocess",
       name:{en:"Pose decode & tracking",zh:"姿态解码与跟踪"},
       summary:{en:"Decode the pose grid, undo letterbox, run NMS, assign a track id.",zh:"解码姿态网格、还原 letterbox、做 NMS、分配跟踪 id。"},
@@ -888,12 +889,12 @@ const DATA = [
       flow:[
         {t:"detections + frame", d:{en:"one set per inferred frame",zh:"每帧推理一组"}},
         {t:"UDP :5800", d:{en:"JSON pose datagram -> fall service",zh:"JSON 姿态数据报 -> 跌倒服务"}},
-        {t:"RTSP :8554", d:{en:"overlay -> MPP H.264 -> multi-appsrc",zh:"叠加 -> MPP H.264 -> 多 appsrc"}, edge:{en:"to family",zh:"给家人"}},
+        {t:"RTSP :8554", d:{en:"MPP H.264 + Opus -> MediaMTX",zh:"MPP H.264 + Opus -> MediaMTX"}, edge:{en:"clean stream",zh:"干净流"}},
         {t:"HW-JPEG ring", d:{en:"MPP JPEG -> /dev/shm evidence",zh:"MPP JPEG -> /dev/shm 取证"}}
       ],
       df:{in:["detections + frame"], proc:["pack JSON","MPP H.264 encode","MPP JPEG encode"], out:["UDP pose","RTSP stream","JPEG ring"]},
-      why:{en:"RTSP H.264 and the JPEG evidence ring use Rockchip MPP hardware paths, leaving the CPU for inference; the pose output is a lightweight JSON datagram over UDP, not an encoder. RTSP uses a per-client GStreamer media/appsrc fan-out with independent timestamps, so clients can reconnect and several phones can watch at once. An earlier shared-media design failed on the second connection. The AI overlay is pushed by the vision process itself, so no second process opens /dev/video12; the standalone eldercare-rtsp-camera unit is debug-only and must not run at the same time.",
-           zh:"RTSP H.264 和 JPEG 取证环走 Rockchip MPP 硬件路径，把 CPU 让给推理；姿态输出是 UDP 上的轻量 JSON 数据报，不是编码器。RTSP 给每个客户端单独建一套 GStreamer 的 media/appsrc，时间戳各管各的，所以能断线重连，也能多部手机同时看。早期共用一个 media 的做法，第二个客户端一连上就出问题。AI 叠加流由视觉进程自己推出去，所以不会有第二个进程去开 /dev/video12；那个独立的 eldercare-rtsp-camera 单元仅用于调试，不能和视觉服务同时跑。"} }
+      why:{en:"RTSP H.264 and the JPEG evidence ring use Rockchip MPP hardware paths, leaving the CPU for inference; the pose output is a lightweight JSON datagram over UDP, not an encoder. The vision process encodes one H.264 + Opus stream and publishes it to MediaMTX, which fans it out to RTSP / WebRTC / HLS clients, so several phones or browsers can watch and reconnect independently. The production stream is clean video: detection boxes and keypoints are drawn browser-side by the health agent's viewer, not burned in, which keeps the DMA-BUF output path intact. The standalone eldercare-rtsp-camera unit is debug-only and must not run at the same time.",
+           zh:"RTSP H.264 和 JPEG 取证环走 Rockchip MPP 硬件路径，把 CPU 让给推理；姿态输出是 UDP 上的轻量 JSON 数据报，不是编码器。视觉进程只编码一路 H.264 + Opus，发布到 MediaMTX，由 MediaMTX 扇出给 RTSP / WebRTC / HLS 客户端，所以多部手机或浏览器都能看、能各自断线重连。生产流是干净视频：检测框和关键点由健康代理的 viewer 在浏览器侧画，不烧录进流，这样保住了 DMA-BUF 输出路径。那个独立的 eldercare-rtsp-camera 单元仅用于调试，不能和视觉服务同时跑。"} }
   ]
 },
 {
@@ -1027,17 +1028,17 @@ const DATA = [
            zh:"这块板子的喇叭回声相关性很弱：只看能量，会被非线性残差骗；只看相关性，又会被弱回声骗。所以这道门要求“残差能量超标”和“多频带不相关”两个条件同时成立，既压得住助手自己的 TTS，又放得进真人插话。"} },
     { id:"chain", code:"chain",
       name:{en:"Wake / ASR / LLM / TTS",zh:"唤醒 / ASR / LLM / TTS"},
-      summary:{en:"KWS wake-word, Silero VAD, SenseVoice ASR, Qwen2.5-1.5B (llama.cpp) and MeloTTS (Matcha/Piper fallback), all on the board.",zh:"KWS 唤醒词、Silero VAD、SenseVoice ASR、Qwen2.5-1.5B（llama.cpp）和 MeloTTS（Matcha/Piper 兜底），全部在板上。"},
+      summary:{en:"KWS wake-word, Silero VAD, SenseVoice ASR, Qwen2.5-1.5B (llama.cpp) and Matcha TTS (sherpa-onnx, Piper fallback), all on the board.",zh:"KWS 唤醒词、Silero VAD、SenseVoice ASR、Qwen2.5-1.5B（llama.cpp）和 Matcha TTS（sherpa-onnx，Piper 兜底），全部在板上。"},
       flow:[
         {t:"KWS wake-word", d:{en:"sherpa-onnx zipformer (zh-en)",zh:"sherpa-onnx zipformer（中英）"}},
         {t:"Silero VAD", d:{en:"endpoint the utterance",zh:"切出一句话"}},
         {t:"SenseVoice ASR", d:{en:"offline Chinese -> text",zh:"离线中文 -> 文本"}},
         {t:"Qwen2.5-1.5B", d:{en:"llama.cpp, local :8081, multi-turn",zh:"llama.cpp，本地 :8081，多轮"}},
-        {t:"MeloTTS -> playback", d:{en:"Matcha/Piper fallback; also feeds AEC reference",zh:"Matcha/Piper 兜底；并喂回 AEC 参考"}, edge:{en:"loop",zh:"回路"}}
+        {t:"Matcha TTS -> playback", d:{en:"Piper fallback; also feeds AEC reference",zh:"Piper 兜底；并喂回 AEC 参考"}, edge:{en:"loop",zh:"回路"}}
       ],
       df:{in:["mic audio"], proc:["VAD","ASR","local LLM","TTS"], out:["spoken reply","reference for AEC"]},
-      why:{en:"No audio leaves the board. The local LLM is a real Qwen2.5-1.5B served by llama.cpp on :8081, not a canned fallback, and TTS is MeloTTS (sherpa-onnx vits) with Matcha, Piper and an espeak path as fallbacks. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped. Endpoints are tuned for elders: it wakes after 520 ms of trailing silence and ends a user turn after 1000 ms; an active session stays open 90 s before dropping back to wake mode, and recorded audio is capped at 512 MB with a 24 h TTL.",
-           zh:"音频一点都不出板子。本地大模型是 llama.cpp 跑的 Qwen2.5-1.5B，不是写死的兜底回复；TTS 是 MeloTTS（sherpa-onnx vits），Matcha、Piper 和 espeak 作为兜底。C++ 版本还补回了早期弄丢的多轮对话（唤醒一次就能接着聊）。端点按老人节奏：尾静音 520 ms 触发唤醒、用户一句话静音 1000 ms 结束，活跃会话保持 90 秒再退回唤醒模式，录下的音频上限 512 MB、保留 24 小时。"} },
+      why:{en:"No audio leaves the board. The local LLM is a real Qwen2.5-1.5B served by llama.cpp on :8081, not a canned fallback, and TTS is Matcha (sherpa-onnx OfflineTts), resident at startup, with Piper and an espeak path as fallbacks. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped. Endpoints are tuned for elders: it wakes after 520 ms of trailing silence and ends a user turn after 1000 ms; an active session stays open 90 s before dropping back to wake mode, and recorded audio is capped at 512 MB with a 24 h TTL.",
+           zh:"音频一点都不出板子。本地大模型是 llama.cpp 跑的 Qwen2.5-1.5B，不是写死的兜底回复；TTS 是 Matcha（sherpa-onnx OfflineTts），启动即常驻，Piper 和 espeak 作为兜底。C++ 版本还补回了早期弄丢的多轮对话（唤醒一次就能接着聊）。端点按老人节奏：尾静音 520 ms 触发唤醒、用户一句话静音 1000 ms 结束，活跃会话保持 90 秒再退回唤醒模式，录下的音频上限 512 MB、保留 24 小时。"} },
     { id:"fallans", code:"fallans",
       name:{en:"Post-fall check-in",zh:"跌倒后问询"},
       summary:{en:"A short prompt that allows interruption, then classification into ok / sos / unclear.",zh:"一句允许打断的短提示，再分类为 ok / sos / unclear。"},
@@ -1070,11 +1071,11 @@ const DATA = [
         {t:"wake KWS ~0.2 s", d:{en:"sherpa zipformer",zh:"sherpa zipformer"}},
         {t:"user ASR ~0.3-0.8 s", d:{en:"SenseVoice, one utterance",zh:"SenseVoice，一句话"}},
         {t:"LLM first clause ~1.1 s", d:{en:"Qwen2.5-1.5B (llama.cpp), measured",zh:"Qwen2.5-1.5B（llama.cpp），实测"}, edge:{en:"the long pole",zh:"主要瓶颈"}},
-        {t:"TTS ~1.0 s/clause", d:{en:"MeloTTS (vits), measured",zh:"MeloTTS（vits），实测"}}
+        {t:"TTS ~1.0 s/clause", d:{en:"Matcha (sherpa-onnx), measured",zh:"Matcha（sherpa-onnx），实测"}}
       ],
       df:{in:["mic utterance"], proc:["KWS","SenseVoice ASR","LLM first clause","streaming TTS"], out:["first audio out"]},
-      why:{en:"From the voice.log timing lines: wake KWS about 0.2 s, wake-word ASR about 0.3 s, a user utterance through SenseVoice about 0.3-0.8 s (longer for long sentences), then the local Qwen2.5-1.5B first clause about 2-4 s, which is the dominant term, and TTS synthesis about 0.6-1.6 s per clause (faster than real time, Matcha resident at startup). Because the LLM streams clause by clause and TTS runs ahead of playback, the person hears the first words while later clauses are still being generated, so perceived latency is closer to the first-clause time than the full-reply time.",
-           zh:"取自 voice.log 的 timing 行：唤醒 KWS 约 0.2 秒、唤醒词 ASR 约 0.3 秒、用户一句话过 SenseVoice 约 0.3-0.8 秒（长句更久），再到本地 Qwen2.5-1.5B 的首个分句约 2-4 秒（这是主导项）,TTS 合成每个分句约 0.6-1.6 秒（快于实时，Matcha 启动即常驻）。因为 LLM 一句一句往外吐、TTS 抢在播放前面合成，人听到头几个字时后面的分句还在生成，所以体感延迟更接近首个分句的时间，而不是整段回答的时间。"} }
+      why:{en:"From the voice.log timing lines (llama.cpp threads=2, parallel=1): wake KWS about 0.2 s, wake-word ASR about 0.3 s, a user utterance through SenseVoice about 0.3-0.8 s (longer for long sentences), then the local Qwen2.5-1.5B first clause about 1.1 s, which is the dominant term, and Matcha TTS synthesis about 1 s per clause (faster than real time, resident at startup). Because the LLM streams clause by clause and TTS runs ahead of playback, the person hears the first words while later clauses are still being generated, so perceived latency is closer to the first-clause time than the full-reply time.",
+           zh:"取自 voice.log 的 timing 行（llama.cpp threads=2、parallel=1）：唤醒 KWS 约 0.2 秒、唤醒词 ASR 约 0.3 秒、用户一句话过 SenseVoice 约 0.3-0.8 秒（长句更久），再到本地 Qwen2.5-1.5B 的首个分句约 1.1 秒（这是主导项），Matcha TTS 合成每个分句约 1 秒（快于实时，启动即常驻）。因为 LLM 一句一句往外吐、TTS 抢在播放前面合成，人听到头几个字时后面的分句还在生成，所以体感延迟更接近首个分句的时间，而不是整段回答的时间。"} }
   ]
 },
 {
@@ -1401,7 +1402,7 @@ const BUGS=[
  {t:{en:"Chinese TTS fallback",zh:"中文 TTS 兜底"},
   sym:{en:"Chinese came out wrong or silent",zh:"中文被读错或读空"},
   cause:{en:"a fragile Python fallback; the OpenAI TTS path was dead code",zh:"旧 Python 兜底不稳，OpenAI TTS 路径是死代码"},
-  fix:{en:"MeloTTS primary with Matcha/Piper and a CJK-aware local TTS fallback, plus regenerated cached emergency prompts",zh:"MeloTTS 主用，Matcha/Piper 加一层 CJK 友好的本地 TTS 兜底，并重新生成缓存的应急提示"},
+  fix:{en:"Matcha (sherpa-onnx) primary, Piper fallback, a CJK-aware local TTS fallback and regenerated cached emergency prompts",zh:"Matcha（sherpa-onnx）主用、Piper 兜底，再加一层 CJK 友好的本地 TTS 兜底，并重新生成缓存的应急提示"},
   ev:"src/cpp_runtime/voice_service.cpp synth_companion_cached",
   ls:{en:"a fallback you never exercise is the same as no fallback",zh:"从来不被触发的兜底，等于没有兜底"}},
  {t:{en:"Network-down alert stall",zh:"断网报警卡死"},
@@ -1490,11 +1491,6 @@ const ROADMAP=[
     s:{en:"single-plane NV12 zero-copy deployed (RGA fd-to-fd + set_io_mem)",zh:"单平面 NV12 零拷贝已部署（RGA fd-to-fd + set_io_mem）"},
     n:{en:"MPLANE Y/UV fd -> RGA -> per-worker RKNN input buffer",zh:"MPLANE 的 Y/UV fd -> RGA -> 每 worker 的 RKNN 输入"},
     m:{en:"set_io_mem on MPLANE too, fps >= 14.9 unchanged",zh:"MPLANE 也走 set_io_mem，fps >= 14.9 不变"}},
-   {t:{en:"NV12 in-place overlay",zh:"NV12 原地叠加"}, w:"3-6mo",
-    p:{en:"RTSP still copies into a GstBuffer",zh:"RTSP 仍有 GstBuffer 拷贝"},
-    s:{en:"per-client appsrc with a copy",zh:"每客户端 appsrc + 一次拷贝"},
-    n:{en:"NV12 luma/chroma overlay + dmabuf appsrc",zh:"NV12 luma/chroma 叠加 + dmabuf appsrc"},
-    m:{en:"lower RTSP CPU, no flicker, stable reconnect",zh:"RTSP CPU 降、不闪、重连稳"}},
    {t:{en:"Multi-person tracking",zh:"多人追踪升级"}, w:"1-2mo",
     p:{en:"only a lightweight IoU tracker",zh:"只是轻量 IoU tracker"},
     s:{en:"greedy IoU at 0.30",zh:"贪心 IoU 0.30"},
@@ -1529,7 +1525,7 @@ const ROADMAP=[
     m:{en:"faint-call recall up, false wakes down",zh:"弱声求助召回升，空触发降"}},
    {t:{en:"Latency budget",zh:"延迟预算"}, w:"1-2mo",
     p:{en:"latency not yet systematically tuned",zh:"延迟尚未系统优化"},
-    s:{en:"measured: LLM first clause 2-4 s dominates",zh:"实测：LLM 首句 2-4s 主导"},
+    s:{en:"measured: LLM first clause ~1.1 s dominates",zh:"实测：LLM 首句 ~1.1s 主导"},
     n:{en:"split + tune wake / endpoint / ASR / LLM-first-token / TTS-first-audio",zh:"拆分并优化各段"},
     m:{en:"first audio < 3 s, normal Q&A < 4 s",zh:"首音 <3s，普通问答 <4s"}},
    {t:{en:"Local long-term memory",zh:"本地长期记忆"}, w:"3-6mo",
@@ -1745,13 +1741,13 @@ function lowlightDecision(){
 }
 
 const RUNTIME_TABLE=[
- {s:"vision", cpu:"4-7", log:"vision.log", imp:{en:"no pose / RTSP",zh:"无姿态 / RTSP"}},
+ {s:"vision", cpu:"0-7 · inf 6-7", log:"vision.log", imp:{en:"no pose / RTSP",zh:"无姿态 / RTSP"}},
  {s:"fall", cpu:"0-3", log:"fall_service.log", imp:{en:"no fall event",zh:"无跌倒事件"}},
  {s:"alert", cpu:"0-3", log:"alert_service.log", imp:{en:"no family push",zh:"不推送家人"}},
- {s:"voice", cpu:"4-7", log:"voice.log", imp:{en:"no check-in (alert still fires)",zh:"无问询（报警仍触发）"}},
+ {s:"voice", cpu:"4-5 · AEC 2-3", log:"voice.log", imp:{en:"no check-in (alert still fires)",zh:"无问询（报警仍触发）"}},
  {s:"health", cpu:{en:"unpinned",zh:"不绑核"}, log:"health.log", imp:{en:"no status.json",zh:"无 status.json"}},
- {s:"llm", cpu:"4-7", log:"llm.log", imp:{en:"voice slower / fallback",zh:"语音变慢 / 降级"}},
- {s:"ota-agent", cpu:"4-7", log:{en:"job log",zh:"任务日志"}, imp:{en:"no OTA update",zh:"无 OTA 更新"}, od:true}
+ {s:"llm", cpu:"4-5", log:"llm.log", imp:{en:"voice slower / fallback",zh:"语音变慢 / 降级"}},
+ {s:"ota-agent", cpu:{en:"—",zh:"—"}, log:{en:"job log",zh:"任务日志"}, imp:{en:"no OTA update",zh:"无 OTA 更新"}, od:true}
 ];
 
 function runtimeTable(){
@@ -1780,7 +1776,8 @@ function archIpc(){
     ["Vision","Fall","UDP :5800 · JSON pose"],
     ["Fall","Alert / Voice","MQTT eldercare/fall/event"],
     ["Voice","Alert","MQTT eldercare/alert/request"],
-    ["Vision","Family","RTSP :8554/eldercare"],
+    ["Vision","MediaMTX","publish H.264 + Opus, :8554"],
+    ["MediaMTX","Family","RTSP / WebRTC / HLS clients"],
     ["Health","Ops / OTA","runtime/health/status.json"],
     ["Voice","AEC helper","stdin cmd + stdout PCM pipe"]
   ];
@@ -1813,7 +1810,7 @@ function mediamtxDiagram(){
 }
 function dmabufLifecycle(){
   var t=function(o){return esc(tr(o));};
-  return '<svg role="img" viewBox="0 0 680 232" width="100%" xmlns="http://www.w3.org/2000/svg">'+
+  return '<svg role="img" viewBox="0 0 680 248" width="100%" xmlns="http://www.w3.org/2000/svg">'+
     '<defs><marker id="la" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#e08a4a"/></marker></defs>'+
     '<line x1="60" y1="26" x2="60" y2="176" stroke="#cbbda9" stroke-width="1.5" stroke-dasharray="4 3"/>'+
     '<line x1="470" y1="26" x2="470" y2="176" stroke="#cbbda9" stroke-width="1.5" stroke-dasharray="4 3"/>'+
@@ -1823,7 +1820,7 @@ function dmabufLifecycle(){
     '<text x="265" y="47" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12.5" fill="#33302b">'+t({en:"V4L2 buffer k held — safe to read",zh:"V4L2 buffer k 持有中 — 可安全读取"})+'</text>'+
     '<rect x="70" y="70" width="280" height="38" rx="8" fill="#fffdf9" stroke="#3f8f6b"/>'+
     '<text x="210" y="86" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11.5" fill="#33302b">RGA fd-to-fd -&gt; set_io_mem -&gt; rknn_run</text>'+
-    '<text x="210" y="100" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"reads the buffer in place — 0 copy",zh:"原地读取 — 0 拷贝"})+'</text>'+
+    '<text x="210" y="100" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"NPU reads RGA output — 0 copy",zh:"NPU 读 RGA 输出 — 0 拷贝"})+'</text>'+
     '<rect x="70" y="118" width="280" height="38" rx="8" fill="#fffdf9" stroke="#e08a4a"/>'+
     '<text x="210" y="134" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11.5" fill="#33302b">RGA fd-to-fd copy -&gt; CMA DMA-BUF</text>'+
     '<text x="210" y="148" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"a separate buffer the encoder owns",zh:"编码器自己拥有的另一块 buffer"})+'</text>'+
@@ -1831,7 +1828,7 @@ function dmabufLifecycle(){
     '<rect x="490" y="118" width="176" height="38" rx="8" fill="#fffdf9" stroke="#e08a4a"/>'+
     '<text x="578" y="134" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11.5" fill="#33302b">mpph264enc</text>'+
     '<text x="578" y="148" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"async, outlives the buffer",zh:"异步，比 buffer 活得久"})+'</text>'+
-    svgCap(12,176,656,50,{en:"The NPU reads the camera buffer in place (zero-copy). The encoder is async and must not hold the V4L2 fd — QBUF would free it mid-encode and tear the frame, so one RGA fd-to-fd copy moves pixels to a CMA buffer, then QBUF returns at once.",zh:"NPU 原地读相机 buffer（零拷贝）。编码器是异步的，不能持有 V4L2 fd —— QBUF 会在编码中途释放它、导致撕裂，所以用一次 RGA fd-to-fd 拷贝把像素搬到 CMA buffer，然后立刻 QBUF 归还。"},12)+
+    svgCap(12,176,656,62,{en:"RGA reads the V4L2 camera DMA-BUF into the worker's RKNN input buffer; the NPU reads that via set_io_mem (zero-copy input). The encoder is async and must not hold the V4L2 fd — QBUF would free it mid-encode and tear the frame — so one RGA fd-to-fd copy moves pixels to a CMA buffer, then QBUF returns at once.",zh:"RGA 读 V4L2 相机 DMA-BUF，写入该 worker 的 RKNN 输入 buffer；NPU 通过 set_io_mem 读这块 RGA 输出（零拷贝输入）。编码器是异步的，不能持有 V4L2 fd —— QBUF 会在编码中途释放它、导致撕裂 —— 所以用一次 RGA fd-to-fd 拷贝把像素搬到 CMA buffer，然后立刻 QBUF 归还。"},12)+
     '</svg>';
 }
 function obsPanel(){
@@ -1875,7 +1872,7 @@ function otaFlow(){
 }
 function latencyWaterfall(){
   var t2=function(o){return esc(tr(o));};
-  var st=[[{en:"KWS wake",zh:"KWS 唤醒"},0,0.2,"#4f86a8"],[{en:"ASR (SenseVoice)",zh:"ASR（SenseVoice）"},0.2,0.35,"#3f8f6b"],[{en:"LLM first clause",zh:"LLM 首句"},0.55,1.1,"#e08a4a"],[{en:"TTS (MeloTTS)",zh:"TTS（MeloTTS）"},1.65,1.0,"#9b7bb0"]];
+  var st=[[{en:"KWS wake",zh:"KWS 唤醒"},0,0.2,"#4f86a8"],[{en:"ASR (SenseVoice)",zh:"ASR（SenseVoice）"},0.2,0.35,"#3f8f6b"],[{en:"LLM first clause",zh:"LLM 首句"},0.55,1.1,"#e08a4a"],[{en:"TTS (Matcha)",zh:"TTS（Matcha）"},1.65,1.0,"#9b7bb0"]];
   var total=2.65,x0=150,w=460;
   var rows=st.map(function(s,i){var x=x0+s[1]/total*w,bw=s[2]/total*w,y=18+i*32;return '<text x="'+(x0-10)+'" y="'+(y+15)+'" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="11.5" fill="#6f655b">'+t2(s[0])+'</text><rect x="'+x.toFixed(1)+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="22" rx="4" fill="'+s[3]+'"/><text x="'+(x+bw+6).toFixed(1)+'" y="'+(y+16)+'" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#6f655b">'+s[2].toFixed(2)+'s</text>';}).join("");
   return '<svg role="img" viewBox="0 0 680 174" width="100%" xmlns="http://www.w3.org/2000/svg"><title>'+t2({en:"voice latency waterfall",zh:"语音延迟瀑布"})+'</title>'+rows+svgCap(12,142,656,30,{en:"Wake to first spoken clause ~2.6 s; the LLM first clause (~1.1 s) is the bottleneck. Measured from voice.log.",zh:"从唤醒到第一句出声约 2.6s；LLM 首句（~1.1s）是瓶颈。数据来自 voice.log。"},12)+'</svg>';
