@@ -630,6 +630,9 @@ const T = {
   cta_arch:{en:"See the architecture",zh:"查看架构"}, cta_ev:{en:"Live evidence",zh:"实测证据"},
   lede_short:{en:"All AI runs on the device. The camera feed and microphone audio never leave the board; the only thing that goes out is the alert to family.",zh:"所有 AI 都在设备本地跑，画面和声音都不出板；唯一对外发送的，是摔倒后给家人的那条报警。"},
   nav_deepdive:{en:"Deep Dive",zh:"深入"},
+  cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1 (about 10 fps in this snapshot; the trend panel shows it moving between 10 and 15), so the ceiling is the camera, not compute. The 14.97 fps headline is the steady-state 450-frame benchmark.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐（本张快照约 10fps，趋势图显示在 10 到 15 之间波动），所以瓶颈是相机而非算力。14.97fps 是 450 帧稳态基准。"},
+  cap_webrtc:{en:"WebRTC /viewer. The H.264 stream is clean; the browser Canvas draws the bounding box (track id and confidence) and the COCO-17 skeleton from the /overlay pose JSON. Here one tracked person, ID 61 at 0.88.",zh:"WebRTC /viewer。H.264 是干净流；浏览器 Canvas 从 /overlay 的姿态 JSON 画出检测框（track id 与置信度）和 COCO-17 骨架。图中为一个被跟踪的人，ID 61、0.88。"},
+  cap_hw:{en:"The device on the bench: an Orange Pi 5 Plus (RK3588) with heatsink and a quiet fan, the OV13855 MIPI camera module, and an ES8388 speaker. Everything in this project runs here; nothing is offloaded to a server.",zh:"台面上的设备：一块香橙派 5 Plus（RK3588）带散热片和静音风扇、OV13855 MIPI 摄像头模组，以及 ES8388 喇叭。本项目的一切都在这上面跑，没有任何东西放到服务器。"},
   rm_item:{en:"item",zh:"项目"},
   rm_st_test:{en:"Testing",zh:"测试中"}, rm_st_next:{en:"Next",zh:"下一步"}, rm_st_research:{en:"Research",zh:"研究"},
   nav_background:{en:"Background",zh:"背景"}, nav_overview:{en:"Overview",zh:"总览"}, nav_architecture:{en:"Architecture",zh:"架构"}, nav_runtime:{en:"Runtime",zh:"运行时"},
@@ -2021,6 +2024,7 @@ function home(){
     '<section id="overview">'+
       '<div class="secttl"><h2>'+tr(T.nums_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.nums_sub)+"</p>"+
+      '<figure class="skelfig"><img src="assets/hardware_bench.jpg" loading="lazy" alt="'+esc(tr(T.cap_hw))+'"><figcaption>'+esc(tr(T.cap_hw))+"</figcaption></figure>"+
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.ab_title))+"</div>"+abChart()+'<div class="abnote">'+esc(tr(T.ab_note))+"</div></div>"+
@@ -2071,6 +2075,10 @@ function home(){
       '<div class="secttl"><h2>'+tr(T.obs_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.obs_sub)+"</p>"+
       obsPanel()+
+      '<div class="netfigs" style="margin-top:16px">'+
+        '<figure class="netfig"><img src="assets/dashboard_telemetry.png" loading="lazy" alt="'+esc(tr(T.cap_dash))+'"><figcaption>'+esc(tr(T.cap_dash))+"</figcaption></figure>"+
+        '<figure class="netfig"><img src="assets/webrtc_overlay.png" loading="lazy" alt="'+esc(tr(T.cap_webrtc))+'"><figcaption>'+esc(tr(T.cap_webrtc))+"</figcaption></figure>"+
+      "</div>"+
     "</section>"+
     '<section id="deepdive">'+
       '<div class="secttl"><h2>'+tr(T.modules_h)+"</h2></div>"+
