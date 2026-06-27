@@ -641,7 +641,7 @@ const METRIC_GROUPS = [
   {title:{en:"Vision",zh:"视觉"}, c:"vis", items:[
     {v:{en:"15 fps",zh:"15 fps"},   l:{en:"640×480 · 0 dropped (14.97 measured)",zh:"640×480 · 0 丢帧（实测 14.97）"}},
     {v:{en:"3×",zh:"3×"},           l:{en:"parallel RKNN contexts",zh:"并行 RKNN 上下文"}},
-    {v:{en:"RTSP",zh:"RTSP"},       l:{en:":8554/eldercare · AI overlay to family",zh:":8554/eldercare · 家人看 AI 叠加"}}
+    {v:{en:"RTSP/WebRTC",zh:"RTSP/WebRTC"}, l:{en:":8554 + :8889 · clean stream, browser-side overlay",zh:":8554 + :8889 · 干净视频流，浏览器侧叠加"}}
   ]},
   {title:{en:"Safety",zh:"安全（跌倒→报警）"}, c:"fall", items:[
     {v:{en:"58 / 60",zh:"58 / 60"}, l:{en:"falls caught, field test (97%)",zh:"实测召回（97%）"}},
@@ -756,8 +756,8 @@ const DATA = [
         {t:"rknn_init + core mask", d:{en:"load YOLOv8-pose, bind NPU core 0",zh:"加载 YOLOv8-pose，绑 NPU core 0"}, edge:{en:"once",zh:"仅一次"}}
       ],
       df:{in:["power on"], proc:["systemd unit","run script + flags","main init"], out:["camera-owner process","UDP + RTSP ready","RKNN context"]},
-      why:{en:"One process owns /dev/video12 and runs the whole path (capture, inference, UDP, RTSP). RTSP is not a separate camera server, which avoids a second process fighting for the device. The unit pins the work to the A76 cores; the script also passes --capture-cpus 0-3, a scheduling detail worth tidying later.",
-           zh:"一个进程独占 /dev/video12，跑完整条链路（采集、推理、UDP、RTSP）。RTSP 不是单独的摄像头服务，避免第二个进程来抢设备。unit 把活儿绑在 A76 大核；脚本里还传了 --capture-cpus 0-3，这个调度细节以后可以再理顺。"} },
+      why:{en:"One process owns /dev/video12 and runs the whole path (capture, inference, UDP, RTSP). RTSP is not a separate camera server, which avoids a second process fighting for the device. CPU work is split by role: capture/IO on 0-3, the two NPU-feeding inference threads on 6-7, leaving the A76 mid cores for voice (4-5) and audio AEC (2-3). The service allows all of 0-7 and the binary pins its own threads, so no outer taskset fights the --capture-cpus split.",
+           zh:"一个进程独占 /dev/video12，跑完整条链路（采集、推理、UDP、RTSP）。RTSP 不是单独的摄像头服务，避免第二个进程来抢设备。CPU 按角色分工：采集/IO 在 0-3，两个喂 NPU 的推理线程在 6-7，把 A76 中核留给语音（4-5）和音频 AEC（2-3）。service 放开 0-7、由二进制自己绑线程，所以没有外层 taskset 来和 --capture-cpus 打架。"} },
     { id:"v4l2open", code:"v4l2open",
       name:{en:"Opening V4L2",zh:"V4L2 打开"},
       summary:{en:"Force NV12, request an 8-buffer pool, then mmap and export each buffer as a DMA-BUF fd.",zh:"强制 NV12，申请 8 个 buffer 的池子，再把每个 buffer mmap 并导出成 DMA-BUF fd。"},
@@ -786,16 +786,16 @@ const DATA = [
            zh:"cv::Mat 多数时候只是 mmap buffer 的视图，并不拥有像素。要是提前 QBUF 还接着用这个视图，摄像头就会往同一块内存写下一帧，于是出现撕裂（上半旧帧、下半新帧）。这里 RTSP 是安全的：push_nv12 会先把 NV12 拷进 GStreamer buffer 再返回，所以它返回之后再 QBUF 没问题。"} },
     { id:"rga", code:"rga",
       name:{en:"RGA preprocessing",zh:"RGA 预处理"},
-      summary:{en:"The auto preprocess path uses RGA for NV12->RGB / resize / letterbox when the buffer layout supports it, then hands RGB to RKNN through rknn_inputs_set; it falls back to a CPU path when it does not.",zh:"auto 预处理在 buffer 布局支持时用 RGA 做 NV12->RGB / 缩放 / letterbox，再把 RGB 通过 rknn_inputs_set 交给 RKNN；不支持时回退到 CPU 路径。"},
+      summary:{en:"The deployed preprocess backend is zero-copy: RGA reads the camera NV12 by DMA-BUF fd, resizes/letterboxes fd-to-fd, and the NPU reads that output directly via rknn_set_io_mem (input copy = 0). It engages on synchronous single-plane NV12 DMA-BUF; otherwise it falls back to RGA + rknn_inputs_set, then a CPU path.",zh:"部署的预处理后端是零拷贝：RGA 用 DMA-BUF fd 直接读相机 NV12，fd 到 fd 做缩放/letterbox，NPU 再通过 rknn_set_io_mem 直接读这块输出（输入拷贝=0）。它在同步单平面 NV12 DMA-BUF 时启用；否则回退到 RGA + rknn_inputs_set，再不行回退 CPU 路径。"},
       flow:[
         {t:"camera NV12 fd", d:{en:"V4L2 DMA-BUF, read by RGA",zh:"V4L2 DMA-BUF,RGA 直接读"}},
         {t:"RGA convert", d:{en:"NV12->RGB + resize + letterbox, ~1.3 ms",zh:"NV12->RGB + 缩放 + letterbox，约 1.3 ms"}, edge:{en:"on hardware",zh:"硬件上"}},
-        {t:"rknn_inputs_set", d:{en:"copy the input into the NPU, ~11 ms",zh:"把输入拷进 NPU，约 11 ms"}},
-        {t:"rknn_run", d:{en:"inference on the NPU core",zh:"在 NPU 核上推理"}}
+        {t:"rknn_set_io_mem", d:{en:"NPU reads the RGA output directly, 0 ms copy",zh:"NPU 直接读 RGA 输出，0 拷贝"}},
+        {t:"rknn_run", d:{en:"inference on the NPU core, ~79 ms",zh:"在 NPU 核上推理，约 79 ms"}}
       ],
-      df:{in:["NV12 DMA-BUF fd"], proc:["RGA NV12->RGB","resize + letterbox","rknn_inputs_set"], out:["detections"]},
-      why:{en:"The preprocess backend is auto, which picks one of three layers: an OpenCV CPU convert (fallback), RGA on a CPU-visible Mat, or the preferred RGA reading the camera buffer by DMA-BUF fd. Where it is genuinely zero-copy: capture to RGA. The frame is an mmap view and RGA reads the camera buffer by DMA-BUF fd, so there is no CPU colorspace convert. Where it is NOT: the inference input. The deployed path calls rknn_inputs_set every frame (about 11 ms measured). The full zero-copy path (rga_resize_fd_to_fd then rknn_set_io_mem, binding the RGA output straight to the NPU) is implemented but not the production default: on the 640 model it measured ~210 ms per inference, and it is disabled across the 3 parallel workers because a shared io-mem binding is unsafe with several frames in flight. So the design trades a truly zero-copy input for 640 accuracy plus 3-way parallelism.",
-           zh:"真正零拷贝的是前半段：采集到 RGA。帧是 mmap 视图，RGA 通过 DMA-BUF fd 直接读相机 buffer，这一步没有 CPU 颜色转换。不零拷贝的是推理输入：部署每帧都调用 rknn_inputs_set（实测约 11 ms）。完整的零拷贝路径（rga_resize_fd_to_fd 之后 rknn_set_io_mem，把 RGA 输出直接绑给 NPU）没有采用：它在 640 模型上单次推理实测约 210 ms，而且在 3 路并行 worker 下被禁用（多帧在飞时共享一块 io-mem 绑定不安全）。所以这里是用“真零拷贝输入”换来了 640 精度和三路并行。"} },
+      df:{in:["NV12 DMA-BUF fd"], proc:["RGA fd-to-fd NV12->RGB","resize + letterbox","rknn_set_io_mem"], out:["detections"]},
+      why:{en:"The preprocess backend is set to zero-copy. The camera frame is a V4L2 DMA-BUF; RGA reads it by fd, converts NV12->RGB and resizes/letterboxes fd-to-fd, and the NPU is bound to that RGA output with rknn_set_io_mem, so the inference input is never CPU-copied: rknn_inputs_set_ms = 0 in the live log, ~15 fps, 0 dropped. The path engages only for synchronous single-plane NV12 DMA-BUF; multi-plane (MPLANE), async capture, or night-enhance frames fall back safely to RGA + rknn_inputs_set, with a CPU OpenCV convert as the last resort. An earlier single-context attempt at set_io_mem measured slower and was unsafe to share across workers; the deployed fix is one io-mem binding per parallel context, which keeps both the zero-copy input and 3-way parallelism. The remaining work is multi-plane zero-copy so the fallback disappears.",
+           zh:"预处理后端设为 zero-copy。相机帧是 V4L2 DMA-BUF；RGA 用 fd 读它，fd 到 fd 做 NV12->RGB 和缩放/letterbox，再用 rknn_set_io_mem 把 NPU 绑到这块 RGA 输出，所以推理输入完全不经 CPU 拷贝：实时日志里 rknn_inputs_set_ms = 0，约 15fps、0 丢帧。这条路只在同步单平面 NV12 DMA-BUF 时启用；多平面（MPLANE）、异步采集或开夜间增强的帧会安全回退到 RGA + rknn_inputs_set，最后兜底是 CPU OpenCV 转换。早期单上下文的 set_io_mem 实测更慢、且在多 worker 间共享不安全；现在的做法是每个并行上下文各绑一块 io-mem，这样既保留零拷贝输入又保住三路并行。剩下的工作是多平面零拷贝，把这层回退也去掉。"} },
     { id:"parallel", code:"parallel",
       name:{en:"Parallel NPU inference",zh:"NPU 并行推理"},
       summary:{en:"One RKNN context per NPU core; a worker pool holds the 640 model at about 15 fps.",zh:"每个 NPU 核一个 RKNN 上下文，用线程池把 640 模型稳在约 15 fps。"},
@@ -966,17 +966,17 @@ const DATA = [
            zh:"这块板子的喇叭回声相关性很弱：只看能量，会被非线性残差骗；只看相关性，又会被弱回声骗。所以这道门要求“残差能量超标”和“多频带不相关”两个条件同时成立，既压得住助手自己的 TTS，又放得进真人插话。"} },
     { id:"chain", code:"chain",
       name:{en:"Wake / ASR / LLM / TTS",zh:"唤醒 / ASR / LLM / TTS"},
-      summary:{en:"KWS wake-word, Silero VAD, SenseVoice ASR, Qwen2.5-1.5B (llama.cpp) and Matcha TTS (Piper fallback), all on the board.",zh:"KWS 唤醒词、Silero VAD、SenseVoice ASR、Qwen2.5-1.5B（llama.cpp）和 Matcha TTS（Piper 兜底），全部在板上。"},
+      summary:{en:"KWS wake-word, Silero VAD, SenseVoice ASR, Qwen2.5-1.5B (llama.cpp) and MeloTTS (Matcha/Piper fallback), all on the board.",zh:"KWS 唤醒词、Silero VAD、SenseVoice ASR、Qwen2.5-1.5B（llama.cpp）和 MeloTTS（Matcha/Piper 兜底），全部在板上。"},
       flow:[
         {t:"KWS wake-word", d:{en:"sherpa-onnx zipformer (zh-en)",zh:"sherpa-onnx zipformer（中英）"}},
         {t:"Silero VAD", d:{en:"endpoint the utterance",zh:"切出一句话"}},
         {t:"SenseVoice ASR", d:{en:"offline Chinese -> text",zh:"离线中文 -> 文本"}},
         {t:"Qwen2.5-1.5B", d:{en:"llama.cpp, local :8081, multi-turn",zh:"llama.cpp，本地 :8081，多轮"}},
-        {t:"Matcha TTS -> playback", d:{en:"Piper fallback; also feeds AEC reference",zh:"Piper 兜底；并喂回 AEC 参考"}, edge:{en:"loop",zh:"回路"}}
+        {t:"MeloTTS -> playback", d:{en:"Matcha/Piper fallback; also feeds AEC reference",zh:"Matcha/Piper 兜底；并喂回 AEC 参考"}, edge:{en:"loop",zh:"回路"}}
       ],
       df:{in:["mic audio"], proc:["VAD","ASR","local LLM","TTS"], out:["spoken reply","reference for AEC"]},
-      why:{en:"No audio leaves the board. The local LLM is a real Qwen2.5-1.5B served by llama.cpp on :8081, not a canned fallback, and TTS prefers Matcha (resident at startup) with Piper as a lazy fallback. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped. Endpoints are tuned for elders: it wakes after 520 ms of trailing silence and ends a user turn after 1000 ms; an active session stays open 90 s before dropping back to wake mode, and recorded audio is capped at 512 MB with a 24 h TTL.",
-           zh:"音频一点都不出板子。本地大模型是 llama.cpp 跑的 Qwen2.5-1.5B，不是写死的兜底回复；TTS 优先 Matcha（启动即常驻）、Piper 兜底。C++ 版本还补回了早期弄丢的多轮对话（唤醒一次就能接着聊）。端点按老人节奏：尾静音 520 ms 触发唤醒、用户一句话静音 1000 ms 结束，活跃会话保持 90 秒再退回唤醒模式，录下的音频上限 512 MB、保留 24 小时。"} },
+      why:{en:"No audio leaves the board. The local LLM is a real Qwen2.5-1.5B served by llama.cpp on :8081, not a canned fallback, and TTS is MeloTTS (sherpa-onnx vits) with Matcha, Piper and an espeak path as fallbacks. The C++ port restored a multi-turn session (wake once, then continue) that an earlier build had dropped. Endpoints are tuned for elders: it wakes after 520 ms of trailing silence and ends a user turn after 1000 ms; an active session stays open 90 s before dropping back to wake mode, and recorded audio is capped at 512 MB with a 24 h TTL.",
+           zh:"音频一点都不出板子。本地大模型是 llama.cpp 跑的 Qwen2.5-1.5B，不是写死的兜底回复；TTS 是 MeloTTS（sherpa-onnx vits），Matcha、Piper 和 espeak 作为兜底。C++ 版本还补回了早期弄丢的多轮对话（唤醒一次就能接着聊）。端点按老人节奏：尾静音 520 ms 触发唤醒、用户一句话静音 1000 ms 结束，活跃会话保持 90 秒再退回唤醒模式，录下的音频上限 512 MB、保留 24 小时。"} },
     { id:"fallans", code:"fallans",
       name:{en:"Post-fall check-in",zh:"跌倒后问询"},
       summary:{en:"A short prompt that allows interruption, then classification into ok / sos / unclear.",zh:"一句允许打断的短提示，再分类为 ok / sos / unclear。"},
@@ -1008,8 +1008,8 @@ const DATA = [
       flow:[
         {t:"wake KWS ~0.2 s", d:{en:"sherpa zipformer",zh:"sherpa zipformer"}},
         {t:"user ASR ~0.3-0.8 s", d:{en:"SenseVoice, one utterance",zh:"SenseVoice，一句话"}},
-        {t:"LLM first clause ~2-4 s", d:{en:"Qwen2.5-1.5B (llama.cpp)",zh:"Qwen2.5-1.5B（llama.cpp）"}, edge:{en:"the long pole",zh:"主要瓶颈"}},
-        {t:"TTS ~0.6-1.6 s/clause", d:{en:"Matcha, RTF ~0.1-0.4",zh:"Matcha,RTF ~0.1-0.4"}}
+        {t:"LLM first clause ~1.1 s", d:{en:"Qwen2.5-1.5B (llama.cpp), measured",zh:"Qwen2.5-1.5B（llama.cpp），实测"}, edge:{en:"the long pole",zh:"主要瓶颈"}},
+        {t:"TTS ~1.0 s/clause", d:{en:"MeloTTS (vits), measured",zh:"MeloTTS（vits），实测"}}
       ],
       df:{in:["mic utterance"], proc:["KWS","SenseVoice ASR","LLM first clause","streaming TTS"], out:["first audio out"]},
       why:{en:"From the voice.log timing lines: wake KWS about 0.2 s, wake-word ASR about 0.3 s, a user utterance through SenseVoice about 0.3-0.8 s (longer for long sentences), then the local Qwen2.5-1.5B first clause about 2-4 s, which is the dominant term, and TTS synthesis about 0.6-1.6 s per clause (faster than real time, Matcha resident at startup). Because the LLM streams clause by clause and TTS runs ahead of playback, the person hears the first words while later clauses are still being generated, so perceived latency is closer to the first-clause time than the full-reply time.",
@@ -1021,8 +1021,8 @@ const DATA = [
   name:{en:"Operations",zh:"运维"}, name2:{en:"runtime and monitoring",zh:"运行与监控"},
   tag:{en:"Keeps the services running on the board without supervision.",zh:"没人盯着，也让板子上的服务一直稳稳跑着。"},
   file:"systemd/ · src/cpp_runtime/health_agent.cpp",
-  overview:{en:"Six always-on runtime services (vision, fall, alert, voice, health, llm), one on-demand OTA unit, plus two optional maintenance/debug units: a RAUC mark-good hook and a standalone debug RTSP camera server. All start under systemd with restart-on-failure. A read-only health agent samples liveness, disk and temperature into one JSON file. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
-            zh:"六个常驻运行服务（视觉、跌倒、报警、语音、健康、llm），一个按需的 OTA 单元，外加两个可选的维护/调试单元：RAUC mark-good 钩子，以及一个独立的调试用 RTSP 摄像头服务。它们都在 systemd 下开机自启、挂了自动拉起。一个只读的健康代理把服务存活、磁盘、温度采集到一个 JSON 文件。还有一小段 shell 循环把散热风扇压在安静的转速，免得它吵到麦克风。"},
+  overview:{en:"Eight always-on user services — vision, fall, alert, voice, health, llm, a MediaMTX stream fan-out, and an ISP weak-light agent — plus an on-demand OTA unit (disabled by default) and a system-level fan-hold service. All start under systemd with restart-on-failure. The health agent is a read-only Prometheus exporter on :9090 (/metrics, /dashboard, /viewer, /healthz) sampling liveness, per-process CPU/RSS, NPU load, CMA headroom and temperature. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
+            zh:"八个常驻用户服务——视觉、跌倒、报警、语音、健康、llm、一个 MediaMTX 流扇出、一个 ISP 弱光代理——外加一个按需的 OTA 单元（默认关闭）和一个系统级风扇保持服务。它们都在 systemd 下开机自启、挂了自动拉起。健康代理是一个只读的 Prometheus 导出器，跑在 :9090（/metrics、/dashboard、/viewer、/healthz），采集服务存活、各进程 CPU/RSS、NPU 负载、CMA 余量和温度。还有一小段 shell 循环把散热风扇压在安静的转速，免得它吵到麦克风。"},
   subs:[
     { id:"services", code:"systemd",
       name:{en:"systemd services",zh:"systemd 服务"},
@@ -1259,17 +1259,16 @@ function benchChart(){
   return '<svg role="img" viewBox="0 0 680 730" width="100%" xmlns="http://www.w3.org/2000/svg">'+
     '<title>'+esc(tr({en:"ARGUS benchmark comparison",zh:"ARGUS 实测对比"}))+'</title>'+
     '<rect x="2" y="4" width="676" height="170" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
-    '<text x="28" y="40" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Per-frame time breakdown (640 · 3 cores)",zh:"每帧耗时分解（640 · 3 核并行）"}))+'</text>'+
-    '<rect x="40" y="58" width="10" height="28" fill="#8fc9a6"/>'+
-    '<rect x="50" y="58" width="62" height="28" fill="#e7b277"/>'+
-    '<rect x="112" y="58" width="513" height="28" fill="#d98a45"/>'+
+    '<text x="28" y="40" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Per-frame breakdown (640, deployed zero-copy)",zh:"每帧耗时分解（640，部署零拷贝）"}))+'</text>'+
+    '<rect x="40" y="58" width="7" height="28" fill="#8fc9a6"/>'+
+    '<rect x="47" y="58" width="578" height="28" fill="#d98a45"/>'+
     '<rect x="625" y="58" width="15" height="28" fill="#b3a0c2"/>'+
-    '<text x="368" y="76" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#5a3416">'+esc(tr({en:"NPU rknn_run ≈ 100 ms",zh:"NPU 推理 rknn_run ≈ 100 ms"}))+'</text>'+
-    '<rect x="40" y="104" width="11" height="11" rx="2" fill="#8fc9a6"/><text x="57" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"RGA 2ms",zh:"RGA 2ms"}))+'</text>'+
-    '<rect x="190" y="104" width="11" height="11" rx="2" fill="#e7b277"/><text x="207" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"input-set 12ms",zh:"输入设置 12ms"}))+'</text>'+
-    '<rect x="350" y="104" width="11" height="11" rx="2" fill="#d98a45"/><text x="367" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"NPU 100ms",zh:"NPU 推理 100ms"}))+'</text>'+
-    '<rect x="510" y="104" width="11" height="11" rx="2" fill="#b3a0c2"/><text x="527" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"post 3ms",zh:"后处理 3ms"}))+'</text>'+
-    '<text x="28" y="152" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"One core runs 640 at ~117 ms (~8.5 fps); 3 cores in parallel reach ~15 fps, the camera ceiling once the night exposure is shortened (long exposure alone caps the camera at ~8 fps).",zh:"单核跑 640 约 117ms（~8.5fps）;3 核并行到 ~15fps，也就是缩短夜间曝光后相机能给的上限（只靠长曝光，相机本身只有 ~8fps）。"}))+'</text>'+
+    '<text x="336" y="76" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#ffffff">'+esc(tr({en:"rknn_run ≈ 79 ms",zh:"rknn_run ≈ 79 ms"}))+'</text>'+
+    '<rect x="40" y="104" width="11" height="11" rx="2" fill="#8fc9a6"/><text x="57" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"RGA fd-to-fd 0.4ms",zh:"RGA fd-to-fd 0.4ms"}))+'</text>'+
+    '<rect x="200" y="104" width="11" height="11" rx="2" fill="#3f8f6b"/><text x="217" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"set_io_mem 0ms",zh:"set_io_mem 0ms"}))+'</text>'+
+    '<rect x="360" y="104" width="11" height="11" rx="2" fill="#d98a45"/><text x="377" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"rknn_run 79ms",zh:"rknn_run 79ms"}))+'</text>'+
+    '<rect x="510" y="104" width="11" height="11" rx="2" fill="#b3a0c2"/><text x="527" y="114" font-family="sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"outputs+rtsp ~2ms",zh:"输出+rtsp ~2ms"}))+'</text>'+
+    '<text x="28" y="152" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"V4L2 DMA-BUF -> RGA fd-to-fd -> rknn_set_io_mem: input copy = 0. About 81 ms/frame on one context (~12 fps); three parallel NPU-core contexts reach 14.97 fps, 0 dropped — the 15 fps camera ceiling.",zh:"V4L2 DMA-BUF -> RGA fd-to-fd -> rknn_set_io_mem：输入拷贝=0。单上下文约 81ms/帧（~12fps）；3 个并行 NPU 核上下文到 14.97fps、0 丢帧，即 15fps 相机上限。"}))+'</text>'+
     '<rect x="2" y="190" width="676" height="150" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="226" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Recall in low light / lying (offline snapshots)",zh:"弱光 / 躺地检出率（离线快照）"}))+'</text>'+
     '<text x="40" y="252" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"384 quantized",zh:"384 量化模型"}))+'</text>'+
@@ -1279,14 +1278,14 @@ function benchChart(){
     '<rect x="40" y="310" width="600" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="630" y="328" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">100%</text>'+
     '<rect x="2" y="356" width="676" height="178" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
-    '<text x="28" y="392" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Throughput (640 model)",zh:"吞吐对比（640 模型）"}))+'</text>'+
-    '<text x="40" y="418" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"full zero-copy (set_io_mem)",zh:"完整零拷贝 set_io_mem"}))+'</text>'+
-    '<rect x="40" y="424" width="184" height="24" rx="6" fill="#c2a48a"/>'+
-    '<text x="234" y="442" font-family="sans-serif" font-size="14" font-weight="500" fill="#8a6a4a">4.6 fps</text>'+
-    '<text x="40" y="470" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"RGA + 3-core parallel (deployed)",zh:"RGA + 3 核并行（部署）"}))+'</text>'+
-    '<rect x="40" y="476" width="588" height="24" rx="6" fill="#3f8f6b"/>'+
-    '<text x="618" y="494" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="500" fill="#ffffff">14.7 fps</text>'+
-    '<text x="28" y="524" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"The full zero-copy path is 3x slower on 640, so we use RGA + parallel.",zh:"看似先进的全零拷贝在 640 上反而慢 3 倍，所以选 RGA + 并行。"}))+'</text>'+
+    '<text x="28" y="392" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Zero-copy savings (deployed, measured)",zh:"零拷贝收益（部署实测）"}))+'</text>'+
+    '<text x="40" y="418" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"input handoff: rknn_inputs_set copy",zh:"输入交接：rknn_inputs_set 拷贝"}))+'</text>'+
+    '<rect x="40" y="424" width="250" height="24" rx="6" fill="#c2a48a"/>'+
+    '<text x="300" y="442" font-family="sans-serif" font-size="14" font-weight="500" fill="#8a6a4a">~12 ms</text>'+
+    '<text x="40" y="470" font-family="sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"input handoff: rknn_set_io_mem (deployed)",zh:"输入交接：rknn_set_io_mem（部署）"}))+'</text>'+
+    '<rect x="40" y="476" width="10" height="24" rx="6" fill="#3f8f6b"/>'+
+    '<text x="60" y="494" font-family="sans-serif" font-size="14" font-weight="500" fill="#46685a">0 ms</text>'+
+    '<text x="28" y="524" font-family="sans-serif" font-size="12.5" fill="#6f655b">'+esc(tr({en:"RTSP output RSS: CMA DMA-BUF appsrc ~162 MB vs memcpy ~179 MB. One RGA fd-to-fd copy is kept so V4L2 buffers are not overwritten before encode.",zh:"RTSP 输出 RSS：CMA DMA-BUF appsrc ~162MB，对比 memcpy ~179MB。保留一次 RGA fd-to-fd 拷贝，避免 V4L2 buffer 在编码前被覆写。"}))+'</text>'+
     '<rect x="2" y="550" width="676" height="176" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="586" font-family="sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Optional night enhancement does not cost frame rate (measured)",zh:"可选夜间增强不拖慢帧率（实测）"}))+'</text>'+
     '<line x1="640" y1="600" x2="640" y2="698" stroke="#d9cdb8" stroke-width="1.5" stroke-dasharray="3 3"/>'+
@@ -1340,7 +1339,7 @@ const BUGS=[
  {t:{en:"Chinese TTS fallback",zh:"中文 TTS 兜底"},
   sym:{en:"Chinese came out wrong or silent",zh:"中文被读错或读空"},
   cause:{en:"a fragile Python fallback; the OpenAI TTS path was dead code",zh:"旧 Python 兜底不稳，OpenAI TTS 路径是死代码"},
-  fix:{en:"Matcha primary, Piper fallback, a CJK-aware local TTS fallback and regenerated cached emergency prompts",zh:"Matcha 主用、Piper 兜底，再加一层 CJK 友好的本地 TTS 兜底，并重新生成缓存的应急提示"},
+  fix:{en:"MeloTTS primary with Matcha/Piper and a CJK-aware local TTS fallback, plus regenerated cached emergency prompts",zh:"MeloTTS 主用，Matcha/Piper 加一层 CJK 友好的本地 TTS 兜底，并重新生成缓存的应急提示"},
   ev:"src/cpp_runtime/voice_service.cpp synth_companion_cached",
   ls:{en:"a fallback you never exercise is the same as no fallback",zh:"从来不被触发的兜底，等于没有兜底"}},
  {t:{en:"Network-down alert stall",zh:"断网报警卡死"},
@@ -1382,8 +1381,8 @@ const BUGS=[
 ];
 
 const TRADEOFFS=[
- {q:{en:"Why not default to full zero-copy?",zh:"为什么不默认全零拷贝？"},
-  a:{en:"On the 640 model rknn_set_io_mem measured ~210 ms (3x slower), and a shared io-mem binding is unsafe across 3 parallel workers. RGA + rknn_inputs_set keeps 640 accuracy and parallelism.",zh:"640 上 rknn_set_io_mem 实测约 210 ms（慢 3 倍），且共享 io-mem 在 3 路并行下不安全。RGA + rknn_inputs_set 保住了 640 精度和并行。"}},
+ {q:{en:"What is the deployed zero-copy input path?",zh:"部署的零拷贝输入链路是什么？"},
+  a:{en:"Production runs V4L2 DMA-BUF -> RGA fd-to-fd resize/colorspace -> RKNN rknn_set_io_mem, so the NPU reads the RGA output buffer directly: rknn_inputs_set_ms = 0 in the live log, ~15 fps, 0 dropped. It engages only for synchronous single-plane NV12 DMA-BUF; multi-plane, async, or night-enhance frames fall back safely to RGA + rknn_inputs_set.",zh:"生产链路是 V4L2 DMA-BUF -> RGA fd-to-fd 缩放/色彩转换 -> RKNN rknn_set_io_mem，NPU 直接读 RGA 输出缓冲：实时日志里 rknn_inputs_set_ms = 0，约 15 fps、0 丢帧。它只在同步单平面 NV12 DMA-BUF 时启用；多平面、异步或开夜间增强的帧会安全回退到 RGA + rknn_inputs_set。"}},
  {q:{en:"Why not one big process?",zh:"为什么不用一个大进程？"},
   a:{en:"Each subsystem is its own systemd unit, so a crash is isolated, any one redeploys alone, and logs are per service. The vision process is the only one that bundles RTSP, because it must own the camera.",zh:"每个子系统是独立 systemd unit：崩溃隔离、单独重部署、按服务分日志。只有视觉进程内含 RTSP，因为它必须独占摄像头。"}},
  {q:{en:"Why UDP for pose?",zh:"姿态为什么用 UDP?"},
@@ -1424,11 +1423,11 @@ function engNotes(){
 
 const ROADMAP=[
  {area:{en:"Vision",zh:"视觉"}, c:"vis", items:[
-   {t:{en:"Full multi-plane zero-copy",zh:"完整多平面零拷贝"}, w:"3-6mo",
-    p:{en:"production is not full zero-copy",zh:"生产链路不是全零拷贝"},
-    s:{en:"single-plane NV12 + RGA + rknn_inputs_set",zh:"单平面 NV12 + RGA + rknn_inputs_set"},
+   {t:{en:"Multi-plane (MPLANE) zero-copy",zh:"多平面（MPLANE）零拷贝"}, w:"3-6mo",
+    p:{en:"single-plane only; MPLANE falls back to rknn_inputs_set",zh:"仅单平面；MPLANE 时回退 rknn_inputs_set"},
+    s:{en:"single-plane NV12 zero-copy deployed (RGA fd-to-fd + set_io_mem)",zh:"单平面 NV12 零拷贝已部署（RGA fd-to-fd + set_io_mem）"},
     n:{en:"MPLANE Y/UV fd -> RGA -> per-worker RKNN input buffer",zh:"MPLANE 的 Y/UV fd -> RGA -> 每 worker 的 RKNN 输入"},
-    m:{en:"rknn_inputs_set_ms = 0, end-to-end fps >= 14.9",zh:"rknn_inputs_set_ms = 0，端到端 fps >= 14.9"}},
+    m:{en:"set_io_mem on MPLANE too, fps >= 14.9 unchanged",zh:"MPLANE 也走 set_io_mem，fps >= 14.9 不变"}},
    {t:{en:"NV12 in-place overlay",zh:"NV12 原地叠加"}, w:"3-6mo",
     p:{en:"RTSP still copies into a GstBuffer",zh:"RTSP 仍有 GstBuffer 拷贝"},
     s:{en:"per-client appsrc with a copy",zh:"每客户端 appsrc + 一次拷贝"},
@@ -1593,7 +1592,7 @@ const PRODEXP=[
  {path:"V4L2 mmap/DMA-BUF", st:{en:"production",zh:"生产"}, w:{en:"stable buffer ownership",zh:"buffer 归属稳定"}},
  {path:"RGA fd->Mat", st:{en:"production / auto",zh:"生产 / auto"}, w:{en:"saves CPU when the layout supports it",zh:"布局支持时省 CPU"}},
  {path:"rknn_inputs_set", st:{en:"production",zh:"生产"}, w:{en:"faster with the 3-context 640 model",zh:"3 上下文 640 模型下更快"}},
- {path:"rknn_set_io_mem full zero-copy", st:{en:"implemented, not default",zh:"已实现，非默认"}, w:{en:"measured slower, unsafe shared binding in parallel",zh:"实测更慢，并行下共享绑定不安全"}},
+ {path:"rknn_set_io_mem (zero-copy input)", st:{en:"deployed default",zh:"已部署，默认"}, w:{en:"engages on single-plane NV12 DMA-BUF; else falls back to rknn_inputs_set",zh:"单平面 NV12 DMA-BUF 时启用；否则回退 rknn_inputs_set"}},
  {path:"night enhancement", st:{en:"evaluated optional",zh:"评估可选"}, w:{en:"not the run_pose_camera.sh default",zh:"不是 run_pose_camera.sh 默认"}}
 ];
 
