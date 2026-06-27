@@ -2022,7 +2022,7 @@ function pageOverview(){
       METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.lld_h))+"</div>"+lowlightDecision()+"</div>"+
-      '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=384v640" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
+      '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=640noenh" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
     "</section>";
 }
 
