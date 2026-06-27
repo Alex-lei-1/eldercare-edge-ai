@@ -124,6 +124,15 @@
   .lede{font-size:clamp(15px,2.3vw,19px);color:var(--tx2);max-width:740px}
   .wordmark{font-size:clamp(44px,8.5vw,82px);font-weight:800;letter-spacing:2px;line-height:1;margin:10px 0 6px;color:#3a2e26}
   .tagline{font-size:clamp(18px,3vw,27px);font-weight:700;color:var(--tx);letter-spacing:-.2px;margin:0 0 14px}
+  .herometrics{display:flex;gap:26px;flex-wrap:wrap;margin:16px 0}
+  .hm b{display:block;font-size:26px;font-weight:800;color:var(--tx);line-height:1.05;letter-spacing:-.3px}
+  .hm b i{font-style:normal;font-size:13px;font-weight:600;color:var(--tx2);margin-left:3px}
+  .hm span{display:block;font-size:12px;color:var(--tx2);margin-top:4px;line-height:1.35;max-width:160px}
+  .herocta{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 4px}
+  .herocta .btn{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:10px;border:1px solid var(--line);color:var(--tx);background:var(--card);cursor:pointer}
+  .herocta .btn:hover{text-decoration:none;border-color:var(--accent);color:var(--accent)}
+  .herocta .btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+  .herocta .btn.primary:hover{color:#fff;opacity:.92}
   .herowrap{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center}
   @media(max-width:760px){.herowrap{grid-template-columns:1fr;gap:16px}}
   .heroart svg{width:100%;height:auto;display:block}
@@ -159,9 +168,9 @@
   .buggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
   .bugcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   .bugcard h4{margin:0 0 8px;font-size:14px;font-weight:500;color:var(--tx)}
-  .bcl{font-size:12.5px;line-height:1.5;color:var(--tx2);margin-top:5px}
-  .bcl span{display:inline-block;min-width:50px;color:var(--accent);font-weight:500;text-transform:lowercase}
-  .bce{margin-top:7px;border-top:1px dashed var(--line);padding-top:7px}
+  .bcl{display:grid;grid-template-columns:60px 1fr;gap:9px;font-size:12.5px;line-height:1.5;color:var(--tx2);margin-top:6px}
+  .bcl span{color:var(--accent);font-weight:600;text-transform:lowercase}
+  .bce{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
   .bce code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--tx)}
   .rmarea{margin-top:18px}
   .rmatitle{font-size:15px;font-weight:500;color:var(--tx);border-left:3px solid var(--gc);padding-left:10px;margin-bottom:10px}
@@ -172,6 +181,14 @@
   .rmwhen{font-size:11px;font-weight:500;color:#fff;background:var(--wc);padding:2px 8px;border-radius:8px;white-space:nowrap}
   .rmrow{font-size:12.5px;line-height:1.5;color:var(--tx2);margin-top:4px}
   .rmrow span{display:inline-block;min-width:46px;color:var(--accent);font-weight:500;text-transform:lowercase}
+  .rmtbl{margin-top:6px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);font-size:12px}
+  .rmth,.rmtr{display:grid;grid-template-columns:1.35fr 1.1fr 1.05fr 1.35fr 1.15fr;gap:12px;padding:9px 13px;border-top:1px solid var(--line)}
+  .rmth{border-top:none;font-weight:600;color:var(--tx);background:var(--card2);font-size:11px;text-transform:lowercase;letter-spacing:.4px}
+  .rmtr{color:var(--tx2);line-height:1.45;align-items:baseline}
+  .rmtr .rmi{color:var(--tx);font-weight:500}
+  .rmtr .rmtm{color:var(--accent)}
+  .rmtag{display:inline-block;font-size:10px;font-weight:600;color:#fff;border-radius:6px;padding:1px 7px;margin-top:5px}
+  @media(max-width:760px){.rmth{display:none}.rmtr{grid-template-columns:1fr;gap:4px;padding:11px 13px}.rmtr .rmcell::before{content:attr(data-l)" · ";color:var(--tx3);font-weight:600;text-transform:lowercase}.rmtr .rmi::before{content:none}}
   .petbl,.smap,.vtbl{margin-top:6px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);font-size:12.5px}
   .petrow{display:grid;grid-template-columns:minmax(0,1.6fr) 0.9fr minmax(0,2fr);gap:10px;align-items:baseline;padding:9px 14px;border-top:1px solid var(--line)}
   .petbl .petrow:first-child{border-top:none}
@@ -605,6 +622,11 @@ loop every 1 s:
 const T = {
   brand_sub:{en:"Edge elder-care · RK3588",zh:"端侧养老 · RK3588"},
   eyebrow:{en:"On-device AI · RK3588",zh:"端侧 AI · RK3588"},
+  hm1l:{en:"640 pose · 0 dropped frames",zh:"640 姿态 · 0 丢帧"},
+  hm2l:{en:"falls caught, 60-clip field test",zh:"跌倒命中，60 段实测"},
+  hm3i:{en:"local",zh:"本地"}, hm3l:{en:"all AI on the board, nothing to cloud",zh:"全部 AI 在板上跑，不上云"},
+  cta_arch:{en:"See the architecture",zh:"查看架构"}, cta_ev:{en:"Live evidence",zh:"实测证据"},
+  rm_item:{en:"item",zh:"项目"},
   nav_background:{en:"Background",zh:"背景"}, nav_overview:{en:"Overview",zh:"总览"}, nav_architecture:{en:"Architecture",zh:"架构"}, nav_runtime:{en:"Runtime",zh:"运行时"},
   nav_vision:{en:"Vision",zh:"视觉"}, nav_fall:{en:"Fall",zh:"跌倒"}, nav_voice:{en:"Voice",zh:"语音"}, nav_alert:{en:"Alerting",zh:"报警"}, nav_ops:{en:"OTA & Ops",zh:"OTA·运维"},
   nav_validation:{en:"Validation",zh:"验证"}, nav_failure:{en:"Failure",zh:"故障"}, nav_roadmap:{en:"Roadmap",zh:"路线图"}, nav_sourcemap:{en:"Source",zh:"源码"},
@@ -1156,9 +1178,9 @@ function navTo(id){
 }
 function renderNav(){
   var el=document.getElementById("navlinks"); if(!el) return;
-  var items=[["background","a"],["overview","a"],["architecture","a"],["runtime","a"],["observability","a"],
-    ["vision","vision"],["fall","judgment"],["voice","voice"],["alert","alert"],["ops","ops"],
-    ["validation","a"],["failure","a"],["roadmap","a"],["debug","a"],["sourcemap","a"]];
+  var items=[["overview","a"],["architecture","a"],["runtime","a"],
+    ["vision","vision"],["voice","voice"],
+    ["validation","a"],["roadmap","a"],["debug","a"]];
   el.innerHTML=items.map(function(it){
     var lbl=esc(tr(T["nav_"+it[0]]));
     if(it[1]==="a") return '<span class="navlink" onclick="navTo(\''+it[0]+'\')">'+lbl+'</span>';
@@ -1632,17 +1654,18 @@ const ROADMAP=[
 function roadmapBlocks(){
   var wlab={now:{en:"now",zh:"现在"},"1-2mo":{en:"1-2 mo",zh:"1-2 月"},"3-6mo":{en:"3-6 mo",zh:"3-6 月"},research:{en:"research",zh:"研究"}};
   var wc={now:"#3f8f6b","1-2mo":"#e08a4a","3-6mo":"#4f86a8",research:"#9b7bb0"};
+  var head='<div class="rmth"><span>'+esc(tr(T.rm_item))+'</span><span>'+esc(tr(T.rm_s))+'</span><span>'+esc(tr(T.rm_p))+'</span><span>'+esc(tr(T.rm_n))+'</span><span>'+esc(tr(T.rm_m))+'</span></div>';
   return ROADMAP.map(function(a){
-    var cards=a.items.map(function(it){
-      return '<div class="rmcard">'+
-        '<div class="rmhead"><h4>'+esc(tr(it.t))+'</h4><span class="rmwhen" style="--wc:'+wc[it.w]+'">'+esc(tr(wlab[it.w]))+'</span></div>'+
-        '<div class="rmrow"><span>'+esc(tr(T.rm_p))+'</span>'+esc(tr(it.p))+'</div>'+
-        '<div class="rmrow"><span>'+esc(tr(T.rm_s))+'</span>'+esc(tr(it.s))+'</div>'+
-        '<div class="rmrow"><span>'+esc(tr(T.rm_n))+'</span>'+esc(tr(it.n))+'</div>'+
-        '<div class="rmrow"><span>'+esc(tr(T.rm_m))+'</span>'+esc(tr(it.m))+'</div>'+
+    var rows=a.items.map(function(it){
+      return '<div class="rmtr">'+
+        '<span class="rmcell rmi" data-l="'+esc(tr(T.rm_item))+'">'+esc(tr(it.t))+'<span class="rmtag" style="background:'+wc[it.w]+'">'+esc(tr(wlab[it.w]))+'</span></span>'+
+        '<span class="rmcell" data-l="'+esc(tr(T.rm_s))+'">'+esc(tr(it.s))+'</span>'+
+        '<span class="rmcell" data-l="'+esc(tr(T.rm_p))+'">'+esc(tr(it.p))+'</span>'+
+        '<span class="rmcell" data-l="'+esc(tr(T.rm_n))+'">'+esc(tr(it.n))+'</span>'+
+        '<span class="rmcell rmtm" data-l="'+esc(tr(T.rm_m))+'">'+esc(tr(it.m))+'</span>'+
       '</div>';
     }).join("");
-    return '<div class="rmarea" style="--gc:var(--'+a.c+')"><div class="rmatitle">'+esc(tr(a.area))+'</div><div class="rmgrid">'+cards+'</div></div>';
+    return '<div class="rmarea" style="--gc:var(--'+a.c+')"><div class="rmatitle">'+esc(tr(a.area))+'</div><div class="rmtbl">'+head+rows+'</div></div>';
   }).join("");
 }
 function implementedBlock(){
@@ -1965,9 +1988,18 @@ function home(){
       '<div class="herowrap">'+
         '<div class="herotext">'+
           '<div class="eyebrow">'+tr(T.eyebrow)+"</div>"+
-          '<div class="wordmark">ARGUS</div>'+
+          '<h1 class="wordmark">ARGUS</h1>'+
           '<div class="tagline">'+tr(T.tagline)+"</div>"+
-          '<p class="lede" style="margin-bottom:13px">'+tr(T.lede)+"</p>"+
+          '<div class="herometrics">'+
+            '<div class="hm"><b>14.97<i>fps</i></b><span>'+esc(tr(T.hm1l))+"</span></div>"+
+            '<div class="hm"><b>58/60</b><span>'+esc(tr(T.hm2l))+"</span></div>"+
+            '<div class="hm"><b>100%<i>'+esc(tr(T.hm3i))+'</i></b><span>'+esc(tr(T.hm3l))+"</span></div>"+
+          "</div>"+
+          '<div class="herocta">'+
+            '<a class="btn primary" onclick="navTo(\'architecture\')">'+esc(tr(T.cta_arch))+" →</a>"+
+            '<a class="btn" onclick="navTo(\'debug\')">'+esc(tr(T.cta_ev))+"</a>"+
+          "</div>"+
+          '<p class="lede" style="margin:16px 0 13px">'+tr(T.lede)+"</p>"+
           '<div class="techstack">'+esc(tr(T.stack))+"</div>"+
         "</div>"+
         '<div class="heroart">'+HEROART+"</div>"+
