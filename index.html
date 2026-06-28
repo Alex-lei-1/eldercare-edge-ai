@@ -285,6 +285,14 @@
   .mhead .tag{color:var(--tx2);margin:8px 0 0;max-width:760px}
   .srcpill{display:inline-flex;gap:6px;align-items:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:#6a5d4e;margin-top:12px}
 
+  /* module 5-stage template */
+  .tplwrap{margin-top:20px;border-top:1px solid var(--line)}
+  .tplstage{display:grid;grid-template-columns:130px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .tpllabel{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--bd);height:fit-content}
+  .tplnum{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:var(--bd);color:#fff;font-size:12px;font-weight:800;flex:none}
+  .tpltext{font-size:14.5px;line-height:1.65;color:var(--tx2);margin:0}
+  @media(max-width:680px){.tplstage{grid-template-columns:1fr;gap:8px}}
+
   /* sub sections */
   .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:14px 0;box-shadow:var(--sh)}
   .ptitle{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx2);margin:0 0 14px}
@@ -714,6 +722,7 @@ const T = {
   lld_h:{en:"Why 640 + 3 cores, not 384",zh:"为什么是 640 + 3 核，而不是 384"},
   skel_cap:{en:"Same low-light frame, two models. Left: the lighter, faster 384 model finds nobody (people=0). Right: the 640 model detects the fallen person at 0.76 with a 17-point pose skeleton. So rather than drop to a faster-but-weaker 384, the deployment keeps 640. To see in the dark the ISP opens the aperture and lengthens exposure, which drops the night frame rate to about 10 fps (daylight stays 15 fps); three parallel NPU cores keep compute off the critical path. (The ~80 ms on the 640 frame is one core in isolation; production runs 3 cores in parallel.)",zh:"同一张弱光帧，两个模型。左：更轻、更快的 384 模型检测不到人（people=0）；右：640 模型检出躺倒的人（0.76）并画出 17 点骨架。所以没有退到更快但更弱的 384，而是保留 640。为了在暗处看清，ISP 会开大光圈、拉长曝光，夜间帧率因此降到约 10fps（日间仍 15fps）；3 个并行 NPU 核让算力不在关键路径上。（上图 640 的约 80ms 是单核独占的单帧；部署时 3 核并行。）"},
   source:{en:"Source",zh:"源码"},
+  tpl_problem:{en:"Problem",zh:"问题"}, tpl_design:{en:"Design",zh:"设计"}, tpl_impl:{en:"Implementation",zh:"实现"}, tpl_bench:{en:"Benchmark",zh:"实测"}, tpl_limit:{en:"Limitation",zh:"局限"},
   flow:{en:"Control flow",zh:"控制流程"},
   data:{en:"Data flow",zh:"数据流"},
   impl:{en:"Implementation sketch",zh:"实现示意"},
@@ -1362,7 +1371,7 @@ function benchChart(){
     '<text x="331" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#ffffff">'+esc(tr({en:"rknn_run ≈ 79 ms (97% of the frame)",zh:"rknn_run ≈ 79 ms（占整帧 97%）"}))+'</text>'+
     '<rect x="40" y="104" width="11" height="11" rx="2" fill="#d98a45"/><text x="57" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"rknn_run 79 ms",zh:"rknn_run 79 ms"}))+'</text>'+
     '<rect x="230" y="104" width="11" height="11" rx="2" fill="#8fbf9f"/><text x="247" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"pipeline overhead ~2.4 ms",zh:"流水线开销 ~2.4 ms"}))+'</text>'+
-    svgCap(24,122,632,48,{en:"Overhead is only ~2.4 ms/frame (RGA fd-to-fd 0.4 + set_io_mem 0 + outputs/rtsp 2); the rest is raw rknn_run. One context ~12 fps; three parallel NPU-core contexts reach 14.97 fps, 0 dropped — the 15 fps camera ceiling.",zh:"流水线开销仅约 2.4ms/帧（RGA fd-to-fd 0.4 + set_io_mem 0 + 输出/rtsp 2），其余全是 rknn_run。单上下文约 12fps；3 个并行 NPU 核上下文到 14.97fps、0 丢帧，即 15fps 相机上限。"})+
+    svgCap(24,122,632,48,{en:"Overhead is only ~2.4 ms/frame (RGA fd-to-fd 0.4 + set_io_mem 0 + outputs/rtsp 2); the rest is raw rknn_run. One context ~12 fps; three parallel NPU-core contexts reach 14.97 fps, 0 dropped, at the 15 fps camera ceiling.",zh:"流水线开销仅约 2.4ms/帧（RGA fd-to-fd 0.4 + set_io_mem 0 + 输出/rtsp 2），其余全是 rknn_run。单上下文约 12fps；3 个并行 NPU 核上下文到 14.97fps、0 丢帧，即 15fps 相机上限。"})+
     '<rect x="2" y="190" width="676" height="150" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="226" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Recall in low light / lying (offline snapshots)",zh:"弱光 / 躺地检出率（离线快照）"}))+'</text>'+
     '<text x="40" y="252" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"384 quantized",zh:"384 量化模型"}))+'</text>'+
@@ -1741,7 +1750,7 @@ const RUNTIME_TABLE=[
  {s:"llm", cpu:"4-5", log:"llm.log", imp:{en:"voice slower / fallback",zh:"语音变慢 / 降级"}},
  {s:"mediamtx", cpu:{en:"unpinned",zh:"不绑核"}, log:"mediamtx.log", imp:{en:"no RTSP / WebRTC fan-out",zh:"无 RTSP / WebRTC 扇出"}},
  {s:"isp-light-agent", cpu:{en:"unpinned",zh:"不绑核"}, log:"isp_light.log", imp:{en:"no weak-light ISP profile",zh:"无弱光 ISP profile"}},
- {s:"ota-agent", cpu:{en:"—",zh:"—"}, log:{en:"job log",zh:"任务日志"}, imp:{en:"no OTA update",zh:"无 OTA 更新"}, od:true}
+ {s:"ota-agent", cpu:{en:"n/a",zh:"n/a"}, log:{en:"job log",zh:"任务日志"}, imp:{en:"no OTA update",zh:"无 OTA 更新"}, od:true}
 ];
 
 function runtimeTable(){
@@ -1811,10 +1820,10 @@ function dmabufLifecycle(){
     '<text x="60" y="20" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#33302b">DQBUF</text>'+
     '<text x="470" y="20" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#33302b">QBUF</text>'+
     '<rect x="60" y="30" width="410" height="26" rx="6" fill="#eaf1f5" stroke="#4f86a8"/>'+
-    '<text x="265" y="47" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12.5" fill="#33302b">'+t({en:"V4L2 buffer k held — safe to read",zh:"V4L2 buffer k 持有中 — 可安全读取"})+'</text>'+
+    '<text x="265" y="47" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12.5" fill="#33302b">'+t({en:"V4L2 buffer k held, safe to read",zh:"V4L2 buffer k 持有中，可安全读取"})+'</text>'+
     '<rect x="70" y="70" width="280" height="38" rx="8" fill="#fffdf9" stroke="#3f8f6b"/>'+
     '<text x="210" y="86" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11.5" fill="#33302b">RGA fd-to-fd -&gt; set_io_mem -&gt; rknn_run</text>'+
-    '<text x="210" y="100" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"NPU reads RGA output — 0 copy",zh:"NPU 读 RGA 输出 — 0 拷贝"})+'</text>'+
+    '<text x="210" y="100" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"NPU reads RGA output, 0 copy",zh:"NPU 读 RGA 输出，0 拷贝"})+'</text>'+
     '<rect x="70" y="118" width="280" height="38" rx="8" fill="#fffdf9" stroke="#e08a4a"/>'+
     '<text x="210" y="134" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11.5" fill="#33302b">RGA fd-to-fd copy -&gt; CMA DMA-BUF</text>'+
     '<text x="210" y="148" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"a separate buffer the encoder owns",zh:"编码器自己拥有的另一块 buffer"})+'</text>'+
@@ -1822,7 +1831,7 @@ function dmabufLifecycle(){
     '<rect x="490" y="118" width="176" height="38" rx="8" fill="#fffdf9" stroke="#e08a4a"/>'+
     '<text x="578" y="134" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11.5" fill="#33302b">mpph264enc</text>'+
     '<text x="578" y="148" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="#6f655b">'+t({en:"async, outlives the buffer",zh:"异步，比 buffer 活得久"})+'</text>'+
-    svgCap(12,176,656,62,{en:"RGA reads the V4L2 camera DMA-BUF into the worker's RKNN input buffer; the NPU reads that via set_io_mem (zero-copy input). The encoder is async and must not hold the V4L2 fd — QBUF would free it mid-encode and tear the frame — so one RGA fd-to-fd copy moves pixels to a CMA buffer, then QBUF returns at once.",zh:"RGA 读 V4L2 相机 DMA-BUF，写入该 worker 的 RKNN 输入 buffer；NPU 通过 set_io_mem 读这块 RGA 输出（零拷贝输入）。编码器是异步的，不能持有 V4L2 fd —— QBUF 会在编码中途释放它、导致撕裂 —— 所以用一次 RGA fd-to-fd 拷贝把像素搬到 CMA buffer，然后立刻 QBUF 归还。"},12)+
+    svgCap(12,176,656,62,{en:"RGA reads the V4L2 camera DMA-BUF into the worker's RKNN input buffer; the NPU reads that via set_io_mem (zero-copy input). The encoder is async and must not hold the V4L2 fd (QBUF would free it mid-encode and tear the frame), so one RGA fd-to-fd copy moves pixels to a CMA buffer, then QBUF returns at once.",zh:"RGA 读 V4L2 相机 DMA-BUF，写入该 worker 的 RKNN 输入 buffer；NPU 通过 set_io_mem 读这块 RGA 输出（零拷贝输入）。编码器是异步的，不能持有 V4L2 fd（QBUF 会在编码中途释放它、导致撕裂），所以用一次 RGA fd-to-fd 拷贝把像素搬到 CMA buffer，然后立刻 QBUF 归还。"},12)+
     '</svg>';
 }
 function obsPanel(){
@@ -1892,7 +1901,7 @@ const FALL_SCENARIOS=[
  {sc:{en:"Overall · 60-clip field test",zh:"总体 · 60 段实测"}, r:"58/60", fp:"1/60", note:{en:"recall 97%, FP 1.7%",zh:"召回 97%，误报 1.7%"}},
  {sc:{en:"Normal light",zh:"常光"}, r:"100%", fp:"0", note:{en:"every fall caught, no false alarm",zh:"全部命中，无误报"}},
  {sc:{en:"Low light / night",zh:"弱光 / 夜间"}, r:"18/20 (90%)", fp:{en:"the 1 FP is here",zh:"那 1 次误报在此"}, note:{en:"both misses are slow slides",zh:"漏的 2 个都是缓慢下滑"}},
- {sc:{en:"Weak-light stress set (early)",zh:"弱光压力集（早期）"}, r:"2/4 (50%)", fp:{en:"—",zh:"—"}, note:{en:"slow-slide misses motivated the weak10 ISP profile; per-scenario low-light eval still under validation",zh:"慢滑漏检催生 weak10 ISP profile；分场景低光评测仍在验证中"}},
+ {sc:{en:"Weak-light stress set (early)",zh:"弱光压力集（早期）"}, r:"2/4 (50%)", fp:{en:"n/a",zh:"n/a"}, note:{en:"slow-slide misses motivated the weak10 ISP profile; per-scenario low-light eval still under validation",zh:"慢滑漏检催生 weak10 ISP profile；分场景低光评测仍在验证中"}},
  {sc:{en:"Per-action (fast/slow/bed/sofa/bend/sit/walk)",zh:"按动作（快跌/慢滑/床/沙发/弯腰/坐/走）"}, r:{en:"pending",zh:"待测"}, fp:{en:"pending",zh:"待测"}, note:{en:"per-scenario eval is the next test (see Roadmap)",zh:"逐场景评测是下一步（见路线图）"}}
 ];
 
@@ -2151,6 +2160,34 @@ function pageEvidence(){
 
 const PAGES={ background:pageBackground, overview:pageOverview, architecture:pageArchitecture, runtime:pageRuntime, observability:pageObservability, validation:pageValidation, roadmap:pageRoadmap, evidence:pageEvidence };
 
+const MODULE_PDBL={
+ vision:{
+   problem:{en:"Run real-time multi-person pose on a low-cost edge SoC with no cloud, fast enough to catch a fall, and keep detecting in low light. A naive camera-to-NPU path copies pixels several times and stalls well below the camera frame rate.",zh:"在低成本边缘 SoC 上跑实时多人姿态，不上云，要快到能抓住跌倒，还要在弱光下检得到。朴素的相机到 NPU 链路会多次拷贝像素，帧率远低于相机上限。"},
+   design:{en:"V4L2 DMA-BUF capture (8 buffers) into RGA fd-to-fd NV12-to-RGB, bound straight to the NPU with rknn_set_io_mem (single-plane zero-copy input), across three parallel RKNN contexts on separate NPU cores. The 640 model is kept over a faster 384 for low-light recall; low light is handled at the sensor with ISP aperture and exposure, not in software.",zh:"V4L2 DMA-BUF 采集（8 缓冲）进 RGA fd-to-fd 做 NV12 转 RGB，用 rknn_set_io_mem 直接绑到 NPU（单平面零拷贝输入），跑在三个并行 RKNN 上下文、各占一个 NPU 核。为弱光召回保留 640 而不是更快的 384；弱光在传感器侧用 ISP 光圈和曝光处理，不走软件。"},
+   benchmark:{en:"Daylight 14.97 fps, 0 dropped, at the 15 fps camera ceiling; rknn_inputs_set_ms 0.00, rknn_run about 79 ms, total about 81.5 ms per frame; weak-light about 10 fps. On archived low-light snapshots the 640 model recovers 100 percent vs 77.1 percent for the 384.",zh:"日间 14.97 fps、0 丢帧，即 15 fps 相机上限；rknn_inputs_set_ms 0.00、rknn_run 约 79 ms、整帧约 81.5 ms；弱光约 10 fps。弱光存档快照上 640 召回 100%，384 为 77.1%。"},
+   limitation:{en:"Zero-copy engages only on synchronous single-plane NV12; multi-plane or async frames fall back to rknn_inputs_set with a CPU convert. Tracking is a lightweight IoU tracker, not SORT or ByteTrack. Weak light is still the hard case, and there is no learned lying-vs-sitting classifier yet.",zh:"零拷贝只在同步单平面 NV12 时启用；多平面或异步帧回退到 rknn_inputs_set 加一次 CPU 转换。跟踪只是轻量 IoU，不是 SORT 或 ByteTrack。弱光仍是难点，也还没有学习式的躺/坐分类器。"}},
+ judgment:{
+   problem:{en:"Decide that a noisy stream of pose keypoints is a real fall that needs help, with far fewer missed falls than false alarms, without being fooled by sitting, bending, lying on a sofa, a clock jump, or a dropped network.",zh:"从带噪的姿态关键点流里判断这是需要求助的真实跌倒，漏报要远少于误报，同时不被坐下、弯腰、躺沙发、时钟跳变或断网骗到。"},
+   design:{en:"Per-frame geometric features (body angle, bbox flatness, center and hip drop velocity, lying score) combine into a weighted fall_score, fed to a temporal state machine (NORMAL, WARNING, CONFIRMED) that debounces across frames. The confirmed state has a 60 s TTL so it does not latch red. Tuning is recall-first because a missed fall costs far more than a false alarm.",zh:"每帧的几何特征（身体角度、bbox 扁平度、中心与髋部下坠速度、躺地分数）加权成 fall_score，喂给时序状态机（NORMAL、WARNING、CONFIRMED）跨帧去抖。确认状态有 60 秒 TTL，不会一直锁红。按召回优先调，因为漏报代价远大于误报。"},
+   benchmark:{en:"A 60-clip field test on 2026-06-21: 58/60 recall (97 percent), 1 false alarm (1.7 percent). Normal light caught every fall with no false alarm; night recall was 18/20 (90 percent). Floor-to-alarm averages about 3 s on fast falls.",zh:"2026-06-21 的 60 段实测：58/60 召回（97%）、1 次误报（1.7%）。常光下全部命中、无误报；夜间召回 18/20（90%）。快速跌倒倒地到报警平均约 3 秒。"},
+   limitation:{en:"Sixty clips from one session is small for industrial use; the two misses are slow slides where the descent is gentle. Low light is the explicit weak spot, geometry can still confuse a sofa or a deep bend, and there is no per-scenario eval or confusion matrix yet.",zh:"单次会话 60 段对工业级偏小；漏的两个都是缓慢下滑、下坠很轻。弱光是明确弱点，几何仍可能把沙发或大幅弯腰判错，分场景评测和混淆矩阵也还没有。"}},
+ voice:{
+   problem:{en:"After a fall, ask whether the person is all right and decide whether to escalate, fully offline, in a room with fan and HVAC noise, without the assistant hearing its own TTS and answering itself in a loop.",zh:"跌倒之后主动问一句人有没有事、再决定要不要升级，全程离线，在有风扇和空调噪声的房间里，还不能把自己的 TTS 当输入、自问自答陷入循环。"},
+   design:{en:"KWS wake (sherpa) to Silero VAD plus an RMS endpoint, SenseVoice ASR, a local Qwen2.5-1.5B on llama.cpp, and Matcha TTS (Piper then espeak as fallbacks), with full-duplex Speex AEC and a double-talk gate. A self-talk echo guard rejects transcripts that repeat the assistant's own words; the alarm path stays on a local rule classifier plus espeak.",zh:"KWS 唤醒（sherpa）到 Silero VAD 加 RMS 端点、SenseVoice ASR、本地 llama.cpp 上的 Qwen2.5-1.5B，再到 Matcha TTS（Piper 再 espeak 兜底），配全双工 Speex AEC 和双讲门。自言自语回声守卫会拒掉复述自己话的转写；报警路径始终走本地规则分类加 espeak。"},
+   benchmark:{en:"From voice.log: wake about 0.2 s, ASR about 0.3 to 0.8 s, LLM first clause about 1.1 s (threads=2, the dominant cost), TTS first clause about 1.0 s. Voice output is capped at 512 MB / 24 h and pruned every 60 s.",zh:"取自 voice.log：唤醒约 0.2 秒、ASR 约 0.3 到 0.8 秒、LLM 首句约 1.1 秒（threads=2，主导项）、TTS 首句约 1.0 秒。语音输出上限 512 MB / 24 小时，每 60 秒清理。"},
+   limitation:{en:"ASR is weak on very quiet or echoey speech (no auto-gain in C++ yet), Speex AEC caps barge-in at normal volume, and KWS still misses (a SenseVoice fallback was added). It assumes a single speaker and has no long-term memory or local RAG.",zh:"ASR 在很安静或回声重的语音上偏弱（C++ 侧还没自动增益），Speex AEC 把正常音量打断卡在上限，KWS 仍会漏（已加 SenseVoice 兜底）。它假设单说话人，没有长期记忆或本地 RAG。"}},
+ alert:{
+   problem:{en:"When a fall is confirmed, notify family reliably without the alert path ever blocking on a dead network or a slow text-to-speech call.",zh:"跌倒确认后要可靠地通知家人，而报警路径绝不能阻塞在断网或慢速 TTS 上。"},
+   design:{en:"The fall event travels over MQTT (mosquitto); the alert service builds a graded message and pushes it via ntfy with a bounded curl and retries, plus an optional snapshot. MQTT confirmed is published before the assistant speaks, and per-state cooldowns (confirmed, ok, sos) suppress repeats.",zh:"跌倒事件经 MQTT（mosquitto）传递；报警服务生成分级消息，用限时 curl 加重试经 ntfy 推送，附可选快照。先发 MQTT confirmed 再让助手播报，按状态（confirmed、ok、sos）设冷却抑制重复。"},
+   benchmark:{en:"Event to MQTT to alert built is under 50 ms on-device; the ntfy push is about 1 to 2 s over the network and off-device; curl is bounded to 20 s with 2 retries so it can never hang the main path.",zh:"事件到 MQTT 到生成报警在端侧小于 50 ms；ntfy 推送约 1 到 2 秒，走网络、非端侧；curl 限时 20 秒、重试 2 次，绝不会卡住主路径。"},
+   limitation:{en:"Only the family alert leaves the board (the privacy boundary), and it depends on connectivity. A full offline degrade ladder (local buzzer or siren) is not yet laddered, and finer risk tiers (suspected, SOS, no-response) are roadmap.",zh:"只有家人报警出板（隐私边界），且依赖网络。完整的断网降级链（本地蜂鸣或警报）还没分层，更细的风险分级（疑似、SOS、无应答）属路线图。"}},
+ ops:{
+   problem:{en:"Keep eight services running unattended on the board, recover from crashes and power cuts, observe health without a cloud, and update safely.",zh:"让板子上八个服务无人值守地一直跑，从崩溃和断电中恢复，不上云也能观测健康，并安全更新。"},
+   design:{en:"systemd user units with Restart=always run the eight active services plus an on-demand OTA unit. A read-only health agent exports Prometheus metrics, a live dashboard and a WebRTC viewer on :9090; CPU affinity is split across cores. App-layer OTA does sha256 plus xdelta3 plus an atomic symlink with rollback, while the system A/B slot is delegated to RAUC. A fan-hold service keeps the cooling fan quiet enough for the mic.",zh:"systemd 用户单元以 Restart=always 跑八个活跃服务加一个按需 OTA 单元。只读健康代理在 :9090 导出 Prometheus 指标、实时仪表盘和 WebRTC 观看页；CPU 按核分工。应用层 OTA 做 sha256 加 xdelta3 加原子 symlink 带回滚，系统 A/B 槽位交给 RAUC。风扇保持服务把散热风扇压到不吵麦克风。"},
+   benchmark:{en:"Health-agent and OTA-agent self-tests pass; status.json reports per-unit active state via systemctl is-active and per-process CPU and RSS. Power-cycle recovery, a 24 to 72 h soak, and a closed-loop RAUC A/B are listed as the next tests, not claimed as done.",zh:"健康代理和 OTA 代理自检通过；status.json 用 systemctl is-active 报每个单元的存活状态，以及各进程 CPU 和 RSS。断电恢复、24 到 72 小时长稳、RAUC A/B 闭环列为下一步测试，没有声称已完成。"},
+   limitation:{en:"Full RAUC A/B power-cycle rollback is not yet validated on hardware, there is no 24 to 72 h soak data yet, OTA is not signed (sha256 integrity only), and per-device fleet version reporting is roadmap.",zh:"RAUC A/B 断电回滚还没在真机验证，还没有 24 到 72 小时长稳数据，OTA 没有签名（只有 sha256 完整性），每台设备的版本上报属路线图。"}}
+};
+
 function moduleView(m){
   const cards=m.subs.map(s=>(
     '<a class="scard" href="#/'+m.id+"/"+s.id+'" style="--bd:var(--'+m.color+')">'+
@@ -2159,6 +2196,24 @@ function moduleView(m){
       "<p>"+esc(tr(s.summary))+"</p>"+
     "</a>"
   )).join("");
+  const t=MODULE_PDBL[m.id];
+  function stage(n,labelKey,body){
+    return '<div class="tplstage"><div class="tpllabel"><span class="tplnum">'+n+'</span>'+esc(tr(labelKey))+'</div><div class="tplbody">'+body+'</div></div>';
+  }
+  var body;
+  if(t){
+    body='<div class="tplwrap" style="--bd:var(--'+m.color+')">'+
+      stage(1,T.tpl_problem,'<p class="tpltext">'+esc(tr(t.problem))+'</p>')+
+      stage(2,T.tpl_design,'<p class="tpltext">'+esc(tr(t.design))+'</p>')+
+      stage(3,T.tpl_impl,'<p class="tpltext">'+esc(tr(T.subs_sub))+'</p><div class="grid g3" style="margin-top:12px">'+cards+'</div>')+
+      stage(4,T.tpl_bench,'<p class="tpltext">'+esc(tr(t.benchmark))+'</p>')+
+      stage(5,T.tpl_limit,'<p class="tpltext">'+esc(tr(t.limitation))+'</p>')+
+    "</div>";
+  } else {
+    body='<div class="secttl" style="margin-top:22px"><h2>'+tr(T.subs)+"</h2></div>"+
+      '<p class="sub">'+tr(T.subs_sub)+"</p>"+
+      '<div class="grid g3">'+cards+"</div>";
+  }
   return ''+
     '<div class="crumb"><a href="#/">'+tr(T.home)+'</a><span>›</span>'+esc(tr(m.name))+"</div>"+
     "<section style='padding-top:14px'>"+
@@ -2169,9 +2224,7 @@ function moduleView(m){
         '<div class="srcpill">'+tr(T.source)+": "+esc(m.file)+"</div>"+
       "</div>"+
       (m.demo ? demoBlock(m.demo, m.color) : "")+
-      '<div class="secttl" style="margin-top:22px"><h2>'+tr(T.subs)+"</h2></div>"+
-      '<p class="sub">'+tr(T.subs_sub)+"</p>"+
-      '<div class="grid g3">'+cards+"</div>"+
+      body+
     "</section>";
 }
 
