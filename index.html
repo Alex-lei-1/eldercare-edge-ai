@@ -622,7 +622,7 @@ loop every 1 s:
 const T = {
   brand_sub:{en:"Edge elder-care · RK3588",zh:"端侧养老 · RK3588"},
   eyebrow:{en:"On-device AI · RK3588",zh:"端侧 AI · RK3588"},
-  hm1l:{en:"640 pose · 0 dropped frames",zh:"640 姿态 · 0 丢帧"},
+  hm1l:{en:"640 pose, daylight benchmark · ~10 fps weak-light ISP",zh:"640 姿态，日间基准 · 弱光 ISP 约 10fps"},
   hm2l:{en:"falls caught, 60-clip field test",zh:"跌倒命中，60 段实测"},
   hm3i:{en:"s",zh:"秒"}, hm3l:{en:"floor to alarm, fast falls",zh:"倒地到报警，快速跌倒"},
   hm4i:{en:"cloud AI",zh:"云端 AI"}, hm4l:{en:"all inference on-device; only the family alert leaves the board",zh:"推理全在端侧；只有给家人的报警会出板"},
@@ -656,7 +656,7 @@ const T = {
   bg_narr:{en:"China is aging faster than at any point before. By the end of 2025 the population aged 60 and over reached 323 million, 23.0% of the country, up from 21.1% in 2023; official projections put it above 400 million and more than 30% by 2035. Most older people now live alone or only with a spouse. Falls are the second leading cause of unintentional-injury death worldwide, and older adults account for the largest share of fatal ones. For someone living alone the real danger is often not the fall itself but the long lie that follows, with no one nearby to call for help. The need is growing and so is the market: China's silver economy is projected to expand from about ¥7 trillion today to ¥30 trillion by 2035, and a 2024 State Council opinion made developing it national policy. This project puts fall detection and a voice assistant on the device, so a fall is caught and an alert is sent while video and audio stay local.",zh:"中国正进入老龄化最快的时期。截至 2025 年末，60 岁以上人口达到 3.23 亿，占全国 23.0%，高于 2023 年的 21.1%；官方预测到 2035 年将超过 4 亿、占比超过 30%。多数老人独居或仅与配偶同住。跌倒是全球意外伤害致死的第二大原因，其中老年人占比最高。对独居老人来说，真正的危险往往不是摔倒本身，而是摔倒后长时间躺地、身边无人求助。需求在增长，市场也在扩张：中国银发经济预计从目前约 7 万亿元增长到 2035 年约 30 万亿元，国务院 2024 年的意见已将其上升为国家政策。本项目把跌倒检测和语音助手直接放在设备端，摔倒能被及时发现并报警，视频和音频都留在本地。"},
   bg_src:{en:"Sources: National Bureau of Statistics of China (Jan 2026 for 2025, Jan 2025 for 2024); MCA and the National Working Commission on Ageing (elderly count, disability, empty-nest share); 2035 projection per WHO and State Council statements; WHO falls fact sheet; silver-economy figures per CEIBS and press; fall-detection market growth per Grand View Research, Future Market Insights and others.",zh:"数据来源：国家统计局（2026 年 1 月发布的 2025 年数据，2025 年 1 月发布的 2024 年数据）；民政部、全国老龄办（老年人口、失能半失能、空巢比例）；2035 年人口预测见世界卫生组织及国务院相关表述；世界卫生组织跌倒实况报道；银发经济规模为中欧国际工商学院及媒体引述预测；全球跌倒检测市场增速为 Grand View Research、Future Market Insights 等机构预测。"},
   tagline:{en:"Fall detection and a local voice assistant for elderly care, running on the device.",zh:"给居家老人用的跌倒检测和本地语音助手，全部在设备本地跑。"},
-  stack:{en:"C++ edge runtime on RK3588: V4L2 capture, RKNN pose, C++ fall / alert / voice / health / OTA services, local Qwen LLM, full-duplex AEC voice.",zh:"RK3588 上的 C++ 边缘运行时：V4L2 采集、RKNN 姿态、C++ 跌倒 / 报警 / 语音 / 健康 / OTA 服务、本地 Qwen LLM、全双工 AEC 语音。"},
+  stack:{en:"RK3588 edge pipeline: daylight 14.97 fps pose, weak-light ISP profile ~10 fps, single-plane NV12 zero-copy RKNN input, CPU-memcpy-free RTSP DMA-BUF output, MediaMTX single-encode fan-out, offline full-duplex voice, MQTT alerting, Prometheus dashboard, app-layer OTA (RAUC system A/B planned for full validation).",zh:"RK3588 边缘流水线：日间 14.97 fps 姿态推理、弱光 ISP profile 约 10 fps、单平面 NV12 零拷贝 RKNN 输入、CPU 无 memcpy 的 RTSP DMA-BUF 输出、MediaMTX 单次编码扇出、离线全双工语音、MQTT 报警、Prometheus 仪表盘、应用层 OTA（系统层 RAUC A/B 待真机完整验证）。"},
   rmap_h:{en:"Production runtime map",zh:"生产运行时映射"},
   rmap_sub:{en:"What systemd actually starts on the board, unit by binary.",zh:"板子上 systemd 实际启动的单元，以及各自对应的程序。"},
   eng_h:{en:"Engineering notes",zh:"工程实录"},
@@ -690,7 +690,7 @@ const T = {
   obs_sub:{en:"One read-only health agent on :9090 exports Prometheus metrics, a live dashboard, and a WebRTC viewer with browser-side overlay.",zh:"一个只读健康代理跑在 :9090，导出 Prometheus 指标、实时仪表盘，以及带浏览器侧叠加的 WebRTC 观看页。"},
   obs_ep_h:{en:"HTTP endpoints (:9090)",zh:"HTTP 端点（:9090）"},
   obs_mx_h:{en:"Stream fan-out: vision + audio -> MediaMTX",zh:"流扇出：视觉 + 音频 -> MediaMTX"},
-  obs_rss_h:{en:"RTSP output: DMA-BUF appsrc vs memcpy (measured RSS)",zh:"RTSP 输出：DMA-BUF appsrc vs memcpy（实测 RSS）"},
+  obs_rss_h:{en:"RTSP output: 8-client audio+video (CMA DMA-BUF, CPU-memcpy-free)",zh:"RTSP 输出：8 客户端音视频（CMA DMA-BUF，CPU 无 memcpy）"},
   nav_debug:{en:"Evidence",zh:"证据"},
   debug_h:{en:"Debugging evidence",zh:"调试证据"},
   debug_sub:{en:"Live signals straight off the running board: per-frame timings, the pose datagram, exported metrics, and the retained fall state.",zh:"直接来自运行中板子的信号：每帧计时、姿态数据报、导出指标、保留的跌倒状态。"},
@@ -734,7 +734,7 @@ const T = {
 /* ---------- key metrics (every figure reflects the deployed system) ---------- */
 const METRIC_GROUPS = [
   {title:{en:"Vision",zh:"视觉"}, c:"vis", items:[
-    {v:{en:"15 fps",zh:"15 fps"},   l:{en:"640×480 · 0 dropped (14.97 measured)",zh:"640×480 · 0 丢帧（实测 14.97）"}},
+    {v:{en:"14.97 fps",zh:"14.97 fps"},   l:{en:"640×480 daylight, 0 dropped · ~10 fps weak-light ISP",zh:"640×480 日间，0 丢帧 · 弱光 ISP 约 10fps"}},
     {v:{en:"3×",zh:"3×"},           l:{en:"parallel RKNN contexts",zh:"并行 RKNN 上下文"}},
     {v:{en:"RTSP/WebRTC",zh:"RTSP/WebRTC"}, l:{en:":8554 + :8889 · clean stream, browser-side overlay",zh:":8554 + :8889 · 干净视频流，浏览器侧叠加"}}
   ]},
@@ -751,7 +751,7 @@ const METRIC_GROUPS = [
     {v:{en:"full-duplex",zh:"全双工"}, l:{en:"Speex AEC barge-in",zh:"Speex AEC 可打断"}}
   ]},
   {title:{en:"Operations",zh:"运维"}, c:"ops", items:[
-    {v:{en:"6+1+2",zh:"6+1+2"},     l:{en:"6 always-on + 1 on-demand OTA + 2 optional units",zh:"6 常驻 + 1 按需 OTA + 2 可选单元"}},
+    {v:{en:"8",zh:"8"},     l:{en:"active user services (+ on-demand OTA, + system fan-hold)",zh:"活跃用户服务（+ 按需 OTA、+ 系统风扇保持）"}},
     {v:{en:"JSON",zh:"JSON"},       l:{en:"health: liveness / disk / temp",zh:"健康：存活 / 磁盘 / 温度"}},
     {v:{en:"OTA",zh:"OTA"},         l:{en:"verify → atomic switch → rollback",zh:"校验 → 原子切换 → 回滚"}},
     {v:{en:"on-device",zh:"全本地"}, l:{en:"video & audio never leave",zh:"画面与音频不出板"}}
@@ -1116,15 +1116,15 @@ const DATA = [
   name:{en:"Operations",zh:"运维"}, name2:{en:"runtime and monitoring",zh:"运行与监控"},
   tag:{en:"Keeps the services running on the board without supervision.",zh:"没人盯着，也让板子上的服务一直稳稳跑着。"},
   file:"systemd/ · src/cpp_runtime/health_agent.cpp",
-  overview:{en:"Seven always-on user services (vision, fall, alert, voice, health, llm, and a MediaMTX stream fan-out), an optional ISP weak-light profile agent, an on-demand OTA unit (disabled by default), and a system-level fan-hold service. All start under systemd with restart-on-failure. The health agent is a read-only Prometheus exporter on :9090 (/metrics, /dashboard, /viewer, /healthz) sampling liveness, per-process CPU/RSS, NPU load, CMA headroom and temperature. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
-            zh:"七个常驻用户服务（视觉、跌倒、报警、语音、健康、llm，以及一个 MediaMTX 流扇出），一个可选的 ISP 弱光 profile 代理，一个按需的 OTA 单元（默认关闭），还有一个系统级风扇保持服务。它们都在 systemd 下开机自启、挂了自动拉起。健康代理是一个只读的 Prometheus 导出器，跑在 :9090（/metrics、/dashboard、/viewer、/healthz），采集服务存活、各进程 CPU/RSS、NPU 负载、CMA 余量和温度。还有一小段 shell 循环把散热风扇压在安静的转速，免得它吵到麦克风。"},
+  overview:{en:"Eight active user services (vision, fall, alert, voice, health, llm, a MediaMTX stream fan-out, and the ISP weak-light agent), plus an on-demand OTA unit (disabled by default) and a system-level fan-hold service. All start under systemd with restart-on-failure. The health agent is a read-only Prometheus exporter on :9090 (/metrics, /dashboard, /viewer, /healthz) sampling liveness, per-process CPU/RSS, NPU load, CMA headroom and temperature. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
+            zh:"八个活跃用户服务（视觉、跌倒、报警、语音、健康、llm、一个 MediaMTX 流扇出，以及 ISP 弱光代理），外加一个按需的 OTA 单元（默认关闭）和一个系统级风扇保持服务。它们都在 systemd 下开机自启、挂了自动拉起。健康代理是一个只读的 Prometheus 导出器，跑在 :9090（/metrics、/dashboard、/viewer、/healthz），采集服务存活、各进程 CPU/RSS、NPU 负载、CMA 余量和温度。还有一小段 shell 循环把散热风扇压在安静的转速，免得它吵到麦克风。"},
   subs:[
     { id:"services", code:"systemd",
       name:{en:"systemd services",zh:"systemd 服务"},
       summary:{en:"systemd starts vision, fall, alert, voice, health and llm with Restart=always; ota-agent is installed but disabled until an update is pushed.",zh:"systemd 以 Restart=always 启动视觉、跌倒、报警、语音、健康和 llm;ota-agent 已安装，但默认关闭，等到推送更新时才启用。"},
       flow:[
         {t:"boot", d:{en:"default.target",zh:"default.target"}},
-        {t:"systemd", d:{en:"6 always-on + 1 on-demand + 2 optional, After=",zh:"6 常驻 + 1 按需 + 2 可选，按 After= 排序"}},
+        {t:"systemd", d:{en:"8 active + 1 on-demand OTA + system fan-hold, After=",zh:"8 活跃 + 1 按需 OTA + 系统风扇保持，按 After= 排序"}},
         {t:"vision / fall / voice / alert / health / llm", d:{en:"each its own process",zh:"各自独立进程"}},
         {t:"Restart=always", d:{en:"crash -> restart in 3 s",zh:"崩溃 -> 3 秒重启"}, edge:{en:"self-heal",zh:"自愈"}}
       ],
@@ -1378,7 +1378,7 @@ function benchChart(){
     '<text x="40" y="470" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"input handoff: rknn_set_io_mem (deployed)",zh:"输入交接：rknn_set_io_mem（部署）"}))+'</text>'+
     '<rect x="40" y="476" width="10" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="60" y="494" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#46685a">0 ms</text>'+
-    svgCap(24,502,632,46,{en:"Input handoff drops from ~12 ms to 0 on the NPU input only (rknn_set_io_mem). The RTSP output still keeps one RGA fd-to-fd copy into a CMA DMA-BUF (a hardware DMA copy, not a CPU pixel copy): RSS ~162 MB vs ~179 MB for memcpy.",zh:"输入交接在 NPU 输入这一段从约 12ms 降到 0（rknn_set_io_mem）。RTSP 输出仍保留一次 RGA fd-to-fd 拷贝到 CMA DMA-BUF（硬件 DMA 拷贝，不是 CPU 逐像素拷贝）：RSS 约 162MB，对比 memcpy 约 179MB。"},12)+
+    svgCap(24,502,632,46,{en:"Input handoff drops from ~12 ms to 0 on the NPU input only (rknn_set_io_mem). The RTSP output is CPU-memcpy-free but keeps one RGA fd-to-fd copy into a CMA DMA-BUF (a hardware DMA copy, not a CPU pixel copy); 8-client audio+video: vision RSS 192.3 MB, MediaMTX 43.9 MB, 14.94 fps.",zh:"输入交接在 NPU 输入这一段从约 12ms 降到 0（rknn_set_io_mem）。RTSP 输出 CPU 无 memcpy，但仍保留一次 RGA fd-to-fd 拷贝到 CMA DMA-BUF（硬件 DMA 拷贝，不是 CPU 逐像素拷贝）；8 客户端音视频：vision RSS 192.3MB、MediaMTX 43.9MB、14.94 fps。"},12)+
     '</svg>';
 }
 
@@ -1386,13 +1386,13 @@ const BUGS=[
  {t:{en:"RTSP viewer flicker",zh:"RTSP 观看端闪烁"},
   sym:{en:"the picture flickered or dropped when a second phone connected",zh:"第二部手机连上时画面闪烁、掉流"},
   cause:{en:"shared GStreamer media plus out-of-order parallel results made timestamps/frame order fragile",zh:"共用一套 GStreamer media，加上并行结果乱序，让时间戳和帧序都变脆弱"},
-  fix:{en:"per-client media/appsrc; results reordered by frame_id",zh:"每客户端独立 media/appsrc；结果按 frame_id 重排"},
+  fix:{en:"parallel RKNN results reordered by frame_id; stream distribution moved from per-client gst-rtsp-server to single-encode MediaMTX fan-out",zh:"并行 RKNN 结果按 frame_id 重排；流分发从每客户端 gst-rtsp-server 改为单次编码的 MediaMTX 扇出"},
   ev:"src/cpp_edge/rtsp_output_server.cpp + vision.log",
-  ls:{en:"media timestamp/buffer ownership must match frame ownership",zh:"媒体时间戳/buffer 的归属，必须和帧的归属一致"}},
+  ls:{en:"one encode, fan out downstream: ordering and buffer ownership stay with the producer, not each client",zh:"只编码一次、下游扇出：帧序和 buffer 归属留在生产端，而不是每个客户端各管一套"}},
  {t:{en:"Chinese TTS fallback",zh:"中文 TTS 兜底"},
   sym:{en:"Chinese came out wrong or silent",zh:"中文被读错或读空"},
   cause:{en:"a fragile Python fallback; the OpenAI TTS path was dead code",zh:"旧 Python 兜底不稳，OpenAI TTS 路径是死代码"},
-  fix:{en:"Matcha (sherpa-onnx) primary, Piper fallback, a CJK-aware local TTS fallback and regenerated cached emergency prompts",zh:"Matcha（sherpa-onnx）主用、Piper 兜底，再加一层 CJK 友好的本地 TTS 兜底，并重新生成缓存的应急提示"},
+  fix:{en:"Matcha (sherpa-onnx) primary, Piper fallback, espeak as the last resort, and regenerated cached emergency prompts",zh:"Matcha（sherpa-onnx）主用、Piper 兜底、espeak 最后兜底，并重新生成缓存的应急提示"},
   ev:"src/cpp_runtime/voice_service.cpp synth_companion_cached",
   ls:{en:"a fallback you never exercise is the same as no fallback",zh:"从来不被触发的兜底，等于没有兜底"}},
  {t:{en:"Network-down alert stall",zh:"断网报警卡死"},
@@ -1659,7 +1659,7 @@ const PRODEXP=[
 ];
 
 const VALIDATION=[
- {a:{en:"Vision FPS",zh:"视觉帧率"}, test:{en:"450-frame benchmark",zh:"450 帧基准"}, r:{en:"14.97 fps, 0 dropped",zh:"14.97 fps,0 丢帧"}, ev:"vision.log / jsonl", nx:{en:"24 h soak",zh:"24h 长稳"}},
+ {a:{en:"Vision FPS",zh:"视觉帧率"}, test:{en:"450-frame benchmark",zh:"450 帧基准"}, r:{en:"14.97 fps daylight, 0 dropped; ~10 fps weak-light",zh:"日间 14.97 fps、0 丢帧；弱光约 10 fps"}, ev:"vision.log / jsonl", nx:{en:"24 h soak",zh:"24h 长稳"}},
  {a:{en:"Fall recall",zh:"跌倒召回"}, test:{en:"60-clip field test",zh:"60 段实测"}, r:{en:"58 / 60 (97%), 1 FP",zh:"58/60（97%）,1 误报"}, ev:"eval report", nx:{en:"> 500 clips, per-scenario",zh:">500 段，按场景拆"}},
  {a:{en:"Voice latency",zh:"语音延迟"}, test:{en:"voice.log timings",zh:"voice.log 计时"}, r:{en:"LLM first clause ~1.1 s, TTS ~1.0 s",zh:"LLM 首句 ~1.1s，TTS ~1.0s"}, ev:"voice.log", nx:{en:"scripted 30-turn test",zh:"脚本 30 轮测试"}},
  {a:{en:"AEC double-talk",zh:"AEC 双讲"}, test:{en:"DTD self-test",zh:"DTD 自检"}, r:{en:"pass",zh:"通过"}, ev:"audio_aec_duplex --dtd-self-test", nx:{en:"real barge-in dataset",zh:"真实打断数据集"}},
@@ -1738,6 +1738,8 @@ const RUNTIME_TABLE=[
  {s:"voice", cpu:"4-5 · AEC 2-3", log:"voice.log", imp:{en:"no check-in (alert still fires)",zh:"无问询（报警仍触发）"}},
  {s:"health", cpu:{en:"unpinned",zh:"不绑核"}, log:"health.log", imp:{en:"no status.json",zh:"无 status.json"}},
  {s:"llm", cpu:"4-5", log:"llm.log", imp:{en:"voice slower / fallback",zh:"语音变慢 / 降级"}},
+ {s:"mediamtx", cpu:{en:"unpinned",zh:"不绑核"}, log:"mediamtx.log", imp:{en:"no RTSP / WebRTC fan-out",zh:"无 RTSP / WebRTC 扇出"}},
+ {s:"isp-light-agent", cpu:{en:"unpinned",zh:"不绑核"}, log:"isp_light.log", imp:{en:"no weak-light ISP profile",zh:"无弱光 ISP profile"}},
  {s:"ota-agent", cpu:{en:"—",zh:"—"}, log:{en:"job log",zh:"任务日志"}, imp:{en:"no OTA update",zh:"无 OTA 更新"}, od:true}
 ];
 
@@ -1841,8 +1843,8 @@ function obsPanel(){
   ];
   var mlist='<ul class="obsm">'+metrics.map(function(m){return '<li>'+esc(tr(m))+'</li>';}).join("")+'</ul>';
   var rows=[
-    [{en:"DMA-BUF appsrc (deployed)",zh:"DMA-BUF appsrc（部署）"},"~162 MB","~175%",true],
-    [{en:"memcpy appsrc",zh:"memcpy appsrc"},"~179 MB","~175%",false]
+    [{en:"vision RSS · CMA DMA-BUF appsrc",zh:"vision RSS · CMA DMA-BUF appsrc"},"192.3 MB","8 clients",true],
+    [{en:"MediaMTX RSS",zh:"MediaMTX RSS"},"43.9 MB","14.94 fps",false]
   ];
   var rsstbl='<div class="lbtbl">'+rows.map(function(r){return '<div class="obsrss'+(r[3]?" obswin":"")+'"><span class="obsrl">'+esc(tr(r[0]))+'</span><span class="obsrv">'+esc(r[1])+'</span><span class="obsrc">'+esc(r[2])+'</span></div>';}).join("")+'</div>';
   return '<div class="archsub">'+esc(tr(T.obs_ep_h))+'</div>'+eptbl+
@@ -1889,6 +1891,7 @@ const FALL_SCENARIOS=[
  {sc:{en:"Overall · 60-clip field test",zh:"总体 · 60 段实测"}, r:"58/60", fp:"1/60", note:{en:"recall 97%, FP 1.7%",zh:"召回 97%，误报 1.7%"}},
  {sc:{en:"Normal light",zh:"常光"}, r:"100%", fp:"0", note:{en:"every fall caught, no false alarm",zh:"全部命中，无误报"}},
  {sc:{en:"Low light / night",zh:"弱光 / 夜间"}, r:"18/20 (90%)", fp:{en:"the 1 FP is here",zh:"那 1 次误报在此"}, note:{en:"both misses are slow slides",zh:"漏的 2 个都是缓慢下滑"}},
+ {sc:{en:"Weak-light stress set",zh:"弱光压力集"}, r:"2/4 (50%)", fp:{en:"—",zh:"—"}, note:{en:"no-pose failures motivated the weak10 ISP profile + more eval",zh:"出现检不到姿态的失败，催生 weak10 ISP profile，需进一步评测"}},
  {sc:{en:"Per-action (fast/slow/bed/sofa/bend/sit/walk)",zh:"按动作（快跌/慢滑/床/沙发/弯腰/坐/走）"}, r:{en:"pending",zh:"待测"}, fp:{en:"pending",zh:"待测"}, note:{en:"per-scenario eval is the next test (see Roadmap)",zh:"逐场景评测是下一步（见路线图）"}}
 ];
 
@@ -2058,6 +2061,8 @@ function pageRuntime(){
         ["eldercare-voice.service","run_voice_aec.sh → eldercare_voice_service",null],
         ["eldercare-health.service","eldercare_health_agent --watch",null],
         ["eldercare-llm.service","llama-server (Qwen2.5-1.5B)",null],
+        ["eldercare-mediamtx.service","MediaMTX (RTSP / WebRTC / HLS fan-out)",null],
+        ["eldercare-isp-light-agent.service","auto_weaklight_profile.py (ISP aperture / exposure)",null],
         ["eldercare-ota-agent.service","eldercare_ota_agent",{en:"disabled by default",zh:"默认关闭"}],
         ["eldercare-rauc-mark-good.service","rauc mark-good hook",{en:"system · optional",zh:"系统级 · 可选"}],
         ["eldercare-rtsp-camera.service","standalone camera server",{en:"debug only · not co-resident with vision",zh:"仅调试 · 不与视觉同占摄像头"}]
