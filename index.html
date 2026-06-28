@@ -111,6 +111,11 @@
   .netfig{margin:0}
   .netfig img{width:100%;border:1px solid var(--line);border-radius:10px;display:block}
   .netfig figcaption{font-size:12px;color:var(--tx2);margin-top:7px;line-height:1.5}
+  .vidgrid{display:grid;grid-template-columns:repeat(2,minmax(0,300px));gap:22px;justify-content:center;margin-top:8px}
+  @media(max-width:680px){.vidgrid{grid-template-columns:1fr;max-width:320px;margin-left:auto;margin-right:auto}}
+  .vidfig{margin:0}
+  .vidfig video{width:100%;border:1px solid var(--line);border-radius:12px;display:block;background:#000}
+  .vidfig figcaption{font-size:12.5px;color:var(--tx2);margin-top:8px;line-height:1.5}
 
   /* breadcrumb */
   .crumb{font-size:13px;color:var(--tx3);padding:18px 0 0}
@@ -647,6 +652,9 @@ const T = {
   cap_webrtc:{en:"WebRTC /viewer. The H.264 stream is clean; the browser Canvas draws the bounding box (track id and confidence) and the COCO-17 skeleton from the /overlay pose JSON. Here one tracked person, ID 61 at 0.88.",zh:"WebRTC /viewer。H.264 是干净流；浏览器 Canvas 从 /overlay 的姿态 JSON 画出检测框（track id 与置信度）和 COCO-17 骨架。图中为一个被跟踪的人，ID 61、0.88。"},
   cap_hw:{en:"The device on the bench: an Orange Pi 5 Plus (RK3588) with heatsink and a quiet fan, the OV13855 MIPI camera module, and an ES8388 speaker. Everything in this project runs here; nothing is offloaded to a server.",zh:"台面上的设备：一块香橙派 5 Plus（RK3588）带散热片和静音风扇、OV13855 MIPI 摄像头模组，以及 ES8388 喇叭。本项目的一切都在这上面跑，没有任何东西放到服务器。"},
   cap_testenv:{en:"The field-test environment: the lecture hall where the 60-clip fall-detection test was recorded, in normal light and with the lights off. The camera looks down the stage; the same room appears in the WebRTC viewer and the demo footage.",zh:"现场测试环境：60 段跌倒检测实测所在的阶梯教室，分常光和关灯两种。摄像头俯视舞台；WebRTC 观看页和演示画面里也是这间。"},
+  demo_h:{en:"Field demo: daylight vs weak-light (narrated)",zh:"实测演示：日光 vs 弱光（带解说）"},
+  cap_demo_day:{en:"Daylight test (narrated). The lecture hall in normal light: a fall, the on-device confirmation, and the voice assistant checking in. Video and audio stay on the board; only the family alert goes out.",zh:"日光测试（带解说）。常光下的阶梯教室：一次跌倒、端侧确认、语音助手主动问询。视频和音频都留在板上，只有给家人的报警出板。"},
+  cap_demo_dark:{en:"Dark / weak-light test (narrated). The same room with the lights off, where the ISP weak-light profile runs at about 10 fps.",zh:"暗光 / 弱光测试（带解说）。同一间教室关灯，ISP 弱光 profile 下约 10 fps 运行。"},
   rm_item:{en:"item",zh:"项目"},
   rm_st_test:{en:"Testing",zh:"测试中"}, rm_st_next:{en:"Next",zh:"下一步"}, rm_st_research:{en:"Research",zh:"研究"},
   nav_background:{en:"Background",zh:"背景"}, nav_overview:{en:"Overview",zh:"总览"}, nav_architecture:{en:"Architecture",zh:"架构"}, nav_runtime:{en:"Runtime",zh:"运行时"},
@@ -2108,6 +2116,11 @@ function pageValidation(){
   return pageHead(T.val_h,T.val_sub,"fall")+
     '<section style="padding-top:8px">'+
       '<figure class="skelfig" style="margin-top:0"><img src="assets/test_env.jpg" loading="lazy" alt="'+esc(tr(T.cap_testenv))+'"><figcaption>'+esc(tr(T.cap_testenv))+"</figcaption></figure>"+
+      '<div class="archsub">'+esc(tr(T.demo_h))+"</div>"+
+      '<div class="vidgrid">'+
+        '<figure class="vidfig"><video src="assets/demo_daylight.mp4" controls preload="metadata" playsinline></video><figcaption>'+esc(tr(T.cap_demo_day))+"</figcaption></figure>"+
+        '<figure class="vidfig"><video src="assets/demo_darklight.mp4" controls preload="metadata" playsinline></video><figcaption>'+esc(tr(T.cap_demo_dark))+"</figcaption></figure>"+
+      "</div>"+
       validationTable()+"</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.prodexp_h)+"</h2></div>"+
