@@ -676,6 +676,7 @@ const T = {
   v_area:{en:"area",zh:"项目"}, v_test:{en:"test",zh:"测试方法"}, v_result:{en:"current result",zh:"当前结果"}, v_ev:{en:"evidence",zh:"证据"}, v_next:{en:"next test",zh:"下一步"},
   privacy_h:{en:"Privacy boundary",zh:"隐私边界"},
   privacy_sub:{en:"What never leaves the board, what may, and how it is protected.",zh:"什么绝不出板、什么可能出板，以及怎么保护。"},
+  privacy_cloud_note:{en:"Optional cloud TTS/ASR fallback code exists in the codebase but is disabled in the production demo; all production inference runs on-device and the emergency path stays fully local (local rule classifier + espeak).",zh:"代码里有可选的云端 TTS/ASR 兜底分支，但在生产演示里是关闭的；生产推理全部在端侧，应急路径始终全本地（本地规则分类 + espeak）。"},
   srcmap_h:{en:"Source map",zh:"源码索引"},
   srcmap_sub:{en:"Straight from a question to the file that answers it.",zh:"从一个问题直接跳到回答它的源文件。"},
   rtable_h:{en:"Runtime services (systemd)",zh:"运行时服务（systemd）"},
@@ -1386,7 +1387,7 @@ const BUGS=[
  {t:{en:"RTSP viewer flicker",zh:"RTSP 观看端闪烁"},
   sym:{en:"the picture flickered or dropped when a second phone connected",zh:"第二部手机连上时画面闪烁、掉流"},
   cause:{en:"shared GStreamer media plus out-of-order parallel results made timestamps/frame order fragile",zh:"共用一套 GStreamer media，加上并行结果乱序，让时间戳和帧序都变脆弱"},
-  fix:{en:"parallel RKNN results reordered by frame_id; stream distribution moved from per-client gst-rtsp-server to single-encode MediaMTX fan-out",zh:"并行 RKNN 结果按 frame_id 重排；流分发从每客户端 gst-rtsp-server 改为单次编码的 MediaMTX 扇出"},
+  fix:{en:"first fixed with per-client appsrc + frame_id reorder; production later moved to single-encode -> MediaMTX fan-out to keep VPU load O(1)",zh:"先用每客户端 appsrc + frame_id 重排修掉；生产后来改为单次编码 -> MediaMTX 扇出，让 VPU 负载保持 O(1)"},
   ev:"src/cpp_edge/rtsp_output_server.cpp + vision.log",
   ls:{en:"one encode, fan out downstream: ordering and buffer ownership stay with the producer, not each client",zh:"只编码一次、下游扇出：帧序和 buffer 归属留在生产端，而不是每个客户端各管一套"}},
  {t:{en:"Chinese TTS fallback",zh:"中文 TTS 兜底"},
@@ -1496,10 +1497,10 @@ const ROADMAP=[
     s:{en:"global thresholds",zh:"全局阈值"},
     n:{en:"calibrate floor/bed/sofa zones + camera angle at install",zh:"安装时标定地面/床/沙发区与角度"},
     m:{en:"no core-threshold retune across install heights",zh:"不同安装高度不用重调核心阈值"}},
-   {t:{en:"ISP profile auto-select",zh:"ISP profile 自动选择"}, w:"1-2mo",
-    p:{en:"a single night profile",zh:"单一夜间 profile"},
-    s:{en:"night_balanced RKAIQ profile",zh:"night_balanced 一套"},
-    n:{en:"low-light / backlit / daylight profiles, auto-switched",zh:"弱光/逆光/白天三套自动切"},
+   {t:{en:"RKAIQ profile-level low-light tuning",zh:"RKAIQ profile 级低光调校"}, w:"1-2mo",
+    p:{en:"brightness is hand-thresholded at the sensor",zh:"亮度在传感器侧手调阈值"},
+    s:{en:"weak10 / weak8 / weak6 sensor-control via v4l-subdev2 (exposure / vblank / gain), driven by eldercare-isp-light-agent",zh:"weak10 / weak8 / weak6 经 v4l-subdev2 调 曝光 / vblank / 增益，由 eldercare-isp-light-agent 驱动"},
+    n:{en:"real RKAIQ profile-level AE / DRC / NR tuning, auto-switched by scene",zh:"真正的 RKAIQ profile 级 AE / DRC / NR 调校，按场景自动切"},
     m:{en:"low-light recall up, no extra daylight false alarms",zh:"低光 recall 升，正常光误报不增"}}
  ]},
  {area:{en:"Voice",zh:"语音"}, c:"voice", items:[
@@ -1757,7 +1758,7 @@ function runtimeTable(){
 function archLayers(){
   var zh = L()==="zh";
   var data = zh?["姿态 UDP","MQTT","健康 JSON","RTSP","JPEG 取证","语音 wav(TTL)","OTA 包"]:["pose UDP","MQTT","health JSON","RTSP","JPEG evidence","voice wav (TTL)","OTA package"];
-  var rt = ["vision","fall","alert","voice","health","llm","ota-agent"];
+  var rt = ["vision","fall","alert","voice","health","llm","mediamtx","isp-light-agent","ota-agent (on-demand)"];
   var hw = zh?["OV13855 摄像头","RK3588（ISP·RGA·NPU·VPU）","ES8388 音频","风扇","存储"]:["OV13855 camera","RK3588 (ISP·RGA·NPU·VPU)","ES8388 audio","fan","storage"];
   function rowf(lbl,items,c){
     return '<div class="archrow" style="--ac:var(--'+c+')"><span class="archlbl">'+esc(lbl)+'</span><div class="archnodes">'+items.map(function(x){return '<span class="archnode">'+esc(x)+'</span>';}).join("")+'</div></div>';
@@ -1843,8 +1844,8 @@ function obsPanel(){
   ];
   var mlist='<ul class="obsm">'+metrics.map(function(m){return '<li>'+esc(tr(m))+'</li>';}).join("")+'</ul>';
   var rows=[
-    [{en:"vision RSS · CMA DMA-BUF appsrc",zh:"vision RSS · CMA DMA-BUF appsrc"},"192.3 MB","8 clients",true],
-    [{en:"MediaMTX RSS",zh:"MediaMTX RSS"},"43.9 MB","14.94 fps",false]
+    [{en:"vision · CMA DMA-BUF appsrc",zh:"vision · CMA DMA-BUF appsrc"},"192.3 MB","~80% CPU",true],
+    [{en:"MediaMTX · 8 clients",zh:"MediaMTX · 8 客户端"},"43.9 MB","14.94 fps",false]
   ];
   var rsstbl='<div class="lbtbl">'+rows.map(function(r){return '<div class="obsrss'+(r[3]?" obswin":"")+'"><span class="obsrl">'+esc(tr(r[0]))+'</span><span class="obsrv">'+esc(r[1])+'</span><span class="obsrc">'+esc(r[2])+'</span></div>';}).join("")+'</div>';
   return '<div class="archsub">'+esc(tr(T.obs_ep_h))+'</div>'+eptbl+
@@ -1891,7 +1892,7 @@ const FALL_SCENARIOS=[
  {sc:{en:"Overall · 60-clip field test",zh:"总体 · 60 段实测"}, r:"58/60", fp:"1/60", note:{en:"recall 97%, FP 1.7%",zh:"召回 97%，误报 1.7%"}},
  {sc:{en:"Normal light",zh:"常光"}, r:"100%", fp:"0", note:{en:"every fall caught, no false alarm",zh:"全部命中，无误报"}},
  {sc:{en:"Low light / night",zh:"弱光 / 夜间"}, r:"18/20 (90%)", fp:{en:"the 1 FP is here",zh:"那 1 次误报在此"}, note:{en:"both misses are slow slides",zh:"漏的 2 个都是缓慢下滑"}},
- {sc:{en:"Weak-light stress set",zh:"弱光压力集"}, r:"2/4 (50%)", fp:{en:"—",zh:"—"}, note:{en:"no-pose failures motivated the weak10 ISP profile + more eval",zh:"出现检不到姿态的失败，催生 weak10 ISP profile，需进一步评测"}},
+ {sc:{en:"Weak-light stress set (early)",zh:"弱光压力集（早期）"}, r:"2/4 (50%)", fp:{en:"—",zh:"—"}, note:{en:"slow-slide misses motivated the weak10 ISP profile; per-scenario low-light eval still under validation",zh:"慢滑漏检催生 weak10 ISP profile；分场景低光评测仍在验证中"}},
  {sc:{en:"Per-action (fast/slow/bed/sofa/bend/sit/walk)",zh:"按动作（快跌/慢滑/床/沙发/弯腰/坐/走）"}, r:{en:"pending",zh:"待测"}, fp:{en:"pending",zh:"待测"}, note:{en:"per-scenario eval is the next test (see Roadmap)",zh:"逐场景评测是下一步（见路线图）"}}
 ];
 
@@ -2107,6 +2108,7 @@ function pageValidation(){
       '<div class="secttl"><h2>'+tr(T.privacy_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.privacy_sub)+"</p>"+
       privacyBoundary()+
+      '<p class="bgnote">'+esc(tr(T.privacy_cloud_note))+"</p>"+
     "</section>";
 }
 
