@@ -1371,16 +1371,16 @@ function archDiagram(){
 
 /* ---------- views ---------- */
 function benchChart(){
-  return '<svg role="img" viewBox="0 0 680 544" width="100%" xmlns="http://www.w3.org/2000/svg">'+
+  return '<svg role="img" viewBox="0 0 680 574" width="100%" xmlns="http://www.w3.org/2000/svg">'+
     '<title>'+esc(tr({en:"ARGUS benchmark comparison",zh:"ARGUS 实测对比"}))+'</title>'+
-    '<rect x="2" y="4" width="676" height="170" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
+    '<rect x="2" y="4" width="676" height="184" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="40" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Per-frame breakdown (640, deployed zero-copy)",zh:"每帧耗时分解（640，部署零拷贝）"}))+'</text>'+
     '<rect x="40" y="58" width="583" height="28" fill="#d98a45"/>'+
     '<rect x="623" y="58" width="17" height="28" fill="#8fbf9f"/>'+
     '<text x="331" y="76" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#ffffff">'+esc(tr({en:"rknn_run 75-80 ms (most of the frame)",zh:"rknn_run 75-80 ms（占整帧大部分）"}))+'</text>'+
     '<rect x="40" y="104" width="11" height="11" rx="2" fill="#d98a45"/><text x="57" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"rknn_run ~78 ms",zh:"rknn_run ~78 ms"}))+'</text>'+
     '<rect x="230" y="104" width="11" height="11" rx="2" fill="#8fbf9f"/><text x="247" y="114" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6f655b">'+esc(tr({en:"pipeline overhead ~2.4 ms",zh:"流水线开销 ~2.4 ms"}))+'</text>'+
-    svgCap(24,122,632,48,{en:"Overhead is only ~2.4 ms/frame (RGA fd-to-fd 0.4 + set_io_mem 0 + outputs/rtsp 2); the rest is raw rknn_run. One context ~12 fps; three parallel NPU-core contexts reach 14.97 fps, 0 dropped, at the 15 fps camera ceiling.",zh:"流水线开销仅约 2.4ms/帧（RGA fd-to-fd 0.4 + set_io_mem 0 + 输出/rtsp 2），其余全是 rknn_run。单上下文约 12fps；3 个并行 NPU 核上下文到 14.97fps、0 丢帧，即 15fps 相机上限。"})+
+    svgCap(24,122,632,58,{en:"Overhead is only ~2.4 ms/frame (RGA fd-to-fd 0.4 + set_io_mem 0 + outputs/rtsp 2); the rest is raw rknn_run. One context ~12 fps; three parallel NPU-core contexts reach 14.97 fps, 0 dropped, at the 15 fps camera ceiling.",zh:"流水线开销仅约 2.4ms/帧（RGA fd-to-fd 0.4 + set_io_mem 0 + 输出/rtsp 2），其余全是 rknn_run。单上下文约 12fps；3 个并行 NPU 核上下文到 14.97fps、0 丢帧，即 15fps 相机上限。"})+
     '<rect x="2" y="190" width="676" height="150" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="226" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"Recall in low light / lying (offline snapshots)",zh:"弱光 / 躺地检出率（离线快照）"}))+'</text>'+
     '<text x="40" y="252" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"384 quantized",zh:"384 量化模型"}))+'</text>'+
@@ -1389,7 +1389,7 @@ function benchChart(){
     '<text x="40" y="304" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"640 (deployed)",zh:"640 模型（部署）"}))+'</text>'+
     '<rect x="40" y="310" width="600" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="630" y="328" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#ffffff">100%</text>'+
-    '<rect x="2" y="356" width="676" height="178" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
+    '<rect x="2" y="356" width="676" height="210" rx="16" fill="#ffffff" stroke="#e9e0d3"/>'+
     '<text x="28" y="392" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="500" fill="#33302b">'+esc(tr({en:"CPU zero-copy input via set_io_mem (measured)",zh:"set_io_mem 的 CPU 零拷贝输入（实测）"}))+'</text>'+
     '<text x="40" y="418" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"input handoff: rknn_inputs_set copy",zh:"输入交接：rknn_inputs_set 拷贝"}))+'</text>'+
     '<rect x="40" y="424" width="250" height="24" rx="6" fill="#e0985a"/>'+
@@ -1397,7 +1397,7 @@ function benchChart(){
     '<text x="40" y="470" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#6f655b">'+esc(tr({en:"input handoff: rknn_set_io_mem (deployed)",zh:"输入交接：rknn_set_io_mem（部署）"}))+'</text>'+
     '<rect x="40" y="476" width="10" height="24" rx="6" fill="#3f8f6b"/>'+
     '<text x="60" y="494" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" fill="#46685a">0 ms</text>'+
-    svgCap(24,502,632,46,{en:"Input handoff drops from ~12 ms to 0 on the NPU input only (rknn_set_io_mem). The RTSP output is CPU-memcpy-free but keeps one RGA fd-to-fd copy into a CMA DMA-BUF (a hardware DMA copy, not a CPU pixel copy); 8-client audio+video: vision RSS 192.3 MB, MediaMTX 43.9 MB, 14.94 fps.",zh:"输入交接在 NPU 输入这一段从约 12ms 降到 0（rknn_set_io_mem）。RTSP 输出 CPU 无 memcpy，但仍保留一次 RGA fd-to-fd 拷贝到 CMA DMA-BUF（硬件 DMA 拷贝，不是 CPU 逐像素拷贝）；8 客户端音视频：vision RSS 192.3MB、MediaMTX 43.9MB、14.94 fps。"},12)+
+    svgCap(24,502,632,58,{en:"Input handoff drops from ~12 ms to 0 on the NPU input (rknn_set_io_mem). The RTSP output is CPU-memcpy-free but keeps one RGA fd-to-fd copy into a CMA DMA-BUF: a hardware DMA copy, not a CPU pixel copy.",zh:"输入交接在 NPU 输入这段从约 12ms 降到 0（rknn_set_io_mem）。RTSP 输出 CPU 无 memcpy，但仍保留一次 RGA fd-to-fd 拷贝到 CMA DMA-BUF：硬件 DMA 拷贝，不是 CPU 逐像素拷贝。"},12)+
     '</svg>';
 }
 
