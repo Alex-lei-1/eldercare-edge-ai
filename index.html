@@ -646,6 +646,7 @@ const T = {
   cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1. This snapshot is the night / low-light state: the ISP opens the aperture and lengthens exposure, so the camera runs about 10 fps; in daylight it runs 15 fps. The 14.97 fps headline is the daylight steady-state 450-frame benchmark.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐。这张是夜间/弱光状态：ISP 开大光圈、拉长曝光，相机约 10fps；日间为 15fps。14.97fps 是日间稳态 450 帧基准。"},
   cap_webrtc:{en:"WebRTC /viewer. The H.264 stream is clean; the browser Canvas draws the bounding box (track id and confidence) and the COCO-17 skeleton from the /overlay pose JSON. Here one tracked person, ID 61 at 0.88.",zh:"WebRTC /viewer。H.264 是干净流；浏览器 Canvas 从 /overlay 的姿态 JSON 画出检测框（track id 与置信度）和 COCO-17 骨架。图中为一个被跟踪的人，ID 61、0.88。"},
   cap_hw:{en:"The device on the bench: an Orange Pi 5 Plus (RK3588) with heatsink and a quiet fan, the OV13855 MIPI camera module, and an ES8388 speaker. Everything in this project runs here; nothing is offloaded to a server.",zh:"台面上的设备：一块香橙派 5 Plus（RK3588）带散热片和静音风扇、OV13855 MIPI 摄像头模组，以及 ES8388 喇叭。本项目的一切都在这上面跑，没有任何东西放到服务器。"},
+  cap_testenv:{en:"The field-test environment: the lecture hall where the 60-clip fall-detection test was recorded, in normal light and with the lights off. The camera looks down the stage; the same room appears in the WebRTC viewer and the demo footage.",zh:"现场测试环境：60 段跌倒检测实测所在的阶梯教室，分常光和关灯两种。摄像头俯视舞台；WebRTC 观看页和演示画面里也是这间。"},
   rm_item:{en:"item",zh:"项目"},
   rm_st_test:{en:"Testing",zh:"测试中"}, rm_st_next:{en:"Next",zh:"下一步"}, rm_st_research:{en:"Research",zh:"研究"},
   nav_background:{en:"Background",zh:"背景"}, nav_overview:{en:"Overview",zh:"总览"}, nav_architecture:{en:"Architecture",zh:"架构"}, nav_runtime:{en:"Runtime",zh:"运行时"},
@@ -2102,7 +2103,9 @@ function pageObservability(){
 
 function pageValidation(){
   return pageHead(T.val_h,T.val_sub,"fall")+
-    '<section style="padding-top:8px">'+validationTable()+"</section>"+
+    '<section style="padding-top:8px">'+
+      '<figure class="skelfig" style="margin-top:0"><img src="assets/test_env.jpg" loading="lazy" alt="'+esc(tr(T.cap_testenv))+'"><figcaption>'+esc(tr(T.cap_testenv))+"</figcaption></figure>"+
+      validationTable()+"</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.prodexp_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.prodexp_sub)+"</p>"+
