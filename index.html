@@ -207,7 +207,7 @@
   .pepath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent)}
   .pest{font-weight:500;color:var(--warm)}
   .pewhy{color:var(--tx2)}
-  .vthead,.vtrow{display:grid;grid-template-columns:0.9fr 1.1fr 0.85fr 1.15fr 0.6fr 1.1fr;gap:10px;padding:9px 14px;border-top:1px solid var(--line)}
+  .vthead,.vtrow{display:grid;grid-template-columns:0.85fr 1fr 0.7fr 1fr 0.95fr 0.5fr 0.95fr;gap:9px;padding:9px 12px;border-top:1px solid var(--line);font-size:12px}
   .vthead{border-top:none;font-weight:500;color:var(--tx);background:var(--card2)}
   .vtrow{color:var(--tx2)}
   .vok{color:var(--accent);font-weight:500}
@@ -654,7 +654,7 @@ const T = {
   explore_sub:{en:"Each area is its own page: the motivation, the system design, how it runs, observability, how it is validated, the roadmap, and the engineering evidence.",zh:"每个部分都是独立页面：动机、系统设计、怎么运行、可观测性、怎么验证、路线图，以及工程证据。"},
   page_k:{en:"page",zh:"页面"},
   ev_page_h:{en:"Engineering & evidence",zh:"工程与证据"},
-  ev_page_sub:{en:"Real bugs and fixes, the alert sequence, and the numbered raw evidence E1-E8 (logs, screenshots, benchmarks, packet captures, source map) that the Key metrics and the Validation matrix cite.",zh:"真实的 bug 与修复、报警时序，以及编号为 E1-E8 的原始证据（日志、截图、基准、抓包、源码索引）——关键指标和验证矩阵引用的就是这些编号。"},
+  ev_page_sub:{en:"The numbered raw evidence E1-E8 (logs, screenshots, benchmarks, packet captures, source map) that Key metrics and the Validation matrix cite — facts only, no interpretation — followed by the real bugs fixed along the way.",zh:"编号为 E1-E8 的原始证据（日志、截图、基准、抓包、源码索引）——关键指标和验证矩阵引用的就是这些编号；只放事实、不放推导。页尾是一路修过的真实 bug。"},
   cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1. This snapshot is the night / low-light state: the ISP weak-light profile extends exposure / vertical blanking and adjusts gain, so the camera runs about 10 fps; in daylight it runs 15 fps. The 14.97 fps headline is the daylight steady-state 450-frame benchmark. The confirmed count is a Prometheus Counter over the process lifetime, not a dataset accuracy or a cumulative incident total.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐。这张是夜间/弱光状态：ISP 弱光 profile 拉长曝光 / vertical blanking 并调整 gain，相机约 10fps；日间为 15fps。14.97fps 是日间稳态 450 帧基准。确认次数是进程生命周期内的 Prometheus Counter，不是数据集准确率，也不是历史累计事故数。"},
   cap_webrtc:{en:"WebRTC /viewer. The H.264 stream is clean; the browser Canvas draws the bounding box (track id and confidence) and the COCO-17 skeleton from the /overlay pose JSON. Here one tracked person, ID 61 at 0.88.",zh:"WebRTC /viewer。H.264 是干净流；浏览器 Canvas 从 /overlay 的姿态 JSON 画出检测框（track id 与置信度）和 COCO-17 骨架。图中为一个被跟踪的人，ID 61、0.88。"},
   cap_hw:{en:"The device on the bench: an Orange Pi 5 Plus (RK3588) with heatsink and a quiet fan, the OV13855 MIPI camera module, and an ES8388 speaker. Everything in this project runs here; nothing is offloaded to a server.",zh:"台面上的设备：一块香橙派 5 Plus（RK3588）带散热片和静音风扇、OV13855 MIPI 摄像头模组，以及 ES8388 喇叭。本项目的一切都在这上面跑，没有任何东西放到服务器。"},
@@ -696,9 +696,9 @@ const T = {
   prodexp_h:{en:"Production vs experimental",zh:"生产 vs 实验"},
   prodexp_sub:{en:"Which vision paths actually ship, and which are implemented but held back.",zh:"视觉链路里哪些真正上生产，哪些已实现但暂不默认。"},
   val_h:{en:"Validation",zh:"验证"},
-  val_sub:{en:"Each claim: how it was tested, the sample size, the result, the evidence ID (E1-E8, on the Evidence page), and the gap to close next.",zh:"每条论断：怎么测、样本量、结果、证据编号（E1-E8，见证据页），以及下一步要补的缺口。"},
+  val_sub:{en:"Each claim: how it was tested, the sample size, the pass bar, the measured result, the evidence ID (E1-E8, on the Evidence page), and the gap to close next.",zh:"每条论断：怎么测、样本量、通过标准、实测结果、证据编号（E1-E8，见证据页），以及下一步要补的缺口。"},
   val_mtx_h:{en:"Validation matrix",zh:"验证矩阵"},
-  v_claim:{en:"claim",zh:"论断"}, v_test:{en:"test",zh:"测试方法"}, v_sample:{en:"sample",zh:"样本量"}, v_result:{en:"result",zh:"结果"}, v_ev:{en:"evidence",zh:"证据"}, v_gap:{en:"gap / next",zh:"缺口 / 下一步"},
+  v_claim:{en:"claim",zh:"论断"}, v_test:{en:"test",zh:"测试方法"}, v_sample:{en:"sample",zh:"样本量"}, v_crit:{en:"pass bar",zh:"通过标准"}, v_result:{en:"result",zh:"结果"}, v_ev:{en:"evidence",zh:"证据"}, v_gap:{en:"gap / next",zh:"缺口 / 下一步"},
   privacy_h:{en:"Privacy boundary",zh:"隐私边界"},
   privacy_sub:{en:"What never leaves the board, what may, and how it is protected.",zh:"什么绝不出板、什么可能出板，以及怎么保护。"},
   privacy_cloud_note:{en:"Optional cloud TTS/ASR fallback code exists in the codebase but is disabled in the production demo; all production inference runs on-device and the emergency path stays fully local (local rule classifier + espeak).",zh:"代码里有可选的云端 TTS/ASR 兜底分支，但在生产演示里是关闭的；生产推理全部在端侧，应急路径始终全本地（本地规则分类 + espeak）。"},
@@ -718,8 +718,8 @@ const T = {
   obs_mx_h:{en:"Stream fan-out: vision + audio -> MediaMTX",zh:"流扇出：视觉 + 音频 -> MediaMTX"},
   obs_rss_h:{en:"RTSP output: 8-client audio+video (CMA DMA-BUF, CPU-memcpy-free)",zh:"RTSP 输出：8 客户端音视频（CMA DMA-BUF，CPU 无 memcpy）"},
   nav_debug:{en:"Evidence",zh:"证据"},
-  debug_h:{en:"Debugging evidence",zh:"调试证据"},
-  debug_sub:{en:"Live signals straight off the running board: per-frame timings, the pose datagram, exported metrics, and the retained fall state.",zh:"直接来自运行中板子的信号：每帧计时、姿态数据报、导出指标、保留的跌倒状态。"},
+  debug_h:{en:"Raw evidence E1-E8",zh:"原始证据 E1-E8"},
+  debug_sub:{en:"Straight off the board: logs, screenshots, benchmarks, captures. What each number means lives in Key metrics; how it was tested lives in Validation.",zh:"直接来自板子：日志、截图、基准、抓包。数字的含义在关键指标页，测试方法在验证页——这里只放原始事实。"},
   fall_table_h:{en:"Fall detection by scenario",zh:"跌倒检测分场景"},
   fall_table_sub:{en:"Real numbers where we have them; the per-action split is the next test.",zh:"有真值的就填真值，逐动作拆分是下一步。"},
   fs_sc:{en:"scenario",zh:"场景"}, fs_recall:{en:"recall",zh:"召回"}, fs_fp:{en:"false alarm",zh:"误报"}, fs_note:{en:"notes",zh:"备注"},
@@ -1462,7 +1462,7 @@ const PRODPROTO=[
  {t:{en:"Archived",zh:"已归档"}, c:"ops", items:["archive/legacy_python_runtime/  (superseded)"]}
 ];
 
-function engNotes(){
+function bugsBlock(){
   var bugs=BUGS.map(function(b){
     return '<div class="bugcard"><h4>'+esc(tr(b.t))+'</h4>'+
       '<div class="bcl"><span>'+esc(tr(T.b_sym))+'</span>'+esc(tr(b.sym))+'</div>'+
@@ -1471,17 +1471,20 @@ function engNotes(){
       '<div class="bcl bce"><span>'+esc(tr(T.b_ev))+'</span><code>'+esc(b.ev)+'</code></div>'+
       '<div class="bcl"><span>'+esc(tr(T.b_lesson))+'</span>'+esc(tr(b.ls))+'</div></div>';
   }).join("");
+  return '<p class="engsub">'+esc(tr(T.eng_sub))+'</p><div class="buggrid">'+bugs+'</div>';
+}
+function tradeoffsBlock(){
   var qa=TRADEOFFS.map(function(q){
     return '<div class="qa"><div class="qq">'+esc(tr(q.q))+'</div><div class="qaa">'+esc(tr(q.a))+'</div></div>';
   }).join("");
+  return '<div class="qawrap">'+qa+'</div>';
+}
+function prodProtoBlock(){
   var pvp=PRODPROTO.map(function(p){
     return '<div class="pvpcol" style="--gc:var(--'+p.c+')"><div class="pvph">'+esc(tr(p.t))+'</div>'+
       p.items.map(function(it){return '<code>'+esc(it)+'</code>';}).join("")+'</div>';
   }).join("");
-  return '<p class="engsub">'+esc(tr(T.eng_sub))+'</p>'+
-    '<h3 class="engh">'+esc(tr(T.bugs_h))+'</h3><div class="buggrid">'+bugs+'</div>'+
-    '<h3 class="engh">'+esc(tr(T.tradeoffs_h))+'</h3><div class="qawrap">'+qa+'</div>'+
-    '<h3 class="engh">'+esc(tr(T.prodproto_h))+'</h3><div class="pvpwrap">'+pvp+'</div>';
+  return '<div class="pvpwrap">'+pvp+'</div>';
 }
 
 const ROADMAP=[
@@ -1647,17 +1650,26 @@ function roadmapBlocks(){
   }).join("");
 }
 function implementedBlock(){
-  var items=[
+  var codeItems=[
     {en:"MediaMTX single-encode stream fan-out (RTSP / WebRTC / HLS)",zh:"MediaMTX 单次编码流扇出（RTSP / WebRTC / HLS）"},
     {en:"Audio + video RTSP tracks (H.264 + Opus)",zh:"音频 + 视频 RTSP 双轨（H.264 + Opus）"},
     {en:"Prometheus exporter + live dashboard on :9090",zh:":9090 Prometheus 导出器 + 实时仪表盘"},
-    {en:"Browser-side pose overlay, clean stream (no burned-in boxes; RGA/encoder-side OSD stays debug-only)",zh:"浏览器侧姿态叠加，干净流（不烧录框；RGA/编码器侧 OSD 仅用于调试）"},
-    {en:"Single-plane zero-copy input (RGA fd-to-fd + set_io_mem)",zh:"单平面零拷贝输入（RGA fd-to-fd + set_io_mem）"},
+    {en:"Browser-side pose overlay, clean stream (encoder-side OSD stays debug-only)",zh:"浏览器侧姿态叠加，干净流（编码器侧 OSD 仅用于调试）"},
     {en:"CPU affinity split: capture 0-3, infer 6-7, voice 4-5, AEC 2-3",zh:"CPU 绑核分工：采集 0-3、推理 6-7、语音 4-5、AEC 2-3"},
     {en:"CMA via dma-heap udev rule + service integration",zh:"CMA 经 dma-heap udev 规则 + 服务集成"},
     {en:"Fall confirmed-state TTL (60 s) so state does not latch red",zh:"跌倒确认状态 TTL（60s），状态不会一直锁红"}
   ];
-  return '<div class="implgrid">'+items.map(function(i){return '<div class="implitem"><span class="implck">✓</span><span>'+esc(tr(i))+'</span></div>';}).join("")+'</div>';
+  var boardItems=[
+    {en:"Single-plane zero-copy input: rknn_inputs_set_ms = 0 in the live log (450-frame benchmark)",zh:"单平面零拷贝输入：实时日志 rknn_inputs_set_ms = 0（450 帧基准）"},
+    {en:"640 pose on 3 parallel contexts: 14.97 fps, 0 dropped",zh:"640 姿态 3 上下文并行：14.97 fps、0 丢帧"},
+    {en:"8-client RTSP/WebRTC fan-out: ~14.94 fps (15 s bench)",zh:"8 客户端 RTSP/WebRTC 扇出：~14.94 fps（15 秒基准）"},
+    {en:"Weak-light profile: ~10 fps with usable pose at night",zh:"弱光 profile：夜间约 10 fps 且姿态可用"},
+    {en:"Fall detection: 58/60 recall, 1 FP (60-clip field test)",zh:"跌倒检测：58/60 召回、1 误报（60 段实测）"}
+  ];
+  function grid(items){return '<div class="implgrid">'+items.map(function(i){return '<div class="implitem"><span class="implck">✓</span><span>'+esc(tr(i))+'</span></div>';}).join("")+'</div>';}
+  return '<div class="archsub" style="margin-top:10px">'+esc(tr({en:"Implemented in codebase (merged, self-tests pass)",zh:"代码已实现（已合入，自检通过）"}))+'</div>'+grid(codeItems)+
+         '<div class="archsub">'+esc(tr({en:"Validated on board (measured, short-run)",zh:"板上已验证（有实测，短时）"}))+'</div>'+grid(boardItems)+
+         '<p class="mxnote" style="margin:8px 0 0">'+esc(tr({en:"\"Validated\" here means measured on the running board; nothing has a 24-72 h soak yet — that gap is tracked under Reliability & safety below.",zh:"这里的“已验证”指在运行中的板子上有实测数据；所有项都还没有 24-72 小时长稳——该缺口在下方“可靠性与安全”中跟踪。"}))+'</p>';
 }
 
 const PRODEXP=[
@@ -1669,12 +1681,12 @@ const PRODEXP=[
 ];
 
 const VALIDATION=[
- {a:{en:"Daylight FPS",zh:"日间帧率"}, test:{en:"450-frame benchmark",zh:"450 帧基准"}, smp:{en:"450 frames",zh:"450 帧"}, r:{en:"14.97 fps, 0 dropped",zh:"14.97 fps、0 丢帧"}, ev:"E1", nx:{en:"24 h soak",zh:"24h 长稳"}},
- {a:{en:"Weak-light FPS",zh:"弱光帧率"}, test:{en:"weak10 profile run",zh:"weak10 profile 运行"}, smp:{en:"runtime sample",zh:"运行时采样"}, r:{en:"~10 fps",zh:"约 10 fps"}, ev:"E2", nx:{en:"more scenes",zh:"更多场景"}},
- {a:{en:"Fall recall",zh:"跌倒召回"}, test:{en:"field clips (2026-06-21)",zh:"实测录段（2026-06-21）"}, smp:{en:"60 clips",zh:"60 段"}, r:{en:"58/60, 1 FP",zh:"58/60、1 误报"}, ev:"E3", nx:{en:"> 500 clips, per-scenario",zh:">500 段、按场景拆"}},
- {a:{en:"RTSP fan-out",zh:"RTSP 扇出"}, test:{en:"8 concurrent clients",zh:"8 客户端并发"}, smp:{en:"15 s run",zh:"15 秒运行"}, r:{en:"~14.94 fps",zh:"~14.94 fps"}, ev:"E4", nx:{en:"longer run",zh:"更长时段"}},
- {a:{en:"Voice latency",zh:"语音延迟"}, test:{en:"voice.log timings",zh:"voice.log 计时"}, smp:{en:"representative turns",zh:"代表性对话轮"}, r:{en:"first audio ~3-4 s",zh:"首音约 3-4 秒"}, ev:"E5", nx:{en:"scripted 30-turn test",zh:"脚本 30 轮测试"}},
- {a:{en:"OTA",zh:"OTA"}, test:{en:"agent self-test",zh:"agent 自检"}, smp:{en:"local test",zh:"本地测试"}, r:{en:"pass",zh:"通过"}, ev:"E6", nx:{en:"RAUC A/B full loop",zh:"RAUC A/B 完整闭环"}}
+ {a:{en:"Daylight FPS",zh:"日间帧率"}, test:{en:"450-frame benchmark",zh:"450 帧基准"}, smp:{en:"450 frames",zh:"450 帧"}, crit:{en:"≥14.9 fps · 0 dropped",zh:"≥14.9 fps · 0 丢帧"}, r:{en:"14.97 fps, 0 dropped",zh:"14.97 fps、0 丢帧"}, ev:"E1", nx:{en:"24 h soak",zh:"24h 长稳"}},
+ {a:{en:"Weak-light FPS",zh:"弱光帧率"}, test:{en:"weak10 profile run",zh:"weak10 profile 运行"}, smp:{en:"runtime sample",zh:"运行时采样"}, crit:{en:"≥10 fps, pose usable",zh:"≥10 fps 且姿态可用"}, r:{en:"~10 fps",zh:"约 10 fps"}, ev:"E2", nx:{en:"more scenes",zh:"更多场景"}},
+ {a:{en:"Fall recall",zh:"跌倒召回"}, test:{en:"field clips (2026-06-21)",zh:"实测录段（2026-06-21）"}, smp:{en:"60 clips",zh:"60 段"}, crit:{en:"recall ≥95% · FP ≤2%",zh:"召回 ≥95% · 误报 ≤2%"}, r:{en:"58/60 (96.7%), 1 FP (1.7%)",zh:"58/60（96.7%）、1 误报（1.7%）"}, ev:"E3", nx:{en:"> 500 clips, per-scenario",zh:">500 段、按场景拆"}},
+ {a:{en:"RTSP fan-out",zh:"RTSP 扇出"}, test:{en:"8 concurrent clients",zh:"8 客户端并发"}, smp:{en:"15 s run",zh:"15 秒运行"}, crit:{en:"no fps drop at 8 clients",zh:"8 客户端下帧率不掉"}, r:{en:"~14.94 fps",zh:"~14.94 fps"}, ev:"E4", nx:{en:"longer run",zh:"更长时段"}},
+ {a:{en:"Voice latency",zh:"语音延迟"}, test:{en:"voice.log timings",zh:"voice.log 计时"}, smp:{en:"representative turns",zh:"代表性对话轮"}, crit:{en:"first audio ≤4 s",zh:"首音 ≤4 秒"}, r:{en:"~3-4 s",zh:"约 3-4 秒"}, ev:"E5", nx:{en:"scripted 30-turn test",zh:"脚本 30 轮测试"}},
+ {a:{en:"OTA",zh:"OTA"}, test:{en:"agent self-test",zh:"agent 自检"}, smp:{en:"local test",zh:"本地测试"}, crit:{en:"all paths pass",zh:"全部路径通过"}, r:{en:"pass",zh:"通过"}, ev:"E6", nx:{en:"RAUC A/B full loop",zh:"RAUC A/B 完整闭环"}}
 ];
 
 const PRIVACY=[
@@ -1703,9 +1715,9 @@ function prodExpTable(){
   }).join("")+'</div>';
 }
 function validationTable(){
-  return '<div class="vtbl"><div class="vthead"><span>'+esc(tr(T.v_claim))+'</span><span>'+esc(tr(T.v_test))+'</span><span>'+esc(tr(T.v_sample))+'</span><span>'+esc(tr(T.v_result))+'</span><span>'+esc(tr(T.v_ev))+'</span><span>'+esc(tr(T.v_gap))+'</span></div>'+
+  return '<div class="vtbl"><div class="vthead"><span>'+esc(tr(T.v_claim))+'</span><span>'+esc(tr(T.v_test))+'</span><span>'+esc(tr(T.v_sample))+'</span><span>'+esc(tr(T.v_crit))+'</span><span>'+esc(tr(T.v_result))+'</span><span>'+esc(tr(T.v_ev))+'</span><span>'+esc(tr(T.v_gap))+'</span></div>'+
     VALIDATION.map(function(v){
-      return '<div class="vtrow"><span>'+esc(tr(v.a))+'</span><span>'+esc(tr(v.test))+'</span><span>'+esc(tr(v.smp))+'</span><span class="vok">'+esc(tr(v.r))+'</span><span><a class="evref" href="#/evidence">'+esc(v.ev)+'</a></span><span>'+esc(tr(v.nx))+'</span></div>';
+      return '<div class="vtrow"><span>'+esc(tr(v.a))+'</span><span>'+esc(tr(v.test))+'</span><span>'+esc(tr(v.smp))+'</span><span>'+esc(tr(v.crit))+'</span><span class="vok">'+esc(tr(v.r))+'</span><span><a class="evref" href="#/evidence">'+esc(v.ev)+'</a></span><span>'+esc(tr(v.nx))+'</span></div>';
     }).join("")+'</div>';
 }
 function privacyBoundary(){
@@ -2036,9 +2048,6 @@ function pageOverview(){
     '<section style="padding-top:8px">'+
       '<figure class="skelfig"><img src="assets/hardware_bench.jpg" loading="lazy" alt="'+esc(tr(T.cap_hw))+'"><figcaption>'+esc(tr(T.cap_hw))+"</figcaption></figure>"+
       '<div class="mgrow km3">'+KEY_METRICS.map(function(m){return '<div class="mitem" style="--gc:var(--'+m.c+')"><b>'+esc(tr(m.v))+'</b><span>'+esc(tr(m.l))+'</span><a class="mev" href="#/evidence">'+esc(tr(T.b_ev))+': '+esc(m.ev)+'</a></div>';}).join("")+'</div>'+
-      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
-      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.lld_h))+"</div>"+lowlightDecision()+"</div>"+
-      '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=640noenh" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
     "</section>";
 }
 
@@ -2056,6 +2065,11 @@ function pageArchitecture(){
       "</div>"+
       '<div class="archsub">'+esc(tr(T.arch_layers_h))+"</div>"+archLayers()+
       '<div class="archsub">'+esc(tr(T.ipc_h))+"</div>"+archIpc()+
+      '<div class="archsub">'+esc(tr(T.alert_seq_h))+"</div>"+alertSeq()+
+      '<div class="archsub">'+esc(tr(T.tradeoffs_h))+"</div>"+tradeoffsBlock()+
+      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
+      '<div class="benchwrap"><div class="bttl">'+esc(tr(T.lld_h))+"</div>"+lowlightDecision()+"</div>"+
+      '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=640noenh" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
       '<div class="archsub">'+esc(tr(T.lb_h))+"</div>"+
       '<p class="sub" style="margin:-2px 0 10px">'+tr(T.lb_sub)+"</p>"+
       latencyBudget()+
@@ -2109,6 +2123,8 @@ function pageValidation(){
       '<div class="secttl"><h2>'+tr(T.prodexp_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.prodexp_sub)+"</p>"+
       prodExpTable()+
+      '<div class="archsub">'+esc(tr(T.prodproto_h))+"</div>"+
+      prodProtoBlock()+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.val_mtx_h)+"</h2></div>"+
@@ -2133,7 +2149,7 @@ function pageValidation(){
 function pageRoadmap(){
   return pageHead(T.roadmap_h,T.roadmap_sub,"ops")+
     '<section style="padding-top:8px">'+
-      '<div class="archsub">'+esc(tr({en:"Implemented (shipped)",zh:"已交付（已上线）"}))+"</div>"+
+      '<div class="secttl"><h2>'+esc(tr({en:"Implemented vs validated",zh:"已实现 vs 已验证"}))+"</h2></div>"+
       implementedBlock()+
       '<div class="archsub">'+esc(tr({en:"Next",zh:"接下来"}))+"</div>"+
       roadmapBlocks()+
@@ -2142,34 +2158,31 @@ function pageRoadmap(){
 
 function pageEvidence(){
   var evsec=function(id,title,body){return '<div class="archsub"><span class="evb">'+id+'</span>'+esc(tr(title))+'</div>'+body;};
+  var dashShort={en:"Night / weak-light dashboard: ~10 fps, zero-copy ON (rknn_inputs_set 0.000 ms), NPU 1.0 GHz. Full annotation on the Observability page.",zh:"夜间/弱光仪表盘：约 10 fps、零拷贝开启（rknn_inputs_set 0.000ms）、NPU 1.0GHz。完整注解见可观测页。"};
   return pageHead(T.ev_page_h,T.ev_page_sub,"alert")+
     '<section style="padding-top:8px">'+
-      '<div class="secttl"><h2>'+tr(T.eng_h)+"</h2></div>"+
-      engNotes()+
-    "</section>"+
-    "<section>"+
-      '<div class="secttl"><h2>'+tr(T.alert_seq_h)+"</h2></div>"+
-      alertSeq()+
-    "</section>"+
-    "<section>"+
       '<div class="secttl"><h2>'+tr(T.debug_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.debug_sub)+"</p>"+
       evsec("E1",{en:"Live signals off the board: vision.log [PERF], UDP pose, /metrics, MQTT state",zh:"板上实时信号：vision.log [PERF]、UDP 姿态、/metrics、MQTT 状态"},debugEvidence())+
-      evsec("E2",{en:"Weak-light dashboard state (~10 fps, zero-copy ON)",zh:"弱光仪表盘状态（约 10 fps，零拷贝开启）"},
-        '<figure class="netfig" style="margin-top:6px"><a href="assets/dashboard_telemetry.png" target="_blank" rel="noopener"><img src="assets/dashboard_telemetry.png" loading="lazy" alt="'+esc(tr(T.cap_dash))+'"></a><figcaption>'+esc(tr(T.cap_dash))+"</figcaption></figure>")+
+      evsec("E2",{en:"Weak-light dashboard screenshot · 2026-06-28 · :9090/dashboard",zh:"弱光仪表盘截图 · 2026-06-28 · :9090/dashboard"},
+        '<figure class="netfig" style="margin-top:6px"><a href="assets/dashboard_telemetry.png" target="_blank" rel="noopener"><img src="assets/dashboard_telemetry.png" loading="lazy" alt="'+esc(tr(dashShort))+'"></a><figcaption>'+esc(tr(dashShort))+"</figcaption></figure>")+
       evsec("E3",{en:"Fall detection by scenario · 60-clip field test · 2026-06-21",zh:"跌倒检测分场景 · 60 段实测 · 2026-06-21"},
-        '<p class="sub" style="margin:0 0 6px">'+tr(T.fall_table_sub)+"</p>"+fallScenarioTable())+
+        fallScenarioTable())+
       evsec("E4",{en:"8-client RTSP/WebRTC fan-out benchmark · 2026-06-25",zh:"8 客户端 RTSP/WebRTC 扇出基准 · 2026-06-25"},
         '<div class="evgrid"><div class="evcard"><div class="evttl">vision.log + top · 8 clients · 15 s · 2026-06-25</div><pre class="evpre">camera_fps=14.94  rtsp_push_ms~1  single encode -&gt; MediaMTX fan-out\nvision (CMA DMA-BUF appsrc): RSS 192.3 MB, ~80% CPU\nMediaMTX (8 clients):        RSS 43.9 MB,  ~4% CPU</pre></div></div>')+
-      evsec("E5",{en:"Voice latency waterfall (from voice.log timing lines)",zh:"语音延迟瀑布（取自 voice.log timing 行）"},latencyWaterfall())+
+      evsec("E5",{en:"Voice latency waterfall · voice.log timing lines",zh:"语音延迟瀑布 · voice.log timing 行"},latencyWaterfall())+
       evsec("E6",{en:"OTA agent self-test · on-board",zh:"OTA agent 自检 · 板上"},
         '<div class="evgrid"><div class="evcard"><div class="evttl">eldercare_ota_agent --self-test</div><pre class="evpre">$ ./eldercare_ota_agent --self-test\nverify -&gt; patch -&gt; atomic symlink switch -&gt; health gate -&gt; rollback\nexit code 0</pre></div></div>')+
-      evsec("E7",{en:"Packet capture (real tcpdump / pcap)",zh:"抓包（真实 tcpdump / pcap）"},netCaptureFigs())+
+      evsec("E7",{en:"Packet capture · 54.8 s tcpdump / pcap",zh:"抓包 · 54.8 秒 tcpdump / pcap"},netCaptureFigs())+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2><span class="evb">E8</span>'+tr(T.srcmap_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.srcmap_sub)+"</p>"+
       sourceMap()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.bugs_h)+"</h2></div>"+
+      bugsBlock()+
     "</section>";
 }
 
