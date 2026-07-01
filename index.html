@@ -153,6 +153,13 @@
   .mitem{background:var(--card2);border-radius:12px;padding:15px 16px}
   .mitem b{display:block;font-size:23px;letter-spacing:-.3px;line-height:1.1;color:var(--tx)}
   .mitem span{display:block;color:var(--tx2);font-size:12.5px;margin-top:7px;line-height:1.45}
+  .mgrow.km3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:680px){.mgrow.km3{grid-template-columns:1fr}}
+  .mitem{border-top:3px solid var(--gc,var(--line))}
+  .mev{display:inline-block;margin-top:9px;font-size:10.5px;color:var(--tx3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:var(--card)}
+  a.mev:hover{color:var(--accent);text-decoration:none;border-color:var(--accent)}
+  .evref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:700;color:var(--accent)}
+  .evb{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700;color:#fff;background:var(--accent);border-radius:6px;padding:2px 8px;margin-right:8px;vertical-align:1px}
   .benchwrap{margin-top:22px}
   .bttl{font-size:14px;font-weight:700;color:var(--tx);margin:0 0 8px}
   .benchwrap svg{width:100%;height:auto;display:block}
@@ -200,7 +207,7 @@
   .pepath{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent)}
   .pest{font-weight:500;color:var(--warm)}
   .pewhy{color:var(--tx2)}
-  .vthead,.vtrow{display:grid;grid-template-columns:0.9fr 1.1fr 1.1fr 1.4fr 1.1fr;gap:10px;padding:9px 14px;border-top:1px solid var(--line)}
+  .vthead,.vtrow{display:grid;grid-template-columns:0.9fr 1.1fr 0.85fr 1.15fr 0.6fr 1.1fr;gap:10px;padding:9px 14px;border-top:1px solid var(--line)}
   .vthead{border-top:none;font-weight:500;color:var(--tx);background:var(--card2)}
   .vtrow{color:var(--tx2)}
   .vok{color:var(--accent);font-weight:500}
@@ -635,7 +642,7 @@ loop every 1 s:
 const T = {
   brand_sub:{en:"Edge elder-care · RK3588",zh:"端侧养老 · RK3588"},
   eyebrow:{en:"On-device AI · RK3588",zh:"端侧 AI · RK3588"},
-  hm1l:{en:"640 pose, daylight benchmark · ~10 fps weak-light ISP",zh:"640 姿态，日间基准 · 弱光 ISP 约 10fps"},
+  hm1l:{en:"640 pose, daylight benchmark · ~10 fps weak10 sensor profile",zh:"640 姿态，日间基准 · weak10 传感器 profile 约 10fps"},
   hm2l:{en:"falls caught, 60-clip field test",zh:"跌倒命中，60 段实测"},
   hm3i:{en:"s",zh:"秒"}, hm3l:{en:"floor to alarm, fast falls",zh:"倒地到报警，快速跌倒"},
   hm4i:{en:"cloud inference",zh:"云端推理"}, hm4l:{en:"all inference on-device; only the family alert (ntfy/MQTT) leaves the board",zh:"推理全在端侧；只有给家人的报警（ntfy/MQTT）会出板"},
@@ -647,8 +654,8 @@ const T = {
   explore_sub:{en:"Each area is its own page: the motivation, the system design, how it runs, observability, how it is validated, the roadmap, and the engineering evidence.",zh:"每个部分都是独立页面：动机、系统设计、怎么运行、可观测性、怎么验证、路线图，以及工程证据。"},
   page_k:{en:"page",zh:"页面"},
   ev_page_h:{en:"Engineering & evidence",zh:"工程与证据"},
-  ev_page_sub:{en:"Real bugs and fixes, the alert sequence, live signals straight off the board, packet captures, and a source map.",zh:"真实的 bug 与修复、报警时序、板子上的实时信号、抓包，以及源码索引。"},
-  cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1. This snapshot is the night / low-light state: the ISP opens the aperture and lengthens exposure, so the camera runs about 10 fps; in daylight it runs 15 fps. The 14.97 fps headline is the daylight steady-state 450-frame benchmark. The confirmed count is a Prometheus Counter over the process lifetime, not a dataset accuracy or a cumulative incident total.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐。这张是夜间/弱光状态：ISP 开大光圈、拉长曝光，相机约 10fps；日间为 15fps。14.97fps 是日间稳态 450 帧基准。确认次数是进程生命周期内的 Prometheus Counter，不是数据集准确率，也不是历史累计事故数。"},
+  ev_page_sub:{en:"Real bugs and fixes, the alert sequence, and the numbered raw evidence E1-E8 (logs, screenshots, benchmarks, packet captures, source map) that the Key metrics and the Validation matrix cite.",zh:"真实的 bug 与修复、报警时序，以及编号为 E1-E8 的原始证据（日志、截图、基准、抓包、源码索引）——关键指标和验证矩阵引用的就是这些编号。"},
+  cap_dash:{en:"Health agent live dashboard on :9090/dashboard. Zero-copy ON (rknn_inputs_set 0.000 ms), NPU at 1.0 GHz, CMA headroom, temperature, fall state (confirmed count and score), and shared-axis FPS and pipeline-latency trends. Vision FPS tracks the camera 1:1. This snapshot is the night / low-light state: the ISP weak-light profile extends exposure / vertical blanking and adjusts gain, so the camera runs about 10 fps; in daylight it runs 15 fps. The 14.97 fps headline is the daylight steady-state 450-frame benchmark. The confirmed count is a Prometheus Counter over the process lifetime, not a dataset accuracy or a cumulative incident total.",zh:"健康代理实时仪表盘（:9090/dashboard）。Zero-copy ON（rknn_inputs_set 0.000ms）、NPU @ 1.0GHz、CMA 余量、温度、跌倒状态（确认次数与 score），以及 FPS 与流水线延迟双轴趋势。Vision FPS 与相机 1:1 对齐。这张是夜间/弱光状态：ISP 弱光 profile 拉长曝光 / vertical blanking 并调整 gain，相机约 10fps；日间为 15fps。14.97fps 是日间稳态 450 帧基准。确认次数是进程生命周期内的 Prometheus Counter，不是数据集准确率，也不是历史累计事故数。"},
   cap_webrtc:{en:"WebRTC /viewer. The H.264 stream is clean; the browser Canvas draws the bounding box (track id and confidence) and the COCO-17 skeleton from the /overlay pose JSON. Here one tracked person, ID 61 at 0.88.",zh:"WebRTC /viewer。H.264 是干净流；浏览器 Canvas 从 /overlay 的姿态 JSON 画出检测框（track id 与置信度）和 COCO-17 骨架。图中为一个被跟踪的人，ID 61、0.88。"},
   cap_hw:{en:"The device on the bench: an Orange Pi 5 Plus (RK3588) with heatsink and a quiet fan, the OV13855 MIPI camera module, and an ES8388 speaker. Everything in this project runs here; nothing is offloaded to a server.",zh:"台面上的设备：一块香橙派 5 Plus（RK3588）带散热片和静音风扇、OV13855 MIPI 摄像头模组，以及 ES8388 喇叭。本项目的一切都在这上面跑，没有任何东西放到服务器。"},
   cap_testenv:{en:"The field-test environment: the lecture hall where the 60-clip fall-detection test was recorded, in normal light and with the lights off. The camera looks down the stage; the same room appears in the WebRTC viewer and the demo footage.",zh:"现场测试环境：60 段跌倒检测实测所在的阶梯教室，分常光和关灯两种。摄像头俯视舞台；WebRTC 观看页和演示画面里也是这间。"},
@@ -688,9 +695,10 @@ const T = {
   b_lesson:{en:"lesson",zh:"教训"},
   prodexp_h:{en:"Production vs experimental",zh:"生产 vs 实验"},
   prodexp_sub:{en:"Which vision paths actually ship, and which are implemented but held back.",zh:"视觉链路里哪些真正上生产，哪些已实现但暂不默认。"},
-  val_h:{en:"Validation matrix",zh:"验证矩阵"},
-  val_sub:{en:"What is tested, the current result, the evidence, and the next test.",zh:"测了什么、当前结果、证据，以及下一步要测什么。"},
-  v_area:{en:"area",zh:"项目"}, v_test:{en:"test",zh:"测试方法"}, v_result:{en:"current result",zh:"当前结果"}, v_ev:{en:"evidence",zh:"证据"}, v_next:{en:"next test",zh:"下一步"},
+  val_h:{en:"Validation",zh:"验证"},
+  val_sub:{en:"Each claim: how it was tested, the sample size, the result, the evidence ID (E1-E8, on the Evidence page), and the gap to close next.",zh:"每条论断：怎么测、样本量、结果、证据编号（E1-E8，见证据页），以及下一步要补的缺口。"},
+  val_mtx_h:{en:"Validation matrix",zh:"验证矩阵"},
+  v_claim:{en:"claim",zh:"论断"}, v_test:{en:"test",zh:"测试方法"}, v_sample:{en:"sample",zh:"样本量"}, v_result:{en:"result",zh:"结果"}, v_ev:{en:"evidence",zh:"证据"}, v_gap:{en:"gap / next",zh:"缺口 / 下一步"},
   privacy_h:{en:"Privacy boundary",zh:"隐私边界"},
   privacy_sub:{en:"What never leaves the board, what may, and how it is protected.",zh:"什么绝不出板、什么可能出板，以及怎么保护。"},
   privacy_cloud_note:{en:"Optional cloud TTS/ASR fallback code exists in the codebase but is disabled in the production demo; all production inference runs on-device and the emergency path stays fully local (local rule classifier + espeak).",zh:"代码里有可选的云端 TTS/ASR 兜底分支，但在生产演示里是关闭的；生产推理全部在端侧，应急路径始终全本地（本地规则分类 + espeak）。"},
@@ -726,10 +734,10 @@ const T = {
   s_cloud:{en:"all AI runs on the board; video & audio never leave",zh:"所有 AI 在设备端跑，画面和声音不出板"},
   s_latency:{en:"time from the fall to the alert (fast falls, from the floor moment)",zh:"从倒地到报警的时间（快速跌倒）"},
   nums_h:{en:"Key metrics",zh:"关键指标"},
-  nums_sub:{en:"Measured on the deployed board. Each figure reflects the running system, not a datasheet.",zh:"以下数字都在板子上实测，对应真正在跑的系统，而不是规格书上的标称值。"},
+  nums_sub:{en:"Measured on the deployed board — conclusions only. Each card cites its raw evidence (E1-E8) on the Evidence page; how each number was tested lives in the Validation matrix.",zh:"板上实测——这里只放结论。每张卡片下的 E 编号指向证据页的原始日志/截图；每个数字怎么测出来的，见验证矩阵。"},
   bench_title:{en:"Why these choices · measured",zh:"为什么这么选 · 实测对比"},
   lld_h:{en:"Why 640 + 3 cores, not 384",zh:"为什么是 640 + 3 核，而不是 384"},
-  skel_cap:{en:"Same low-light frame, two models. Left: the lighter, faster 384 model finds nobody (people=0). Right: the 640 model detects the fallen person at 0.76 with a 17-point pose skeleton. So rather than drop to a faster-but-weaker 384, the deployment keeps 640. To see in the dark the ISP opens the aperture and lengthens exposure, which drops the night frame rate to about 10 fps (daylight stays 15 fps); three parallel NPU cores keep compute off the critical path. (The ~80 ms on the 640 frame is one core in isolation; production runs 3 cores in parallel.)",zh:"同一张弱光帧，两个模型。左：更轻、更快的 384 模型检测不到人（people=0）；右：640 模型检出躺倒的人（0.76）并画出 17 点骨架。所以没有退到更快但更弱的 384，而是保留 640。为了在暗处看清，ISP 会开大光圈、拉长曝光，夜间帧率因此降到约 10fps（日间仍 15fps）；3 个并行 NPU 核让算力不在关键路径上。（上图 640 的约 80ms 是单核独占的单帧；部署时 3 核并行。）"},
+  skel_cap:{en:"Same low-light frame, two models. Left: the lighter, faster 384 model finds nobody (people=0). Right: the 640 model detects the fallen person at 0.76 with a 17-point pose skeleton. So rather than drop to a faster-but-weaker 384, the deployment keeps 640. To see in the dark the ISP weak-light profile extends exposure / vertical blanking and adjusts gain, which drops the night frame rate to about 10 fps (daylight stays 15 fps); three parallel NPU cores keep compute off the critical path. (The ~80 ms on the 640 frame is one core in isolation; production runs 3 cores in parallel.)",zh:"同一张弱光帧，两个模型。左：更轻、更快的 384 模型检测不到人（people=0）；右：640 模型检出躺倒的人（0.76）并画出 17 点骨架。所以没有退到更快但更弱的 384，而是保留 640。为了在暗处看清，ISP 弱光 profile 会拉长曝光 / vertical blanking 并调整 gain，夜间帧率因此降到约 10fps（日间仍 15fps）；3 个并行 NPU 核让算力不在关键路径上。（上图 640 的约 80ms 是单核独占的单帧；部署时 3 核并行。）"},
   source:{en:"Source",zh:"源码"},
   tpl_problem:{en:"Problem",zh:"问题"}, tpl_design:{en:"Design",zh:"设计"}, tpl_impl:{en:"Implementation",zh:"实现"}, tpl_bench:{en:"Benchmark",zh:"实测"}, tpl_limit:{en:"Limitation",zh:"局限"},
   flow:{en:"Control flow",zh:"控制流程"},
@@ -750,31 +758,14 @@ const T = {
         zh:"ARGUS:RK3588 上的端侧跌倒检测与本地语音助手。工程作品集项目，全部推理本地运行。代码块为带注释的示意，完整实现位于私有仓库。"}
 };
 
-/* ---------- key metrics (every figure reflects the deployed system) ---------- */
-const METRIC_GROUPS = [
-  {title:{en:"Vision",zh:"视觉"}, c:"vis", items:[
-    {v:{en:"14.97 fps",zh:"14.97 fps"},   l:{en:"640×480 daylight, 0 dropped · ~10 fps weak-light ISP",zh:"640×480 日间，0 丢帧 · 弱光 ISP 约 10fps"}},
-    {v:{en:"3×",zh:"3×"},           l:{en:"parallel RKNN contexts",zh:"并行 RKNN 上下文"}},
-    {v:{en:"RTSP/WebRTC",zh:"RTSP/WebRTC"}, l:{en:":8554 + :8889 · clean stream, browser-side overlay",zh:":8554 + :8889 · 干净视频流，浏览器侧叠加"}}
-  ]},
-  {title:{en:"Safety",zh:"安全（跌倒→报警）"}, c:"fall", items:[
-    {v:{en:"58 / 60",zh:"58 / 60"}, l:{en:"falls caught, field test (97%)",zh:"实测召回（97%）"}},
-    {v:{en:"1 / 60",zh:"1 / 60"},   l:{en:"false alarm, 60-clip field test",zh:"误报，60 段实测（1.7%）"}},
-    {v:{en:"~3 s",zh:"~3 s"},       l:{en:"floor to alert (fast falls)",zh:"倒地到报警（快速跌倒）"}},
-    {v:{en:"flow",zh:"链路"},       l:{en:"pose UDP → C++ state machine → MQTT → alert",zh:"姿态 UDP → C++ 状态机 → MQTT → 报警"}}
-  ]},
-  {title:{en:"Voice",zh:"语音"}, c:"voice", items:[
-    {v:{en:"90 s",zh:"90 s"},       l:{en:"active session window",zh:"语音会话时长"}},
-    {v:{en:"1 s",zh:"1 s"},         l:{en:"user-silence endpoint",zh:"用户静音断句"}},
-    {v:{en:"offline",zh:"离线"},    l:{en:"ASR / LLM / TTS on-device (Qwen2.5-1.5B)",zh:"ASR / LLM / TTS 全本地（Qwen2.5-1.5B）"}},
-    {v:{en:"full-duplex",zh:"全双工"}, l:{en:"Speex AEC barge-in",zh:"Speex AEC 可打断"}}
-  ]},
-  {title:{en:"Operations",zh:"运维"}, c:"ops", items:[
-    {v:{en:"8",zh:"8"},     l:{en:"active user services (+ on-demand OTA, + system fan-hold)",zh:"活跃用户服务（+ 按需 OTA、+ 系统风扇保持）"}},
-    {v:{en:"JSON",zh:"JSON"},       l:{en:"health: liveness / disk / temp",zh:"健康：存活 / 磁盘 / 温度"}},
-    {v:{en:"OTA",zh:"OTA"},         l:{en:"verify → atomic switch → rollback",zh:"校验 → 原子切换 → 回滚"}},
-    {v:{en:"on-device",zh:"全本地"}, l:{en:"video & audio never leave",zh:"画面与音频不出板"}}
-  ]}
+/* ---------- key metrics: 6 conclusion cards, each citing its evidence ID ---------- */
+const KEY_METRICS = [
+  {c:"vis",   v:{en:"14.97 fps",zh:"14.97 fps"}, l:{en:"vision, 640×480 daylight · ~10 fps weak-light (weak10 profile)",zh:"视觉，640×480 日间 · 弱光（weak10 profile）约 10 fps"}, ev:"E1 · E2"},
+  {c:"vis",   v:{en:"0 ms",zh:"0 ms"},           l:{en:"zero-copy NPU input · rknn_inputs_set_ms = 0",zh:"零拷贝 NPU 输入 · rknn_inputs_set_ms = 0"}, ev:"E1"},
+  {c:"vis",   v:{en:"75-80 ms",zh:"75-80 ms"},   l:{en:"rknn_run per frame · 640 pose · 3 parallel contexts",zh:"单帧 rknn_run · 640 姿态 · 3 上下文并行"}, ev:"E1"},
+  {c:"fall",  v:{en:"58 / 60",zh:"58 / 60"},     l:{en:"fall recall (97%) · 1/60 false alarm · 60-clip field test",zh:"跌倒召回（97%）· 误报 1/60 · 60 段实测"}, ev:"E3"},
+  {c:"alert", v:{en:"~3 s",zh:"~3 s"},           l:{en:"floor to alert, fast falls",zh:"倒地到报警，快速跌倒"}, ev:"E3"},
+  {c:"ops",   v:{en:"8 clients",zh:"8 客户端"},   l:{en:"~14.94 fps · single-encode fan-out (RTSP / WebRTC / HLS)",zh:"~14.94 fps · 单次编码扇出（RTSP / WebRTC / HLS）"}, ev:"E4"}
 ];
 
 /* ---------- hero illustration (warm home-monitoring scene) ---------- */
@@ -867,7 +858,7 @@ const DATA = [
         {t:"run_pose_camera.sh", d:{en:"no outer taskset · cap 0-3 / inf 6-7",zh:"无外层 taskset · 采集 0-3 / 推理 6-7"}},
         {t:"main(): parse args", d:{en:"CameraAppConfig",zh:"CameraAppConfig"}},
         {t:"init outputs", d:{en:"PoseUdpSender + RtspOutputServer",zh:"PoseUdpSender + RtspOutputServer"}},
-        {t:"rknn_init + core mask", d:{en:"load YOLOv8-pose, bind NPU core 0",zh:"加载 YOLOv8-pose，绑 NPU core 0"}, edge:{en:"once",zh:"仅一次"}}
+        {t:"rknn_init + core mask", d:{en:"load YOLOv8-pose, assign core masks for RKNN contexts",zh:"加载 YOLOv8-pose，为多个 RKNN 上下文分配 NPU core mask"}, edge:{en:"once",zh:"仅一次"}}
       ],
       df:{in:["power on"], proc:["systemd unit","run script + flags","main init"], out:["camera-owner process","UDP + RTSP ready","RKNN context"]},
       why:{en:"One process owns /dev/video12 and runs the whole path (capture, inference, UDP, RTSP). RTSP is not a separate camera server, which avoids a second process fighting for the device. CPU work is split by role: capture/IO on 0-3, the two NPU-feeding inference threads on 6-7, leaving the A76 mid cores for voice (4-5) and audio AEC (2-3). The service allows all of 0-7 and the binary pins its own threads, so no outer taskset fights the --capture-cpus split.",
@@ -876,7 +867,7 @@ const DATA = [
       name:{en:"Opening V4L2",zh:"V4L2 打开"},
       summary:{en:"Force NV12, request an 8-buffer pool, then mmap and export each buffer as a DMA-BUF fd.",zh:"强制 NV12，申请 8 个 buffer 的池子，再把每个 buffer mmap 并导出成 DMA-BUF fd。"},
       flow:[
-        {t:"ov13855 + RKAIQ ISP", d:{en:"sensor + auto-exposure / anti-flicker",zh:"传感器 + 自动曝光 / 防频闪"}},
+        {t:"OV13855 + ISP / sensor controls", d:{en:"sensor + auto-exposure / anti-flicker",zh:"传感器 + 自动曝光 / 防频闪"}},
         {t:"VIDIOC_S_FMT", d:{en:"640x480, driver must output NV12",zh:"640x480，驱动必须输出 NV12"}},
         {t:"VIDIOC_REQBUFS", d:{en:"count = 8 (MMAP)",zh:"count = 8（MMAP）"}, edge:{en:"why 8: notes",zh:"为何 8：见要点"}},
         {t:"per buffer x8", d:{en:"QUERYBUF -> mmap -> EXPBUF",zh:"QUERYBUF -> mmap -> EXPBUF"}},
@@ -905,7 +896,7 @@ const DATA = [
         {t:"camera NV12 fd", d:{en:"V4L2 DMA-BUF, read by RGA",zh:"V4L2 DMA-BUF,RGA 直接读"}},
         {t:"RGA convert", d:{en:"NV12->RGB + resize + letterbox, ~1.3 ms",zh:"NV12->RGB + 缩放 + letterbox，约 1.3 ms"}, edge:{en:"on hardware",zh:"硬件上"}},
         {t:"rknn_set_io_mem", d:{en:"NPU reads the RGA output directly, 0 ms copy",zh:"NPU 直接读 RGA 输出，0 拷贝"}},
-        {t:"rknn_run", d:{en:"inference on the NPU core, ~79 ms",zh:"在 NPU 核上推理，约 79 ms"}}
+        {t:"rknn_run", d:{en:"inference on the NPU core, 75-80 ms",zh:"在 NPU 核上推理，约 75-80 ms"}}
       ],
       df:{in:["NV12 DMA-BUF fd"], proc:["RGA fd-to-fd NV12->RGB","resize + letterbox","rknn_set_io_mem"], out:["detections"]},
       why:{en:"The preprocess backend is set to zero-copy. The camera frame is a V4L2 DMA-BUF; RGA reads it by fd, converts NV12->RGB and resizes/letterboxes fd-to-fd, and the NPU is bound to that RGA output with rknn_set_io_mem, so the inference input is never CPU-copied: rknn_inputs_set_ms = 0 in the live log, ~15 fps, 0 dropped. The path engages only for synchronous single-plane NV12 DMA-BUF; multi-plane (MPLANE) or async-capture frames fall back safely to RGA + rknn_inputs_set, with a CPU OpenCV convert as the last resort. An earlier single-context attempt at set_io_mem measured slower and was unsafe to share across workers; the deployed fix is one io-mem binding per parallel context, which keeps both the zero-copy input and 3-way parallelism. The remaining work is multi-plane zero-copy so the fallback disappears.",
@@ -920,8 +911,8 @@ const DATA = [
         {t:"results map by frame_id", d:{en:"reassembled in capture order",zh:"按采集顺序重排"}}
       ],
       df:{in:["NV12 frame job"], proc:["RGA NV12 -> RGB","YOLOv8n-pose 640","3 NPU cores"], out:["detections (ordered)"]},
-      why:{en:"On 35 archived weak-light / action snapshots the 384 model recovered only 27, while the 640 model recovered all 35, so the deployment uses 640. Three parallel RKNN contexts keep it at about 15 fps (14.97 measured, 0 dropped frames). With --parallel-hold-v4l2-dmabuf each worker keeps its V4L2 DMA-BUF until pose, tracking and the RTSP/JPEG outputs are done with that frame, and results are reassembled by frame_id into capture order before they leave, which is what removed the earlier RTSP flicker. An early single-context attempt at rknn_set_io_mem was slower and unsafe to share across workers (the pre-fix data is in the 2026-06-24 zero-copy note). The deployed fix binds one io-mem per parallel context, and the live log then reads rknn_inputs_set_ms = 0.00, rknn_run_ms ≈ 79, total ≈ 81.5 ms. That zero rknn_inputs_set_ms is the telemetry proxy for the set_io_mem (CPU-zero-copy) input path, not a claim that no hardware copy happens anywhere in the pipeline.",
-           zh:"在 35 段弱光/动作存档里，384 模型只找回 27 段，640 模型 35 段全找回，所以部署用的是 640。三个并行 RKNN 上下文把它稳在约 15 fps（实测 14.97,0 丢帧）。开了 --parallel-hold-v4l2-dmabuf 后，每个 worker 会一直 hold 住自己的 V4L2 DMA-BUF，直到这一帧的姿态、跟踪和 RTSP/JPEG 输出都做完，再按 frame_id 重排回采集顺序才送出去，这正是之前 RTSP 闪烁被消掉的原因。早期单上下文的 rknn_set_io_mem 实测更慢，且在多 worker 间共享不安全（修复前数据见 2026-06-24 零拷贝记录）。现在每个并行上下文各绑一块 io-mem，修复后实测日志为 rknn_inputs_set_ms = 0.00、rknn_run_ms ≈ 79、total ≈ 81.5 ms。这里的 rknn_inputs_set_ms = 0 是 set_io_mem（CPU 零拷贝）输入路径的遥测代理指标，并不代表整条链路在硬件层面没有任何拷贝。"} },
+      why:{en:"Model choice — on 35 archived weak-light / action snapshots the 384 model recovered only 27, while the 640 model recovered all 35, so the deployment uses 640. Parallelism — three parallel RKNN contexts keep it at about 15 fps (14.97 measured, 0 dropped frames); with --parallel-hold-v4l2-dmabuf each worker keeps its V4L2 DMA-BUF until pose, tracking and the RTSP/JPEG outputs are done with that frame, and results are reassembled by frame_id into capture order, which is what removed the earlier RTSP flicker. Zero-copy — an early single-context attempt at rknn_set_io_mem was slower and unsafe to share across workers (pre-fix data in the 2026-06-24 zero-copy note); the deployed fix binds one io-mem per parallel context, and the live log reads rknn_inputs_set_ms = 0.00, rknn_run_ms ≈ 75-80, total ≈ 78-82 ms. That zero rknn_inputs_set_ms is the telemetry proxy for the set_io_mem (CPU-zero-copy) input path, not a claim that no hardware copy happens anywhere in the pipeline.",
+           zh:"模型选择——在 35 段弱光/动作存档里，384 模型只找回 27 段，640 模型 35 段全找回，所以部署用的是 640。三核并发——三个并行 RKNN 上下文把它稳在约 15 fps（实测 14.97,0 丢帧）；开了 --parallel-hold-v4l2-dmabuf 后，每个 worker 会一直 hold 住自己的 V4L2 DMA-BUF，直到这一帧的姿态、跟踪和 RTSP/JPEG 输出都做完，再按 frame_id 重排回采集顺序才送出去，这正是之前 RTSP 闪烁被消掉的原因。零拷贝——早期单上下文的 rknn_set_io_mem 实测更慢，且在多 worker 间共享不安全（修复前数据见 2026-06-24 零拷贝记录）；现在每个并行上下文各绑一块 io-mem，修复后实测日志为 rknn_inputs_set_ms = 0.00、rknn_run_ms ≈ 75-80、total ≈ 78-82 ms。这里的 rknn_inputs_set_ms = 0 是 set_io_mem（CPU 零拷贝）输入路径的遥测代理指标，并不代表整条链路在硬件层面没有任何拷贝。"} },
     { id:"postprocess", code:"postprocess",
       name:{en:"Pose decode & tracking",zh:"姿态解码与跟踪"},
       summary:{en:"Decode the pose grid, undo letterbox, run NMS, assign a track id.",zh:"解码姿态网格、还原 letterbox、做 NMS、分配跟踪 id。"},
@@ -987,8 +978,8 @@ const DATA = [
         {t:"fall_score in [0,1]", d:{en:"feeds the state machine",zh:"喂给状态机"}}
       ],
       df:{in:["window of Features"], proc:["aggregate 5 signals","weighted blend","penalize low conf"], out:["fall_score","debug telemetry"]},
-      why:{en:"In a 60-clip field test on 2026-06-21 it caught 58 of 60 falls (97% recall) with 1 false alarm (1.7%). The clips mix fast falls, slow slides, and everyday distractors like bending, sitting and walking. Both misses and the false alarm happened in low light, and the two misses were slow slides, where the descent is gentle and the pose is hard to hold. In normal light it caught every fall with no false alarm; night recall was 18 of 20 (90%). Low light is the explicit known limitation, still being improved with the 640 model and ISP night tuning. The trade-off is deliberate: a missed fall costs far more than a false alarm, so it is tuned recall-first. Time from the fall to the alert averages about 3 s on fast falls, measured from the floor moment, not the clip start.",
-           zh:"2026-06-21 的一次 60 段实测：60 个跌倒命中 58（召回 97%），误报 1 次（1.7%）。这 60 段混了快速跌倒、缓慢下滑，以及弯腰、坐下、行走这类日常干扰动作。漏掉的 2 个和那次误报都发生在夜光下，而且漏的两个都是缓慢下滑：下坠轻、姿态难稳住。常光下每个跌倒都抓到、没有误报；夜光召回为 20 个里 18 个（90%）。夜光是明确的已知局限，仍在用 640 模型和 ISP 夜间调校改进。这个取舍是刻意的：漏报的代价远大于误报，所以按召回优先来调。从倒地到报警，快速跌倒平均约 3 秒，从倒地那一刻算，不是从录像开头。"} },
+      why:{en:"In a 60-clip field test on 2026-06-21 it caught 58 of 60 falls (97% recall) with 1 false alarm (1.7%). The clips mix fast falls, slow slides, and everyday distractors like bending, sitting and walking. Both misses and the false alarm happened in low light, and the two misses were slow slides, where the descent is gentle and the pose is hard to hold. In normal light it caught every fall with no false alarm; the preliminary night subset was 18 of 20 (90%). Low light is the explicit known limitation, still being improved with the 640 model and ISP night tuning. The trade-off is deliberate: a missed fall costs far more than a false alarm, so it is tuned recall-first. Time from the fall to the alert averages about 3 s on fast falls, measured from the floor moment, not the clip start.",
+           zh:"2026-06-21 的一次 60 段实测：60 个跌倒命中 58（召回 97%），误报 1 次（1.7%）。这 60 段混了快速跌倒、缓慢下滑，以及弯腰、坐下、行走这类日常干扰动作。漏掉的 2 个和那次误报都发生在夜光下，而且漏的两个都是缓慢下滑：下坠轻、姿态难稳住。常光下每个跌倒都抓到、没有误报；夜光子集（初步）召回为 20 个里 18 个（90%）。夜光是明确的已知局限，仍在用 640 模型和 ISP 夜间调校改进。这个取舍是刻意的：漏报的代价远大于误报，所以按召回优先来调。从倒地到报警，快速跌倒平均约 3 秒，从倒地那一刻算，不是从录像开头。"} },
     { id:"reliability", code:"reliability",
       name:{en:"Reliability fixes",zh:"可靠性修复"},
       summary:{en:"Field-driven guards so a clock jump, a dead network, or a voice prompt never swallows a real fall.",zh:"几个实战兜底：时钟跳变、断网、或正在播报，都不该吞掉一次真实跌倒。"},
@@ -1140,14 +1131,14 @@ const DATA = [
   subs:[
     { id:"services", code:"systemd",
       name:{en:"systemd services",zh:"systemd 服务"},
-      summary:{en:"systemd starts vision, fall, alert, voice, health and llm with Restart=always; ota-agent is installed but disabled until an update is pushed.",zh:"systemd 以 Restart=always 启动视觉、跌倒、报警、语音、健康和 llm;ota-agent 已安装，但默认关闭，等到推送更新时才启用。"},
+      summary:{en:"systemd runs 8 active user services (vision, fall, alert, voice, health, llm, mediamtx, isp-light-agent) with Restart=always; ota-agent is installed but on-demand, disabled until an update is pushed.",zh:"systemd 以 Restart=always 运行 8 个活跃用户服务（视觉、跌倒、报警、语音、健康、llm、mediamtx、isp-light-agent）;ota-agent 已安装、按需启用，默认关闭。"},
       flow:[
         {t:"boot", d:{en:"default.target",zh:"default.target"}},
         {t:"systemd", d:{en:"8 active + 1 on-demand OTA + system fan-hold, After=",zh:"8 活跃 + 1 按需 OTA + 系统风扇保持，按 After= 排序"}},
-        {t:"vision / fall / voice / alert / health / llm", d:{en:"each its own process",zh:"各自独立进程"}},
+        {t:"8 user services", d:{en:"vision / fall / voice / alert / health / llm / mediamtx / isp-light-agent, each its own process",zh:"视觉 / 跌倒 / 语音 / 报警 / 健康 / llm / mediamtx / isp-light-agent，各自独立进程"}},
         {t:"Restart=always", d:{en:"crash -> restart in 3 s",zh:"崩溃 -> 3 秒重启"}, edge:{en:"self-heal",zh:"自愈"}}
       ],
-      df:{in:["power on"], proc:["systemd ordering","ExecStart wrappers","Restart=always"], out:["6 live + ota on demand","per-service logs"]},
+      df:{in:["power on"], proc:["systemd ordering","ExecStart wrappers","Restart=always"], out:["8 active + ota on-demand","per-service logs"]},
       why:{en:"Each subsystem is its own unit, so a crash in voice does not take down vision, and any one can be redeployed alone. Logs are per service, which is how the camera-flicker, fan-noise and AEC issues were traced.",
            zh:"每个子系统都是独立的 unit，所以语音崩了不会拖垮视觉，哪个要重新部署都能单独来。日志也按服务分开记，摄像头闪烁、风扇噪声、AEC 这几个问题，当初就是这么一步步查出来的。"} },
     { id:"health", code:"health",
@@ -1674,16 +1665,16 @@ const PRODEXP=[
  {path:"RGA fd->fd resize", st:{en:"production / zero-copy",zh:"生产 / 零拷贝"}, w:{en:"NV12->RGB on hardware, no CPU copy",zh:"硬件 NV12->RGB，无 CPU 拷贝"}},
  {path:"rknn_inputs_set", st:{en:"fallback path",zh:"回退路径"}, w:{en:"used when zero-copy cannot engage (multi-plane / async)",zh:"零拷贝无法启用时用（多平面/异步）"}},
  {path:"rknn_set_io_mem (zero-copy input)", st:{en:"deployed default",zh:"已部署，默认"}, w:{en:"engages on single-plane NV12 DMA-BUF; else falls back to rknn_inputs_set",zh:"单平面 NV12 DMA-BUF 时启用；否则回退 rknn_inputs_set"}},
- {path:"ISP low-light tuning (aperture / exposure)", st:{en:"deployed, day + night",zh:"已部署，日 + 夜"}, w:{en:"longer exposure in the dark: ~10 fps at night, 15 fps in daylight",zh:"暗处拉长曝光：夜间约 10fps，日间 15fps"}}
+ {path:"ISP low-light tuning (exposure / vblank / gain)", st:{en:"deployed, day + night",zh:"已部署，日 + 夜"}, w:{en:"longer exposure in the dark: ~10 fps at night, 15 fps in daylight",zh:"暗处拉长曝光：夜间约 10fps，日间 15fps"}}
 ];
 
 const VALIDATION=[
- {a:{en:"Vision FPS",zh:"视觉帧率"}, test:{en:"450-frame benchmark",zh:"450 帧基准"}, r:{en:"14.97 fps daylight, 0 dropped; ~10 fps weak-light",zh:"日间 14.97 fps、0 丢帧；弱光约 10 fps"}, ev:"vision.log / jsonl", nx:{en:"24 h soak",zh:"24h 长稳"}},
- {a:{en:"Fall recall",zh:"跌倒召回"}, test:{en:"60-clip field test",zh:"60 段实测"}, r:{en:"58 / 60 (97%), 1 FP",zh:"58/60（97%）,1 误报"}, ev:"eval report", nx:{en:"> 500 clips, per-scenario",zh:">500 段，按场景拆"}},
- {a:{en:"Voice latency",zh:"语音延迟"}, test:{en:"voice.log timings",zh:"voice.log 计时"}, r:{en:"LLM first clause ~1.1 s, TTS ~1.0 s (representative log)",zh:"LLM 首句 ~1.1s、TTS ~1.0s（代表性日志）"}, ev:"voice.log", nx:{en:"scripted 30-turn test",zh:"脚本 30 轮测试"}},
- {a:{en:"AEC double-talk",zh:"AEC 双讲"}, test:{en:"DTD self-test",zh:"DTD 自检"}, r:{en:"pass",zh:"通过"}, ev:"audio_aec_duplex --dtd-self-test", nx:{en:"real barge-in dataset",zh:"真实打断数据集"}},
- {a:{en:"OTA",zh:"OTA"}, test:{en:"agent self-test",zh:"agent 自检"}, r:{en:"pass",zh:"通过"}, ev:"ota_agent --self-test", nx:{en:"RAUC A/B board test",zh:"RAUC A/B 真机测试"}},
- {a:{en:"Health",zh:"健康"}, test:{en:"agent self-test",zh:"agent 自检"}, r:{en:"pass",zh:"通过"}, ev:"health_agent --self-test", nx:{en:"fault injection",zh:"故障注入"}}
+ {a:{en:"Daylight FPS",zh:"日间帧率"}, test:{en:"450-frame benchmark",zh:"450 帧基准"}, smp:{en:"450 frames",zh:"450 帧"}, r:{en:"14.97 fps, 0 dropped",zh:"14.97 fps、0 丢帧"}, ev:"E1", nx:{en:"24 h soak",zh:"24h 长稳"}},
+ {a:{en:"Weak-light FPS",zh:"弱光帧率"}, test:{en:"weak10 profile run",zh:"weak10 profile 运行"}, smp:{en:"runtime sample",zh:"运行时采样"}, r:{en:"~10 fps",zh:"约 10 fps"}, ev:"E2", nx:{en:"more scenes",zh:"更多场景"}},
+ {a:{en:"Fall recall",zh:"跌倒召回"}, test:{en:"field clips (2026-06-21)",zh:"实测录段（2026-06-21）"}, smp:{en:"60 clips",zh:"60 段"}, r:{en:"58/60, 1 FP",zh:"58/60、1 误报"}, ev:"E3", nx:{en:"> 500 clips, per-scenario",zh:">500 段、按场景拆"}},
+ {a:{en:"RTSP fan-out",zh:"RTSP 扇出"}, test:{en:"8 concurrent clients",zh:"8 客户端并发"}, smp:{en:"15 s run",zh:"15 秒运行"}, r:{en:"~14.94 fps",zh:"~14.94 fps"}, ev:"E4", nx:{en:"longer run",zh:"更长时段"}},
+ {a:{en:"Voice latency",zh:"语音延迟"}, test:{en:"voice.log timings",zh:"voice.log 计时"}, smp:{en:"representative turns",zh:"代表性对话轮"}, r:{en:"first audio ~3-4 s",zh:"首音约 3-4 秒"}, ev:"E5", nx:{en:"scripted 30-turn test",zh:"脚本 30 轮测试"}},
+ {a:{en:"OTA",zh:"OTA"}, test:{en:"agent self-test",zh:"agent 自检"}, smp:{en:"local test",zh:"本地测试"}, r:{en:"pass",zh:"通过"}, ev:"E6", nx:{en:"RAUC A/B full loop",zh:"RAUC A/B 完整闭环"}}
 ];
 
 const PRIVACY=[
@@ -1712,9 +1703,9 @@ function prodExpTable(){
   }).join("")+'</div>';
 }
 function validationTable(){
-  return '<div class="vtbl"><div class="vthead"><span>'+esc(tr(T.v_area))+'</span><span>'+esc(tr(T.v_test))+'</span><span>'+esc(tr(T.v_result))+'</span><span>'+esc(tr(T.v_ev))+'</span><span>'+esc(tr(T.v_next))+'</span></div>'+
+  return '<div class="vtbl"><div class="vthead"><span>'+esc(tr(T.v_claim))+'</span><span>'+esc(tr(T.v_test))+'</span><span>'+esc(tr(T.v_sample))+'</span><span>'+esc(tr(T.v_result))+'</span><span>'+esc(tr(T.v_ev))+'</span><span>'+esc(tr(T.v_gap))+'</span></div>'+
     VALIDATION.map(function(v){
-      return '<div class="vtrow"><span>'+esc(tr(v.a))+'</span><span>'+esc(tr(v.test))+'</span><span class="vok">'+esc(tr(v.r))+'</span><span><code>'+esc(v.ev)+'</code></span><span>'+esc(tr(v.nx))+'</span></div>';
+      return '<div class="vtrow"><span>'+esc(tr(v.a))+'</span><span>'+esc(tr(v.test))+'</span><span>'+esc(tr(v.smp))+'</span><span class="vok">'+esc(tr(v.r))+'</span><span><a class="evref" href="#/evidence">'+esc(v.ev)+'</a></span><span>'+esc(tr(v.nx))+'</span></div>';
     }).join("")+'</div>';
 }
 function privacyBoundary(){
@@ -1733,7 +1724,7 @@ function lowlightDecision(){
   var rows=[
     {cond:{en:"Lighter 384 model (save compute)",zh:"更轻的 384 模型（省算力）"}, res:{en:"misses the person in low light (people=0)",zh:"弱光下检不到人（people=0）"}, ok:false},
     {cond:{en:"640 model, short exposure to hold 15 fps",zh:"640 模型，缩曝光保 15fps"}, res:{en:"frame too dark at night, detection drops",zh:"夜间画面过暗，检出下降"}, ok:false},
-    {cond:{en:"640 model + ISP opens aperture / longer exposure",zh:"640 模型 + ISP 开大光圈 / 拉长曝光"}, res:{en:"detects 0.76 + skeleton; ~10 fps at night, 15 fps in daylight",zh:"检出 0.76 + 骨架；夜间约 10fps，日间 15fps"}, ok:true}
+    {cond:{en:"640 model + ISP extends exposure / vblank / gain",zh:"640 模型 + ISP 拉长曝光 / vblank / 调整 gain"}, res:{en:"detects 0.76 + skeleton; ~10 fps at night, 15 fps in daylight",zh:"检出 0.76 + 骨架；夜间约 10fps，日间 15fps"}, ok:true}
   ];
   var s='<svg role="img" viewBox="0 0 680 224" width="100%" xmlns="http://www.w3.org/2000/svg">';
   s+='<title>'+esc(tr({en:"Night low-light decision chain",zh:"夜间弱光决策链"}))+'</title>';
@@ -1871,7 +1862,7 @@ function obsPanel(){
          '<div class="archsub">'+esc(tr({en:"Exported metrics",zh:"导出的指标"}))+'</div>'+mlist+
          '<div class="archsub">'+esc(tr(T.obs_mx_h))+'</div>'+mediamtxDiagram()+
          '<div class="archsub">'+esc(tr(T.obs_rss_h))+'</div>'+rsstbl+
-         '<p class="mxnote" style="margin:7px 0 0">'+esc(tr({en:"8 RTSP/WebRTC clients sustained ~14.94 fps, rtsp_push ~1 ms; single-encode CMA DMA-BUF fan-out, CPU-memcpy-free.",zh:"8 个 RTSP/WebRTC 客户端稳在 ~14.94 fps、rtsp_push ~1 ms；单次编码 CMA DMA-BUF 扇出，CPU 无 memcpy。"}))+'</p>';
+         '<p class="mxnote" style="margin:7px 0 0">'+esc(tr({en:"8 RTSP/WebRTC clients sustained ~14.94 fps, rtsp_push ~1 ms; single-encode CMA DMA-BUF fan-out, CPU-memcpy-free.",zh:"8 个 RTSP/WebRTC 客户端稳在 ~14.94 fps、rtsp_push ~1 ms；单次编码 CMA DMA-BUF 扇出，CPU 无 memcpy。"}))+' <a class="evref" href="#/evidence">E4</a></p>';
 }
 function systemdTopology(){
   var cores=[["0","a55",{en:"capture / IO",zh:"采集 / IO"}],["1","a55",{en:"capture / IO",zh:"采集 / IO"}],["2","a55",{en:"capture · AEC",zh:"采集 · AEC"}],["3","a55",{en:"capture · AEC",zh:"采集 · AEC"}],["4","a76",{en:"voice · llm",zh:"语音 · llm"}],["5","a76",{en:"voice · llm",zh:"语音 · llm"}],["6","a76",{en:"NPU infer",zh:"NPU 推理"}],["7","a76",{en:"NPU infer",zh:"NPU 推理"}]];
@@ -1893,10 +1884,10 @@ function latencyWaterfall(){
 }
 function debugEvidence(){
   var blocks=[
-    ["vision.log [PERF] (sample)","camera_fps=14.98 infer_fps=14.98 dropped_frames=0\nrknn_inputs_set_ms=0.00 rknn_run_ms=75.0 total_ms=78.0 rtsp_push_ms=1.0"],
-    ["UDP :5800 pose datagram",'{"ts":1782578393.418,"frame_id":1102747,"w":640,"h":480,"persons":[]}'],
-    ["GET :9090/metrics",'eldercare_cma_available_bytes{device="rk3588_local"} 258789376\neldercare_cma_released_bytes{device="rk3588_local"} 258789376'],
-    ["MQTT eldercare/fall/state",'{"fall_score":0.0,"state":"NO_POSE","ts":1782578400.697}']
+    ["vision.log [PERF] · daylight · 2026-07-01 · logs/vision.log","camera_fps=14.975 vision_fps=14.977 dropped_frames=0\nzero_copy=1 rknn_inputs_set_ms=0.00 rknn_run_ms=74.8 total_ms=77.4 rtsp_push_ms=1.13"],
+    ["UDP :5800 pose datagram · live capture · 2026-06-27",'{"ts":1782578393.418,"frame_id":1102747,"w":640,"h":480,"persons":[]}'],
+    ["GET :9090/metrics · 2026-07-01 · health agent",'eldercare_cma_available_bytes{device="rk3588_local"} 258789376\neldercare_cma_released_bytes{device="rk3588_local"} 258789376\neldercare_mediamtx_up 1'],
+    ["MQTT eldercare/fall/state · retained · 2026-06-27",'{"fall_score":0.0,"state":"NO_POSE","ts":1782578400.697}']
   ];
   return '<div class="evgrid">'+blocks.map(function(b){return '<div class="evcard"><div class="evttl">'+esc(b[0])+'</div><pre class="evpre">'+esc(b[1])+'</pre></div>';}).join("")+'</div>';
 }
@@ -1910,8 +1901,8 @@ function netCaptureFigs(){
 
 const FALL_SCENARIOS=[
  {sc:{en:"Overall · 60-clip field test",zh:"总体 · 60 段实测"}, r:"58/60", fp:"1/60", note:{en:"recall 97%, FP 1.7%; owner's field-test sample set, not a public benchmark",zh:"召回 97%、误报 1.7%；owner 的实测样本集，不是公开 benchmark"}},
- {sc:{en:"Normal light",zh:"常光"}, r:"100%", fp:"0", note:{en:"every fall caught, no false alarm",zh:"全部命中，无误报"}},
- {sc:{en:"Low light / night",zh:"弱光 / 夜间"}, r:"18/20*", fp:{en:"the 1 FP is here",zh:"那 1 次误报在此"}, note:{en:"preliminary; low light is the main failure mode, still being expanded (both misses are slow slides)",zh:"初步；弱光是主要失效模式，仍在扩充评测（漏的 2 个都是缓慢下滑）"}},
+ {sc:{en:"Normal light",zh:"常光"}, r:"40/40 (100%)", fp:"0/40", note:{en:"every fall caught, no false alarm",zh:"全部命中，无误报"}},
+ {sc:{en:"Low light / night",zh:"弱光 / 夜间"}, r:"18/20*", fp:{en:"1/20 (the field-test FP)",zh:"1/20（实测那次误报）"}, note:{en:"preliminary night subset; low light is the main failure mode, still being expanded (both misses are slow slides)",zh:"夜光子集（初步）；弱光是主要失效模式，仍在扩充评测（漏的 2 个都是缓慢下滑）"}},
  {sc:{en:"Weak-light stress set (early)",zh:"弱光压力集（早期）"}, r:"2/4 (50%)", fp:{en:"n/a",zh:"n/a"}, note:{en:"slow-slide misses motivated the weak10 ISP profile; per-scenario low-light eval still under validation",zh:"慢滑漏检催生 weak10 ISP profile；分场景低光评测仍在验证中"}},
  {sc:{en:"Per-action (fast/slow/bed/sofa/bend/sit/walk)",zh:"按动作（快跌/慢滑/床/沙发/弯腰/坐/走）"}, r:{en:"pending",zh:"待测"}, fp:{en:"pending",zh:"待测"}, note:{en:"per-scenario eval is the next test (see Roadmap)",zh:"逐场景评测是下一步（见路线图）"}}
 ];
@@ -2044,7 +2035,7 @@ function pageOverview(){
   return pageHead(T.nums_h,T.nums_sub,"vis")+
     '<section style="padding-top:8px">'+
       '<figure class="skelfig"><img src="assets/hardware_bench.jpg" loading="lazy" alt="'+esc(tr(T.cap_hw))+'"><figcaption>'+esc(tr(T.cap_hw))+"</figcaption></figure>"+
-      METRIC_GROUPS.map(function(g){return '<div class="mgroup"><div class="mgtitle" style="--gc:var(--'+g.c+')"><span class="gd"></span>'+esc(tr(g.title))+'</div><div class="mgrow">'+g.items.map(function(m){return '<div class="mitem"><b>'+esc(tr(m.v))+"</b><span>"+esc(tr(m.l))+"</span></div>";}).join("")+"</div></div>";}).join("")+
+      '<div class="mgrow km3">'+KEY_METRICS.map(function(m){return '<div class="mitem" style="--gc:var(--'+m.c+')"><b>'+esc(tr(m.v))+'</b><span>'+esc(tr(m.l))+'</span><a class="mev" href="#/evidence">'+esc(tr(T.b_ev))+': '+esc(m.ev)+'</a></div>';}).join("")+'</div>'+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.bench_title))+"</div>"+benchChart()+"</div>"+
       '<div class="benchwrap"><div class="bttl">'+esc(tr(T.lld_h))+"</div>"+lowlightDecision()+"</div>"+
       '<figure class="skelfig"><img src="assets/detect-skeleton.jpg?v=640noenh" alt="'+esc(tr(T.skel_cap))+'"><figcaption>'+esc(tr(T.skel_cap))+"</figcaption></figure>"+
@@ -2084,7 +2075,7 @@ function pageRuntime(){
         ["eldercare-health.service","eldercare_health_agent --watch",null],
         ["eldercare-llm.service","llama-server (Qwen2.5-1.5B)",null],
         ["eldercare-mediamtx.service","MediaMTX (RTSP / WebRTC / HLS fan-out)",null],
-        ["eldercare-isp-light-agent.service","auto_weaklight_profile.py (ISP aperture / exposure)",null],
+        ["eldercare-isp-light-agent.service","auto_weaklight_profile.py (ISP exposure / vblank / gain)",null],
         ["eldercare-ota-agent.service","eldercare_ota_agent",{en:"disabled by default",zh:"默认关闭"}],
         ["eldercare-rauc-mark-good.service","rauc mark-good hook",{en:"system · optional",zh:"系统级 · 可选"}],
         ["eldercare-rtsp-camera.service","standalone camera server",{en:"debug only · not co-resident with vision",zh:"仅调试 · 不与视觉同占摄像头"}]
@@ -2115,22 +2106,21 @@ function pageObservability(){
 function pageValidation(){
   return pageHead(T.val_h,T.val_sub,"fall")+
     '<section style="padding-top:8px">'+
+      '<div class="secttl"><h2>'+tr(T.prodexp_h)+"</h2></div>"+
+      '<p class="sub">'+tr(T.prodexp_sub)+"</p>"+
+      prodExpTable()+
+    "</section>"+
+    "<section>"+
+      '<div class="secttl"><h2>'+tr(T.val_mtx_h)+"</h2></div>"+
+      validationTable()+
+    "</section>"+
+    "<section>"+
       '<figure class="skelfig" style="margin-top:0"><img src="assets/test_env.jpg" loading="lazy" alt="'+esc(tr(T.cap_testenv))+'"><figcaption>'+esc(tr(T.cap_testenv))+"</figcaption></figure>"+
       '<div class="archsub">'+esc(tr(T.demo_h))+"</div>"+
       '<div class="vidgrid">'+
         '<figure class="vidfig"><video src="assets/demo_daylight.mp4" controls preload="metadata" playsinline></video><figcaption>'+esc(tr(T.cap_demo_day))+"</figcaption></figure>"+
         '<figure class="vidfig"><video src="assets/demo_darklight.mp4" controls preload="metadata" playsinline></video><figcaption>'+esc(tr(T.cap_demo_dark))+"</figcaption></figure>"+
       "</div>"+
-      validationTable()+"</section>"+
-    "<section>"+
-      '<div class="secttl"><h2>'+tr(T.prodexp_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.prodexp_sub)+"</p>"+
-      prodExpTable()+
-    "</section>"+
-    "<section>"+
-      '<div class="secttl"><h2>'+tr(T.fall_table_h)+"</h2></div>"+
-      '<p class="sub">'+tr(T.fall_table_sub)+"</p>"+
-      fallScenarioTable()+
     "</section>"+
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.privacy_h)+"</h2></div>"+
@@ -2151,6 +2141,7 @@ function pageRoadmap(){
 }
 
 function pageEvidence(){
+  var evsec=function(id,title,body){return '<div class="archsub"><span class="evb">'+id+'</span>'+esc(tr(title))+'</div>'+body;};
   return pageHead(T.ev_page_h,T.ev_page_sub,"alert")+
     '<section style="padding-top:8px">'+
       '<div class="secttl"><h2>'+tr(T.eng_h)+"</h2></div>"+
@@ -2163,15 +2154,20 @@ function pageEvidence(){
     "<section>"+
       '<div class="secttl"><h2>'+tr(T.debug_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.debug_sub)+"</p>"+
-      '<div class="archsub">'+esc(tr({en:"Voice latency waterfall",zh:"语音延迟瀑布"}))+"</div>"+
-      latencyWaterfall()+
-      '<div class="archsub">'+esc(tr({en:"Live signals off the board (sample capture)",zh:"板子上的实时信号（示例采集）"}))+"</div>"+
-      debugEvidence()+
-      '<div class="archsub">'+esc(tr({en:"Packet capture (real tcpdump / pcap)",zh:"抓包（真实 tcpdump / pcap）"}))+"</div>"+
-      netCaptureFigs()+
+      evsec("E1",{en:"Live signals off the board: vision.log [PERF], UDP pose, /metrics, MQTT state",zh:"板上实时信号：vision.log [PERF]、UDP 姿态、/metrics、MQTT 状态"},debugEvidence())+
+      evsec("E2",{en:"Weak-light dashboard state (~10 fps, zero-copy ON)",zh:"弱光仪表盘状态（约 10 fps，零拷贝开启）"},
+        '<figure class="netfig" style="margin-top:6px"><a href="assets/dashboard_telemetry.png" target="_blank" rel="noopener"><img src="assets/dashboard_telemetry.png" loading="lazy" alt="'+esc(tr(T.cap_dash))+'"></a><figcaption>'+esc(tr(T.cap_dash))+"</figcaption></figure>")+
+      evsec("E3",{en:"Fall detection by scenario · 60-clip field test · 2026-06-21",zh:"跌倒检测分场景 · 60 段实测 · 2026-06-21"},
+        '<p class="sub" style="margin:0 0 6px">'+tr(T.fall_table_sub)+"</p>"+fallScenarioTable())+
+      evsec("E4",{en:"8-client RTSP/WebRTC fan-out benchmark · 2026-06-25",zh:"8 客户端 RTSP/WebRTC 扇出基准 · 2026-06-25"},
+        '<div class="evgrid"><div class="evcard"><div class="evttl">vision.log + top · 8 clients · 15 s · 2026-06-25</div><pre class="evpre">camera_fps=14.94  rtsp_push_ms~1  single encode -&gt; MediaMTX fan-out\nvision (CMA DMA-BUF appsrc): RSS 192.3 MB, ~80% CPU\nMediaMTX (8 clients):        RSS 43.9 MB,  ~4% CPU</pre></div></div>')+
+      evsec("E5",{en:"Voice latency waterfall (from voice.log timing lines)",zh:"语音延迟瀑布（取自 voice.log timing 行）"},latencyWaterfall())+
+      evsec("E6",{en:"OTA agent self-test · on-board",zh:"OTA agent 自检 · 板上"},
+        '<div class="evgrid"><div class="evcard"><div class="evttl">eldercare_ota_agent --self-test</div><pre class="evpre">$ ./eldercare_ota_agent --self-test\nverify -&gt; patch -&gt; atomic symlink switch -&gt; health gate -&gt; rollback\nexit code 0</pre></div></div>')+
+      evsec("E7",{en:"Packet capture (real tcpdump / pcap)",zh:"抓包（真实 tcpdump / pcap）"},netCaptureFigs())+
     "</section>"+
     "<section>"+
-      '<div class="secttl"><h2>'+tr(T.srcmap_h)+"</h2></div>"+
+      '<div class="secttl"><h2><span class="evb">E8</span>'+tr(T.srcmap_h)+"</h2></div>"+
       '<p class="sub">'+tr(T.srcmap_sub)+"</p>"+
       sourceMap()+
     "</section>";
@@ -2182,13 +2178,13 @@ const PAGES={ background:pageBackground, overview:pageOverview, architecture:pag
 const MODULE_PDBL={
  vision:{
    problem:{en:"Run real-time multi-person pose on a low-cost edge SoC with no cloud, fast enough to catch a fall, and keep detecting in low light. A naive camera-to-NPU path copies pixels several times and stalls well below the camera frame rate.",zh:"在低成本边缘 SoC 上跑实时多人姿态，不上云，要快到能抓住跌倒，还要在弱光下检得到。朴素的相机到 NPU 链路会多次拷贝像素，帧率远低于相机上限。"},
-   design:{en:"V4L2 DMA-BUF capture (8 buffers) into RGA fd-to-fd NV12-to-RGB, bound straight to the NPU with rknn_set_io_mem (single-plane zero-copy input), across three parallel RKNN contexts on separate NPU cores. The 640 model is kept over a faster 384 for low-light recall; low light is handled at the sensor with ISP aperture and exposure, not in software.",zh:"V4L2 DMA-BUF 采集（8 缓冲）进 RGA fd-to-fd 做 NV12 转 RGB，用 rknn_set_io_mem 直接绑到 NPU（单平面零拷贝输入），跑在三个并行 RKNN 上下文、各占一个 NPU 核。为弱光召回保留 640 而不是更快的 384；弱光在传感器侧用 ISP 光圈和曝光处理，不走软件。"},
-   benchmark:{en:"Daylight 14.97 fps, 0 dropped, at the 15 fps camera ceiling; rknn_inputs_set_ms 0.00, rknn_run typically 75-80 ms, total about 78-82 ms per frame; weak-light about 10 fps. On archived low-light snapshots the 640 model recovers 100 percent vs 77.1 percent for the 384.",zh:"日间 14.97 fps、0 丢帧，即 15 fps 相机上限；rknn_inputs_set_ms 0.00、rknn_run 约 79 ms、整帧约 81.5 ms；弱光约 10 fps。弱光存档快照上 640 召回 100%，384 为 77.1%。"},
+   design:{en:"V4L2 DMA-BUF capture (8 buffers) into RGA fd-to-fd NV12-to-RGB, bound straight to the NPU with rknn_set_io_mem (single-plane zero-copy input), across three parallel RKNN contexts on separate NPU cores. The 640 model is kept over a faster 384 for low-light recall; low light is handled at the sensor with ISP exposure / vertical blanking and gain, not in software.",zh:"V4L2 DMA-BUF 采集（8 缓冲）进 RGA fd-to-fd 做 NV12 转 RGB，用 rknn_set_io_mem 直接绑到 NPU（单平面零拷贝输入），跑在三个并行 RKNN 上下文、各占一个 NPU 核。为弱光召回保留 640 而不是更快的 384；弱光在传感器侧用 ISP 曝光 / vertical blanking 和增益处理，不走软件。"},
+   benchmark:{en:"Daylight 14.97 fps, 0 dropped, at the 15 fps camera ceiling; rknn_inputs_set_ms 0.00, rknn_run typically 75-80 ms, total about 78-82 ms per frame; weak-light about 10 fps. On 35 archived low-light / action snapshots (not a full fall dataset) the 640 model recovers 35/35 (100 percent) vs 27/35 (77.1 percent) for the 384.",zh:"日间 14.97 fps、0 丢帧，即 15 fps 相机上限；rknn_inputs_set_ms 0.00、rknn_run 约 75-80 ms、整帧约 78-82 ms；弱光约 10 fps。35 段弱光/动作存档快照（非完整跌倒数据集）上 640 找回 35/35（100%），384 为 27/35（77.1%）。"},
    limitation:{en:"Zero-copy engages only on synchronous single-plane NV12; multi-plane or async frames fall back to rknn_inputs_set with a CPU convert. Tracking is a lightweight IoU tracker, not SORT or ByteTrack. Weak light is still the hard case, and there is no learned lying-vs-sitting classifier yet.",zh:"零拷贝只在同步单平面 NV12 时启用；多平面或异步帧回退到 rknn_inputs_set 加一次 CPU 转换。跟踪只是轻量 IoU，不是 SORT 或 ByteTrack。弱光仍是难点，也还没有学习式的躺/坐分类器。"}},
  judgment:{
    problem:{en:"Decide that a noisy stream of pose keypoints is a real fall that needs help, with far fewer missed falls than false alarms, without being fooled by sitting, bending, lying on a sofa, a clock jump, or a dropped network.",zh:"从带噪的姿态关键点流里判断这是需要求助的真实跌倒，漏报要远少于误报，同时不被坐下、弯腰、躺沙发、时钟跳变或断网骗到。"},
    design:{en:"Per-frame geometric features (body angle, bbox flatness, center and hip drop velocity, lying score) combine into a weighted fall_score, fed to a temporal state machine (NORMAL, WARNING, CONFIRMED) that debounces across frames. The confirmed state has a 60 s TTL so it does not latch red. Tuning is recall-first because a missed fall costs far more than a false alarm.",zh:"每帧的几何特征（身体角度、bbox 扁平度、中心与髋部下坠速度、躺地分数）加权成 fall_score，喂给时序状态机（NORMAL、WARNING、CONFIRMED）跨帧去抖。确认状态有 60 秒 TTL，不会一直锁红。按召回优先调，因为漏报代价远大于误报。"},
-   benchmark:{en:"A 60-clip field test on 2026-06-21: 58/60 recall (97 percent), 1 false alarm (1.7 percent). Normal light caught every fall with no false alarm; night recall was 18/20 (90 percent). Floor-to-alarm averages about 3 s on fast falls.",zh:"2026-06-21 的 60 段实测：58/60 召回（97%）、1 次误报（1.7%）。常光下全部命中、无误报；夜间召回 18/20（90%）。快速跌倒倒地到报警平均约 3 秒。"},
+   benchmark:{en:"A 60-clip field test on 2026-06-21: 58/60 recall (97 percent), 1 false alarm (1.7 percent). Normal light caught every fall with no false alarm; the preliminary night subset was 18/20 (90 percent). Floor-to-alarm averages about 3 s on fast falls.",zh:"2026-06-21 的 60 段实测：58/60 召回（97%）、1 次误报（1.7%）。常光下全部命中、无误报；夜光子集（初步）召回 18/20（90%）。快速跌倒倒地到报警平均约 3 秒。"},
    limitation:{en:"Sixty clips from one session is small for industrial use; the two misses are slow slides where the descent is gentle. Low light is the explicit weak spot, geometry can still confuse a sofa or a deep bend, and there is no per-scenario eval or confusion matrix yet.",zh:"单次会话 60 段对工业级偏小；漏的两个都是缓慢下滑、下坠很轻。弱光是明确弱点，几何仍可能把沙发或大幅弯腰判错，分场景评测和混淆矩阵也还没有。"}},
  voice:{
    problem:{en:"After a fall, ask whether the person is all right and decide whether to escalate, fully offline, in a room with fan and HVAC noise, without the assistant hearing its own TTS and answering itself in a loop.",zh:"跌倒之后主动问一句人有没有事、再决定要不要升级，全程离线，在有风扇和空调噪声的房间里，还不能把自己的 TTS 当输入、自问自答陷入循环。"},
