@@ -1125,7 +1125,7 @@ const DATA = [
   id:"ops", color:"ops",
   name:{en:"Operations",zh:"运维"}, name2:{en:"runtime and monitoring",zh:"运行与监控"},
   tag:{en:"Keeps the services running on the board without supervision.",zh:"没人盯着，也让板子上的服务一直稳稳跑着。"},
-  file:"systemd/ · src/cpp_runtime/health_agent.cpp",
+  file:"deployment/board/systemd/ · src/cpp_runtime/health_agent.cpp",
   overview:{en:"Eight active user services (vision, fall, alert, voice, health, llm, a MediaMTX stream fan-out, and the ISP weak-light agent), plus an on-demand OTA unit (disabled by default) and a system-level fan-hold service. All start under systemd with restart-on-failure. The health agent is a read-only Prometheus exporter on :9090 (/metrics, /dashboard, /viewer, /healthz) sampling liveness, per-process CPU/RSS, NPU load, CMA headroom and temperature. A small shell loop holds the cooling fan at a quiet speed so it does not interfere with the microphone.",
             zh:"八个活跃用户服务（视觉、跌倒、报警、语音、健康、llm、一个 MediaMTX 流扇出，以及 ISP 弱光代理），外加一个按需的 OTA 单元（默认关闭）和一个系统级风扇保持服务。它们都在 systemd 下开机自启、挂了自动拉起。健康代理是一个只读的 Prometheus 导出器，跑在 :9090（/metrics、/dashboard、/viewer、/healthz），采集服务存活、各进程 CPU/RSS、NPU 负载、CMA 余量和温度。还有一小段 shell 循环把散热风扇压在安静的转速，免得它吵到麦克风。"},
   subs:[
@@ -1136,7 +1136,7 @@ const DATA = [
         {t:"boot", d:{en:"default.target",zh:"default.target"}},
         {t:"systemd", d:{en:"8 active + 1 on-demand OTA + system fan-hold, After=",zh:"8 活跃 + 1 按需 OTA + 系统风扇保持，按 After= 排序"}},
         {t:"8 user services", d:{en:"vision / fall / voice / alert / health / llm / mediamtx / isp-light-agent, each its own process",zh:"视觉 / 跌倒 / 语音 / 报警 / 健康 / llm / mediamtx / isp-light-agent，各自独立进程"}},
-        {t:"Restart=always", d:{en:"crash -> restart in 3 s",zh:"崩溃 -> 3 秒重启"}, edge:{en:"self-heal",zh:"自愈"}}
+        {t:"Restart=always", d:{en:"crash -> restart in 2-5 s (per unit)",zh:"崩溃 -> 2-5 秒重启（按服务）"}, edge:{en:"self-heal",zh:"自愈"}}
       ],
       df:{in:["power on"], proc:["systemd ordering","ExecStart wrappers","Restart=always"], out:["8 active + ota on-demand","per-service logs"]},
       why:{en:"Each subsystem is its own unit, so a crash in voice does not take down vision, and any one can be redeployed alone. Logs are per service, which is how the camera-flicker, fan-noise and AEC issues were traced.",
@@ -1884,9 +1884,9 @@ function latencyWaterfall(){
 }
 function debugEvidence(){
   var blocks=[
-    ["vision.log [PERF] · daylight · 2026-07-01 · logs/vision.log","camera_fps=14.975 vision_fps=14.977 dropped_frames=0\nzero_copy=1 rknn_inputs_set_ms=0.00 rknn_run_ms=74.8 total_ms=77.4 rtsp_push_ms=1.13"],
+    ["vision.log [PERF] · daylight · 2026-07-01 · logs/vision.log","camera_fps=14.98 infer_fps=14.98 dropped_frames=0 rknn_inputs_set_ms=0.00\nrknn_run_ms=74.80 total_ms=77.40 rtsp_push_ms=1.13"],
     ["UDP :5800 pose datagram · live capture · 2026-06-27",'{"ts":1782578393.418,"frame_id":1102747,"w":640,"h":480,"persons":[]}'],
-    ["GET :9090/metrics · 2026-07-01 · health agent",'eldercare_cma_available_bytes{device="rk3588_local"} 258789376\neldercare_cma_released_bytes{device="rk3588_local"} 258789376\neldercare_mediamtx_up 1'],
+    ["GET :9090/metrics · 2026-07-01 · health agent",'eldercare_vision_fps{device="rk3588_local"} 14.977\neldercare_vision_camera_fps{device="rk3588_local"} 14.975\neldercare_vision_zero_copy_enabled{device="rk3588_local"} 1\neldercare_cma_available_bytes{device="rk3588_local"} 258789376\neldercare_mediamtx_up 1'],
     ["MQTT eldercare/fall/state · retained · 2026-06-27",'{"fall_score":0.0,"state":"NO_POSE","ts":1782578400.697}']
   ];
   return '<div class="evgrid">'+blocks.map(function(b){return '<div class="evcard"><div class="evttl">'+esc(b[0])+'</div><pre class="evpre">'+esc(b[1])+'</pre></div>';}).join("")+'</div>';
